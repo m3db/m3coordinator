@@ -5,9 +5,9 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/gogo/protobuf/proto"
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/snappy"
 )
 
