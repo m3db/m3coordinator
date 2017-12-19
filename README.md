@@ -4,6 +4,24 @@
 
 Service to access M3DB
 
+### Docker image
+
+> Note that all commands are run within the root of the m3coordinator directory except where specified.
+
+You can launch a Prometheus and m3coordinator container using `docker-compose`. However, you must first build the m3coordinator Docker image.
+
+To do so, you will need the m3coordinator binary:
+
+    $ GOOS=linux GOARCH=amd64 CGO_ENABLED=0 make services
+
+Once you have the binary, you can run the following to make the Docker image:
+
+    $ docker build -t m3coordinator -f docker/Dockerfile .
+
+Finally, you can spin up the two containers using `docker-compose` within the `docker/` directory:
+
+    $ docker-compose up
+
 <hr>
 
 This project is released under the [MIT License](LICENSE.md).
