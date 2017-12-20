@@ -6,9 +6,11 @@ import (
 	"net/http"
 
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
+	"github.com/m3db/m3coordinator/util/logging"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/snappy"
+	"go.uber.org/zap"
 )
 
 // PromReadHandler represents a handler for prometheus read endpoint.
@@ -21,12 +23,14 @@ func NewPromReadHandler() http.Handler {
 }
 
 func (h *PromReadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	_, err := h.parseRequest(w, r)
+	req, err := h.parseRequest(w, r)
 	if err != nil {
 		return
 	}
 
-	// TODO: Actual read
+	// TODO: Actual read instead of logging
+	logging.WithContext(r.Context()).Info("Read request", zap.Any("req", req))
+
 	resp := &prompb.ReadResponse{
 		Results: []*prompb.QueryResult{{}},
 	}
