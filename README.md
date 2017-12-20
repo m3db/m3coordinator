@@ -36,7 +36,7 @@ Finally, you can spin up the two containers using `docker-compose` within the `d
 >
 > (e.g. `$ LOCAL_PROM_PORT=XXXX LOCAL_M3COORD_PORT=XXXX LOCAL_PROM_YML=/path/to/yml docker-compose up`)
 
-**Running m3coordinator locally and Prometheus in Docker container (for development):**
+**Running m3coordinator locally (on mac only) and Prometheus in Docker container (for development):**
 
 Build m3coordinator binary:
 
@@ -48,7 +48,7 @@ Run m3coordinator binary:
 
 Run Prometheus Docker image:
 
-    $ docker run -p 9090:9090 -v $GOPATH/src/github.com/m3db/m3coordinator/docker/prometheus-dev.yml:/etc/prometheus/prometheus.yml quay.io/prometheus/prometheus
+    $ docker run -p 9090:9090 -v $GOPATH/src/github.com/m3db/m3coordinator/docker/prometheus-mac.yml:/etc/prometheus/prometheus.yml quay.io/prometheus/prometheus
 
 <hr>
 
