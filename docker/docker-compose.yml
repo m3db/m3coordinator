@@ -3,12 +3,12 @@ services:
   m3coordinator:
     image: "m3coordinator"
     ports:
-      - "1234:1234"
+      - ${LOCAL_M3COORD_PORT:-1234}:1234
   prometheus:
     image: "quay.io/prometheus/prometheus"
     links:
       - "m3coordinator:m3coordinator"
     ports:
-      - "9090:9090"
+      - ${LOCAL_PROM_PORT:-9090}:9090
     volumes:
-     - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ${LOCAL_PROM_YML:-./prometheus.yml}:/etc/prometheus/prometheus.yml
