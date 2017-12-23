@@ -30,3 +30,6 @@ scrape_configs:
 
 remote_read:
   - url: http://docker.for.mac.localhost:4116/api/v1/prom/read
+
+remote_write:
+  - url: http://docker.for.mac.localhost:4116/api/v1/prom/write
