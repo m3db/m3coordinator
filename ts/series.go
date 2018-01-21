@@ -35,3 +35,15 @@ func NewSeries(ctx context.Context, name string, startTime time.Time, vals []flo
 		Specification: name,
 	}
 }
+
+// StartTime returns the time the block starts
+func (b *Series) StartTime() time.Time { return b.startTime }
+
+// Name returns the name of the timeseries block
+func (b *Series) Name() string { return b.name }
+
+// Len returns the number of values in the time series.  Used for aggregation
+func (b *Series) Len() int { return len(b.vals) }
+
+// ValueAt returns the value at a given step.  Used for aggregation
+func (b *Series) ValueAt(i int) float64 { return b.vals[i] }

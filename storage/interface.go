@@ -12,13 +12,13 @@ import (
 
 // Storage provides an interface for reading and writing to the tsdb
 type Storage interface {
-	Queryable
+	Querier
 	Appender
 }
 
-// Queryable handles queries against a storage.
-type Queryable interface {
-	// FetchByQuery fetches timeseries data based on a query
+// Querier handles queries against a storage.
+type Querier interface {
+	// Fetch fetches timeseries data based on a query
 	Fetch(
 		ctx context.Context, tagMatchers []*models.Matcher, start time.Time, end time.Time) (*FetchResult, error)
 }
