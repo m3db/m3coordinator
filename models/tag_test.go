@@ -1,6 +1,10 @@
 package models
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
 
 func mustNewMatcher(t *testing.T, mType MatchType, value string) *Matcher {
 	m, err := NewMatcher(mType, "", value)
@@ -75,3 +79,6 @@ func TestMatcher(t *testing.T) {
 	}
 }
 
+func TestMatchType(t *testing.T) {
+	require.Equal(t, MatchEqual.String(), "=")
+}

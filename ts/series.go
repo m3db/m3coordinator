@@ -20,9 +20,6 @@ type Series struct {
 
 	// Metric tags.
 	Tags map[string]string
-
-	// options for graphing
-	GraphOptions map[string]string
 }
 
 // NewSeries creates a new Series at a given start time, backed by the provided values
