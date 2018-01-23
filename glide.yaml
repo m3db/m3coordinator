@@ -16,3 +16,5 @@ import:
   version: ^2.2.6
 - package: github.com/m3db/m3db
   version: 2cf3dff4e917703d093717210c8dc96e088e4b05
+  subpackages:
+  - client
