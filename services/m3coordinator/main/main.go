@@ -72,12 +72,10 @@ func main() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
-	select {
-	case <-sigChan:
-		if err := session.Close(); err != nil {
-			fmt.Fprintf(os.Stderr, "Unable to close m3db client session, got error %v\n", err)
-			os.Exit(1)
-		}
+	<-sigChan
+	if err := session.Close(); err != nil {
+		fmt.Fprintf(os.Stderr, "Unable to close m3db client session, got error %v\n", err)
+		os.Exit(1)
 	}
 }
 
