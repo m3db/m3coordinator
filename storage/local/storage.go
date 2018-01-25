@@ -58,7 +58,11 @@ func (s *localStorage) Fetch(ctx context.Context, query *models.ReadQuery) (*sto
 	}
 
 	// TODO: Get the correct metric name
-	series := ts.NewSeries(ctx, query.TagMatchers.ID(), reqRange.Start, values)
+	tags, err := query.TagMatchers.ToTags()
+	if err != nil {
+		return nil, err
+	}
+	series := ts.NewSeries(ctx, tags.ID(), reqRange.Start, values)
 	seriesList := make([]*ts.Series, 1)
 	seriesList[0] = series
 	return &storage.FetchResult{
@@ -66,6 +70,9 @@ func (s *localStorage) Fetch(ctx context.Context, query *models.ReadQuery) (*sto
 	}, nil
 }
 
-func (s *localStorage) Write(tags models.Tags, t time.Time, value float64, unit xtime.Unit, annotation []byte) error {
+func (s *localStorage) Write(id string, t time.Time, value float64, unit xtime.Unit, annotation []byte) error {
+	if err := s.session.Write(s.namespace, id, t, value, unit, nil); err != nil {
+		return err
+	}
 	return nil
 }

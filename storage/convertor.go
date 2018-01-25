@@ -9,6 +9,23 @@ import (
 	"github.com/m3db/m3coordinator/ts"
 )
 
+// PromWriteTSToM3 converts a prometheus write query to an M3 one
+func PromWriteTSToM3(timeseries *prompb.TimeSeries) *models.Tags {
+	tagMatchers := PromLabelsToM3Tags(timeseries.Labels)
+
+	return tagMatchers
+}
+
+// PromLabelsToM3Tags converts Prometheus labels to M3 tags
+func PromLabelsToM3Tags(labels []*prompb.Label) *models.Tags {
+	tags := make(models.Tags, len(labels))
+	for _, label := range labels {
+		tags[label.Name] = label.Value
+	}
+
+	return &tags
+}
+
 // PromReadQueryToM3 converts a prometheus read query to m3 ready query
 func PromReadQueryToM3(query *prompb.Query) (*models.ReadQuery, error) {
 	tagMatchers, err := PromMatchersToM3(query.Matchers)
@@ -95,7 +112,7 @@ func SeriesToPromResult(series *ts.Series) (*prompb.QueryResult, error) {
 }
 
 // TagsToPromLabels converts tags to prometheus labels
-func TagsToPromLabels(tags models.Tags) ([]*prompb.Label) {
+func TagsToPromLabels(tags models.Tags) []*prompb.Label {
 	labels := make([]*prompb.Label, 0, len(tags))
 	for k, v := range tags {
 		labels = append(labels, &prompb.Label{Name: k, Value: v})

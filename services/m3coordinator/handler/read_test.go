@@ -33,8 +33,8 @@ func generatePromReadRequest() *prompb.ReadRequest {
 				{Type: prompb.LabelMatcher_RE, Name: "regex", Value: "c"},
 				{Type: prompb.LabelMatcher_NRE, Name: "neqregex", Value: "d"},
 			},
-			StartTimestampMs: time.Now().Add(-1*time.Hour*24).UnixNano()/int64(time.Millisecond),
-			EndTimestampMs:   time.Now().UnixNano()/int64(time.Millisecond),
+			StartTimestampMs: time.Now().Add(-1*time.Hour*24).UnixNano() / int64(time.Millisecond),
+			EndTimestampMs:   time.Now().UnixNano() / int64(time.Millisecond),
 		}},
 	}
 	return req

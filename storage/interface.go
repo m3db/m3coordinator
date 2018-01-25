@@ -26,7 +26,7 @@ type Querier interface {
 // Appender provides batched appends against a storage.
 type Appender interface {
 	// Write value to the database for an ID
-	Write(tags models.Tags, t time.Time, value float64, unit xtime.Unit, annotation []byte) error
+	Write(id string, t time.Time, value float64, unit xtime.Unit, annotation []byte) error
 }
 
 // FetchResult provides a fetch result and meta information
