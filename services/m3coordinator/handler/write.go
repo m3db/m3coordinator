@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"time"
@@ -40,7 +39,7 @@ func (h *PromWriteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.write(r.Context(), req); err != nil {
+	if err := h.write(req); err != nil {
 		logging.WithContext(r.Context()).Error("Write error", zap.Any("err", err))
 		Error(w, err, http.StatusInternalServerError)
 		return
@@ -61,21 +60,19 @@ func (h *PromWriteHandler) parseRequest(r *http.Request) (*prompb.WriteRequest, 
 	return &req, nil
 }
 
-func (h *PromWriteHandler) write(ctx context.Context, r *prompb.WriteRequest) error {
-	if len(r.Timeseries) != 1 {
-		return fmt.Errorf("prometheus write endpoint currently only supports one timeseries at a time")
-	}
+func (h *PromWriteHandler) write(r *prompb.WriteRequest) error {
+	for _, t := range r.Timeseries {
+		tagsList := storage.PromWriteTSToM3(t)
+		id := tagsList.ID()
+		fmt.Printf("writing id: %s with tags: %v\n", id, tagsList)
 
-	promTS := r.Timeseries[0]
-	tagsList := storage.PromWriteTSToM3(promTS)
-	id := tagsList.ID()
-
-	for _, sample := range promTS.Samples {
-		timestamp := time.Unix(0, sample.Timestamp*int64(time.Second))
-		if err := h.store.Write(id, timestamp, sample.Value, xtime.Millisecond, nil); err != nil {
-
-			return err
+		for _, sample := range t.Samples {
+			timestamp := time.Unix(0, sample.Timestamp*int64(time.Millisecond))
+			if err := h.store.Write(id, timestamp, sample.Value, xtime.Millisecond, nil); err != nil {
+				return err
+			}
 		}
 	}
+
 	return nil
 }

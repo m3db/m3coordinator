@@ -2,7 +2,6 @@ package handler
 
 import (
 	"bytes"
-	"context"
 	"io"
 	"net/http"
 	"testing"
@@ -29,10 +28,20 @@ func generatePromWriteRequest() *prompb.WriteRequest {
 				{Name: "biz", Value: "baz"},
 			},
 			Samples: []*prompb.Sample{
-				{Value: 1.0, Timestamp: time.Now().Unix()},
-				{Value: 2.0, Timestamp: time.Now().Unix()},
+				{Value: 1.0, Timestamp: time.Now().UnixNano() / int64(time.Millisecond)},
+				{Value: 2.0, Timestamp: time.Now().UnixNano() / int64(time.Millisecond)},
 			},
-		}},
+		},
+			{
+				Labels: []*prompb.Label{
+					{Name: "foo", Value: "qux"},
+					{Name: "bar", Value: "baz"},
+				},
+				Samples: []*prompb.Sample{
+					{Value: 3.0, Timestamp: time.Now().UnixNano() / int64(time.Millisecond)},
+					{Value: 4.0, Timestamp: time.Now().UnixNano() / int64(time.Millisecond)},
+				},
+			}},
 	}
 	return req
 }
@@ -59,7 +68,7 @@ func TestPromWriteParsing(t *testing.T) {
 
 	r, err := promWrite.parseRequest(req)
 	require.Nil(t, err, "unable to parse request")
-	require.Equal(t, len(r.Timeseries), 1)
+	require.Equal(t, len(r.Timeseries), 2)
 }
 
 func TestPromWrite(t *testing.T) {
@@ -77,6 +86,6 @@ func TestPromWrite(t *testing.T) {
 	r, err := promWrite.parseRequest(req)
 	require.Nil(t, err, "unable to parse request")
 
-	writeErr := promWrite.write(context.Background(), r)
+	writeErr := promWrite.write(r)
 	require.NoError(t, writeErr)
 }

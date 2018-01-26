@@ -71,8 +71,5 @@ func (s *localStorage) Fetch(ctx context.Context, query *models.ReadQuery) (*sto
 }
 
 func (s *localStorage) Write(id string, t time.Time, value float64, unit xtime.Unit, annotation []byte) error {
-	if err := s.session.Write(s.namespace, id, t, value, unit, nil); err != nil {
-		return err
-	}
-	return nil
+	return s.session.Write(s.namespace, id, t, value, unit, nil)
 }
