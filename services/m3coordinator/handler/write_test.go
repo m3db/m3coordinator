@@ -7,16 +7,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/mock/gomock"
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/snappy"
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/storage/local"
 	"github.com/m3db/m3coordinator/util/logging"
+
 	"github.com/m3db/m3db/client"
 	"github.com/m3db/m3metrics/policy"
 	xtime "github.com/m3db/m3x/time"
+
+	"github.com/golang/mock/gomock"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/snappy"
 	"github.com/stretchr/testify/require"
 )
 
