@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -64,7 +63,6 @@ func (h *PromWriteHandler) write(r *prompb.WriteRequest) error {
 	for _, t := range r.Timeseries {
 		tagsList := storage.PromWriteTSToM3(t)
 		id := tagsList.ID()
-		fmt.Printf("writing id: %s with tags: %v\n", id, tagsList)
 
 		for _, sample := range t.Samples {
 			timestamp := time.Unix(0, sample.Timestamp*int64(time.Millisecond))

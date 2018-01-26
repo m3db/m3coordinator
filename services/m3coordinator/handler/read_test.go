@@ -12,15 +12,18 @@ import (
 
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
 	"github.com/m3db/m3coordinator/policy/resolver"
+	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/storage/local"
 	"github.com/m3db/m3coordinator/util/logging"
+
+	"github.com/m3db/m3db/client"
+	"github.com/m3db/m3metrics/policy"
+	xtime "github.com/m3db/m3x/time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/snappy"
-	"github.com/m3db/m3db/client"
-	"github.com/m3db/m3metrics/policy"
-	xtime "github.com/m3db/m3x/time"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -85,4 +88,15 @@ func TestPromReadStorageWithFetchError(t *testing.T) {
 	req := generatePromReadRequest()
 	_, err := promRead.read(context.TODO(), req)
 	require.NotNil(t, err, "unable to read from storage")
+}
+
+func TestQueryMatchMustBeEqual(t *testing.T) {
+	logging.InitWithCores(nil)
+
+	req := generatePromReadRequest()
+	matchers, err := storage.PromMatchersToM3(req.Queries[0].Matchers)
+	require.NoError(t, err)
+
+	_, err = matchers.ToTags()
+	assert.Error(t, err)
 }
