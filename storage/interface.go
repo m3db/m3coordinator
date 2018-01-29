@@ -2,12 +2,9 @@ package storage
 
 import (
 	"context"
-	"time"
 
 	"github.com/m3db/m3coordinator/models"
 	"github.com/m3db/m3coordinator/ts"
-
-	xtime "github.com/m3db/m3x/time"
 )
 
 // Storage provides an interface for reading and writing to the tsdb
@@ -26,7 +23,7 @@ type Querier interface {
 // Appender provides batched appends against a storage.
 type Appender interface {
 	// Write value to the database for an ID
-	Write(id string, t time.Time, value float64, unit xtime.Unit, annotation []byte) error
+	Write(query *models.WriteQuery) error
 }
 
 // FetchResult provides a fetch result and meta information

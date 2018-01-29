@@ -83,6 +83,7 @@ func (m *Matcher) Matches(s string) bool {
 type Matchers []*Matcher
 
 // ToTags converts Matchers to Tags
+// NB (braskin): this only works for exact matches
 func (m Matchers) ToTags() (Tags, error) {
 	tags := make(Tags, len(m))
 	for _, v := range m {
@@ -95,7 +96,7 @@ func (m Matchers) ToTags() (Tags, error) {
 	return tags, nil
 }
 
-// ID returns a string representation of the matchers
+// ID returns a string representation of the tags
 func (t Tags) ID() string {
 	sep := ","
 	eq := "="

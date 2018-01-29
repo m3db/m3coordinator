@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
+	"github.com/m3db/m3coordinator/models"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/util/logging"
 
@@ -62,15 +63,28 @@ func (h *PromWriteHandler) parseRequest(r *http.Request) (*prompb.WriteRequest, 
 func (h *PromWriteHandler) write(r *prompb.WriteRequest) error {
 	for _, t := range r.Timeseries {
 		tagsList := storage.PromWriteTSToM3(t)
-		id := tagsList.ID()
+		writeQuery := createWriteQuery(tagsList, time.Now(), 0, xtime.Millisecond, nil)
 
+		// todo (braskin): parallelize this
 		for _, sample := range t.Samples {
-			timestamp := time.Unix(0, sample.Timestamp*int64(time.Millisecond))
-			if err := h.store.Write(id, timestamp, sample.Value, xtime.Millisecond, nil); err != nil {
+			timestamp := storage.PromTimestampToTime(sample.Timestamp)
+			writeQuery.Time = timestamp
+			writeQuery.Value = sample.Value
+			if err := h.store.Write(writeQuery); err != nil {
 				return err
 			}
 		}
 	}
 
 	return nil
+}
+
+func createWriteQuery(tags *models.Tags, timestamp time.Time, value float64, unit xtime.Unit, annotation []byte) *models.WriteQuery {
+	return &models.WriteQuery{
+		Tags:       tags,
+		Time:       timestamp,
+		Value:      value,
+		Unit:       xtime.Millisecond,
+		Annotation: nil,
+	}
 }

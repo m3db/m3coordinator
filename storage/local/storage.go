@@ -10,7 +10,6 @@ import (
 	"github.com/m3db/m3coordinator/ts"
 
 	"github.com/m3db/m3db/client"
-	xtime "github.com/m3db/m3x/time"
 )
 
 const (
@@ -62,6 +61,7 @@ func (s *localStorage) Fetch(ctx context.Context, query *models.ReadQuery) (*sto
 	if err != nil {
 		return nil, err
 	}
+
 	series := ts.NewSeries(ctx, tags.ID(), reqRange.Start, values)
 	seriesList := make([]*ts.Series, 1)
 	seriesList[0] = series
@@ -70,6 +70,7 @@ func (s *localStorage) Fetch(ctx context.Context, query *models.ReadQuery) (*sto
 	}, nil
 }
 
-func (s *localStorage) Write(id string, t time.Time, value float64, unit xtime.Unit, annotation []byte) error {
-	return s.session.Write(s.namespace, id, t, value, unit, nil)
+func (s *localStorage) Write(query *models.WriteQuery) error {
+	id := query.Tags.ID()
+	return s.session.Write(s.namespace, id, query.Time, query.Value, query.Unit, query.Annotation)
 }

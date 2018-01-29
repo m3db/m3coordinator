@@ -12,7 +12,6 @@ import (
 // PromWriteTSToM3 converts a prometheus write query to an M3 one
 func PromWriteTSToM3(timeseries *prompb.TimeSeries) *models.Tags {
 	tagMatchers := PromLabelsToM3Tags(timeseries.Labels)
-
 	return tagMatchers
 }
 
