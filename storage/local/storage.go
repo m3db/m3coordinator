@@ -71,7 +71,6 @@ func (s *localStorage) Fetch(ctx context.Context, query *storage.ReadQuery) (*st
 
 func (s *localStorage) Write(ctx context.Context, query *storage.WriteQuery) error {
 	id := query.Tags.ID()
-
 	// todo (braskin): parallelize this
 	for _, datapoint := range query.Datapoints {
 		if err := s.session.Write(s.namespace, id, datapoint.Timestamp, datapoint.Value, query.Unit, query.Annotation); err != nil {
