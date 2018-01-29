@@ -1,12 +1,13 @@
 package handler
 
 import (
+	"context"
 	"net/http"
-	"time"
 
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
 	"github.com/m3db/m3coordinator/models"
 	"github.com/m3db/m3coordinator/storage"
+	"github.com/m3db/m3coordinator/ts"
 	"github.com/m3db/m3coordinator/util/logging"
 
 	xtime "github.com/m3db/m3x/time"
@@ -18,6 +19,7 @@ import (
 const (
 	// PromWriteURL is the url for the prom write handler
 	PromWriteURL = "/api/v1/prom/write"
+	xTimeUnit    = xtime.Millisecond
 )
 
 // PromWriteHandler represents a handler for prometheus write endpoint.
@@ -39,7 +41,7 @@ func (h *PromWriteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.write(req); err != nil {
+	if err := h.write(r.Context(), req); err != nil {
 		logging.WithContext(r.Context()).Error("Write error", zap.Any("err", err))
 		Error(w, err, http.StatusInternalServerError)
 		return
@@ -60,31 +62,23 @@ func (h *PromWriteHandler) parseRequest(r *http.Request) (*prompb.WriteRequest, 
 	return &req, nil
 }
 
-func (h *PromWriteHandler) write(r *prompb.WriteRequest) error {
+func (h *PromWriteHandler) write(ctx context.Context, r *prompb.WriteRequest) error {
 	for _, t := range r.Timeseries {
-		tagsList := storage.PromWriteTSToM3(t)
-		writeQuery := createWriteQuery(tagsList, time.Now(), 0, xtime.Millisecond, nil)
+		tagsList, datapoints := storage.PromWriteTSToM3(t)
+		writeQuery := createWriteQuery(tagsList, datapoints, nil)
 
-		// todo (braskin): parallelize this
-		for _, sample := range t.Samples {
-			timestamp := storage.PromTimestampToTime(sample.Timestamp)
-			writeQuery.Time = timestamp
-			writeQuery.Value = sample.Value
-			if err := h.store.Write(writeQuery); err != nil {
-				return err
-			}
+		if err := h.store.Write(ctx, writeQuery); err != nil {
+			return err
 		}
 	}
-
 	return nil
 }
 
-func createWriteQuery(tags *models.Tags, timestamp time.Time, value float64, unit xtime.Unit, annotation []byte) *models.WriteQuery {
-	return &models.WriteQuery{
+func createWriteQuery(tags models.Tags, datapoints ts.Datapoints, annotation []byte) *storage.WriteQuery {
+	return &storage.WriteQuery{
 		Tags:       tags,
-		Time:       timestamp,
-		Value:      value,
-		Unit:       xtime.Millisecond,
-		Annotation: nil,
+		Datapoints: datapoints,
+		Unit:       xTimeUnit,
+		Annotation: annotation,
 	}
 }

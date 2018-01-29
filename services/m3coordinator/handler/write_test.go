@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"net/http"
 	"testing"
@@ -88,6 +89,6 @@ func TestPromWrite(t *testing.T) {
 	r, err := promWrite.parseRequest(req)
 	require.Nil(t, err, "unable to parse request")
 
-	writeErr := promWrite.write(r)
+	writeErr := promWrite.write(context.TODO(), r)
 	require.NoError(t, writeErr)
 }
