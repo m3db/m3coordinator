@@ -7,13 +7,25 @@ import (
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
 	"github.com/m3db/m3coordinator/models"
 	"github.com/m3db/m3coordinator/ts"
+
+	xtime "github.com/m3db/m3x/time"
+)
+
+const (
+	xTimeUnit = xtime.Millisecond
 )
 
 // PromWriteTSToM3 converts a prometheus write query to an M3 one
-func PromWriteTSToM3(timeseries *prompb.TimeSeries) (models.Tags, ts.Datapoints) {
-	tagMatchers := PromLabelsToM3Tags(timeseries.Labels)
+func PromWriteTSToM3(timeseries *prompb.TimeSeries) *WriteQuery {
+	tags := PromLabelsToM3Tags(timeseries.Labels)
 	datapoints := PromSamplesToM3Datapoints(timeseries.Samples)
-	return tagMatchers, datapoints
+
+	return &WriteQuery{
+		Tags:       tags,
+		Datapoints: datapoints,
+		Unit:       xTimeUnit,
+		Annotation: nil,
+	}
 }
 
 // PromLabelsToM3Tags converts Prometheus labels to M3 tags

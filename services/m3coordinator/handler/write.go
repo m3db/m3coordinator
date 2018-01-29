@@ -5,12 +5,8 @@ import (
 	"net/http"
 
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
-	"github.com/m3db/m3coordinator/models"
 	"github.com/m3db/m3coordinator/storage"
-	"github.com/m3db/m3coordinator/ts"
 	"github.com/m3db/m3coordinator/util/logging"
-
-	xtime "github.com/m3db/m3x/time"
 
 	"github.com/golang/protobuf/proto"
 	"go.uber.org/zap"
@@ -19,7 +15,6 @@ import (
 const (
 	// PromWriteURL is the url for the prom write handler
 	PromWriteURL = "/api/v1/prom/write"
-	xTimeUnit    = xtime.Millisecond
 )
 
 // PromWriteHandler represents a handler for prometheus write endpoint.
@@ -64,21 +59,10 @@ func (h *PromWriteHandler) parseRequest(r *http.Request) (*prompb.WriteRequest, 
 
 func (h *PromWriteHandler) write(ctx context.Context, r *prompb.WriteRequest) error {
 	for _, t := range r.Timeseries {
-		tagsList, datapoints := storage.PromWriteTSToM3(t)
-		writeQuery := createWriteQuery(tagsList, datapoints, nil)
-
+		writeQuery := storage.PromWriteTSToM3(t)
 		if err := h.store.Write(ctx, writeQuery); err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-func createWriteQuery(tags models.Tags, datapoints ts.Datapoints, annotation []byte) *storage.WriteQuery {
-	return &storage.WriteQuery{
-		Tags:       tags,
-		Datapoints: datapoints,
-		Unit:       xTimeUnit,
-		Annotation: annotation,
-	}
 }
