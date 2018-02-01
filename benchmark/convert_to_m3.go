@@ -1,16 +1,16 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
+	"sort"
+	"strings"
+	"time"
 
 	"github.com/m3db/m3coordinator/storage"
-	"github.com/m3db/m3coordinator/ts"
-
-	xtime "github.com/m3db/m3x/time"
 )
 
 // Metrics is the OpenTSDB style metrics
@@ -21,38 +21,66 @@ type Metrics struct {
 	Value float64           `json:"value"`
 }
 
-func convertToM3(fileName string) []storage.WriteQuery {
-	raw, err := ioutil.ReadFile(fileName)
+type M3Metric struct {
+	ID    string
+	Time  time.Time
+	Value float64
+}
+
+var sortedKeys []string
+var buffer = bytes.NewBuffer(nil)
+
+func convertToM3(fileName string) []M3Metric {
+	fd, err := os.OpenFile(fileName, os.O_RDONLY, 0)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to read json file, got error: %v", err)
 		os.Exit(1)
 	}
 
-	var metrics []Metrics
-	for _, line := range bytes.Split(raw, []byte{'\n'}) {
-		if len(bytes.TrimSpace(line)) != 0 {
+	defer fd.Close()
+
+	var (
+		metrics = make([]M3Metric, 0, 100000)
+		scanner = bufio.NewScanner(fd)
+	)
+	for scanner.Scan() {
+		data := bytes.TrimSpace(scanner.Bytes())
+		if len(data) != 0 {
 			var m Metrics
-			if err := json.Unmarshal(line, &m); err != nil {
+			if err := json.Unmarshal(data, &m); err != nil {
 				fmt.Fprintf(os.Stderr, "Unable to unmarshal json, got error: %v", err)
 				os.Exit(1)
 			}
-			metrics = append(metrics, m)
+			metrics = append(metrics, M3Metric{ID: ID(m.Tags, m.Name), Time: storage.PromTimestampToTime(m.Time), Value: m.Value})
 		}
 	}
-
-	var writeQueries []storage.WriteQuery
-	for _, i := range metrics {
-		var datapoint ts.Datapoint
-		datapoint.Timestamp = storage.PromTimestampToTime(i.Time)
-		datapoint.Value = i.Value
-		writeQuery := storage.WriteQuery{
-			Tags:       storage.FromMapToTags(i.Tags),
-			Datapoints: ts.Datapoints{&datapoint},
-			Unit:       xtime.Millisecond,
-			Annotation: nil,
-		}
-		writeQueries = append(writeQueries, writeQuery)
+	if err := scanner.Err(); err != nil {
+		panic(err)
 	}
 
-	return writeQueries
+	return metrics
+
+}
+
+func ID(lowerCaseTags map[string]string, name string) string {
+	// Start generating path, write m3 prefix and name to buffer
+	buffer.Truncate(0)
+	buffer.WriteString(strings.ToLower(name))
+
+	// Generate tags in alphabetical order & write to buffer
+	i := 0
+	for key := range lowerCaseTags {
+		sortedKeys = append(sortedKeys, key)
+		i++
+	}
+	sort.Strings(sortedKeys)
+
+	i = 0
+	for i = 0; i < len(sortedKeys)-1; i++ {
+		buffer.WriteString(sortedKeys[i])
+		buffer.WriteString(lowerCaseTags[sortedKeys[i]])
+	}
+
+	sortedKeys = sortedKeys[:0]
+	return buffer.String()
 }
