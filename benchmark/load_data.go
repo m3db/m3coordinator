@@ -54,7 +54,7 @@ func main() {
 
 	m3dbClientOpts := cfg.M3DBClientCfg
 	m3dbClient, err := m3dbClientOpts.NewClient(client.ConfigurationParameters{}, func(v client.Options) client.Options {
-		return v.SetMinConnectionCount(1).SetMaxConnectionCount(1).SetWriteBatchSize(batch).SetWriteOpPoolSize(batch * 2)
+		return v.SetWriteBatchSize(batch).SetWriteOpPoolSize(batch * 2)
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to create m3db client, got error %v\n", err)
