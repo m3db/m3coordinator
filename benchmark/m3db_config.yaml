@@ -1,0 +1,172 @@
+logging:
+    level: info
+    # file: /var/log/m3dbnode.log
+
+metrics:
+    m3:
+        hostPort: 127.0.0.1:9052
+        service: m3dbnode
+        env: production
+        includeHost: true
+    samplingRate: 0.01
+    runtime: simple
+
+listenAddress: 0.0.0.0:9000
+clusterListenAddress: 0.0.0.0:9001
+httpNodeListenAddress: 0.0.0.0:9002
+httpClusterListenAddress: 0.0.0.0:9003
+debugListenAddress: 0.0.0.0:9004
+
+hostID:
+    resolver: hostname
+    # value: {{.HostID}}
+
+client:
+    writeConsistencyLevel: majority
+    readConsistencyLevel: unstrict_majority
+    clusterConnectConsistencyLevel: any
+    writeTimeout: 10s
+    fetchTimeout: 15s
+    connectTimeout: 20s
+    writeRetry:
+        initialBackoff: 500ms
+        backoffFactor: 3
+        maxRetries: 2
+        jitter: true
+    fetchRetry:
+        initialBackoff: 500ms
+        backoffFactor: 2
+        maxRetries: 3
+        jitter: true
+    backgroundHealthCheckFailLimit: 4
+    backgroundHealthCheckFailThrottleFactor: 0.5
+
+gcPercentage: 100
+
+writeNewSeriesAsync: true
+writeNewSeriesLimitPerSecond: 1048576
+writeNewSeriesBackoffDuration: 2ms
+
+bootstrap:
+    bootstrappers:
+        - filesystem
+        - commitlog
+    fs:
+        numProcessorsPerCPU: 0.125
+
+commitlog:
+    flushMaxBytes: 524288
+    flushEvery: 1s
+    queue:
+        calculationType: fixed
+        size: 2097152
+    retentionPeriod: 24h
+    blockSize: 10m
+
+fs:
+    filePathPrefix: /var/lib/m3db
+    writeBufferSize: 65536
+    dataReadBufferSize: 65536
+    infoReadBufferSize: 128
+    seekReadBufferSize: 4096
+    throughputLimitMbps: 100.0
+    throughputCheckEvery: 128
+
+repair:
+    enabled: false
+    interval: 2h
+    offset: 30m
+    jitter: 1h
+    throttle: 2m
+    checkInterval: 1m
+
+pooling:
+    blockAllocSize: 16
+    type: simple
+    seriesPool:
+        size: 128
+        lowWatermark: 0.001
+        highWatermark: 0.002
+    blockPool:
+        size: 128
+        lowWatermark: 0.001
+        highWatermark: 0.002
+    encoderPool:
+        size: 128
+        lowWatermark: 0.001
+        highWatermark: 0.002
+    closersPool:
+        size: 128
+        lowWatermark: 0.001
+        highWatermark: 0.002
+    contextPool:
+        size: 128
+        lowWatermark: 0.001
+        highWatermark: 0.002
+    segmentReaderPool:
+        size: 128
+        lowWatermark: 0.01
+        highWatermark: 0.02
+    iteratorPool:
+        size: 128
+        lowWatermark: 0.01
+        highWatermark: 0.02
+    fetchBlockMetadataResultsPool:
+        size: 128
+        capacity: 32
+        lowWatermark: 0.01
+        highWatermark: 0.02
+    fetchBlocksMetadataResultsPool:
+        size: 128
+        capacity: 128
+        lowWatermark: 0.01
+        highWatermark: 0.02
+    hostBlockMetadataSlicePool:
+        size: 128
+        capacity: 3
+        lowWatermark: 0.01
+        highWatermark: 0.02
+    blockMetadataPool:
+        size: 128
+        lowWatermark: 0.01
+        highWatermark: 0.02
+    blockMetadataSlicePool:
+        size: 128
+        capacity: 32
+        lowWatermark: 0.01
+        highWatermark: 0.02
+    blocksMetadataPool:
+        size: 128
+        lowWatermark: 0.01
+        highWatermark: 0.02
+    blocksMetadataSlicePool:
+        size: 128
+        capacity: 128
+        lowWatermark: 0.01
+        highWatermark: 0.02
+    identifierPool:
+        size: 128
+        lowWatermark: 0.001
+        highWatermark: 0.002
+    bytesPool:
+        lowWatermark: 0.001
+        highWatermark: 0.002
+        buckets:
+            - capacity: 32
+              count: 128
+            - capacity: 512
+              count: 128
+            - capacity: 4096
+              count: 128
+
+config:
+    static:
+        topology:
+            shards: 2
+        namespaces:
+            - name: metrics
+              options:
+              retention:
+                retentionPeriod: 24h
+                blockSize: 2h
+                bufferPast: 1h

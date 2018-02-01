@@ -2,9 +2,9 @@
 
 # M3Coordinator [![GoDoc][doc-img]][doc] [![Build Status][ci-img]][ci] [![Coverage Status][cov-img]][cov]
 
-M3Coordinator is a service which provides APIs for reading/writing to [M3DB](https://github.com/m3db/m3db) at a global and placement specific level. 
+M3Coordinator is a service which provides APIs for reading/writing to [M3DB](https://github.com/m3db/m3db) at a global and placement specific level.
 It also acts as a bridge between [Prometheus](https://github.com/prometheus/prometheus) and [M3DB](https://github.com/m3db/m3db). Using this bridge, [M3DB](https://github.com/m3db/m3db) acts as a long term storage for [Prometheus](https://github.com/prometheus/prometheus) using the [remote read/write endpoints](https://github.com/prometheus/prometheus/blob/master/prompb/remote.proto).
-A detailed explanation of setting up long term storage for Prometheus can be found [here](https://schd.ws/hosted_files/cloudnativeeu2017/73/Integrating%20Long-Term%20Storage%20with%20Prometheus%20-%20CloudNativeCon%20Berlin%2C%20March%2030%2C%202017.pdf). 
+A detailed explanation of setting up long term storage for Prometheus can be found [here](https://schd.ws/hosted_files/cloudnativeeu2017/73/Integrating%20Long-Term%20Storage%20with%20Prometheus%20-%20CloudNativeCon%20Berlin%2C%20March%2030%2C%202017.pdf).
 
 ### Running in Docker
 
@@ -51,6 +51,27 @@ Run m3coordinator binary:
 Run Prometheus Docker image:
 
     $ docker run -p 9090:9090 -v $GOPATH/src/github.com/m3db/m3coordinator/docker/prometheus-mac.yml:/etc/prometheus/prometheus.yml quay.io/prometheus/prometheus
+
+### Benchmarking
+
+To benchmark m3db using m3coordinator.
+
+1) Pull down `braskin/benchmark` branch in m3coordinator
+2) Create metrics using InfluxDB's data gen tool:
+
+    $ git clone https://github.com/benraskin92/influxdb-comparisons.git
+    $ cd cmd/bulk_data_gen
+    $ go build
+    $ ./bulk_data_gen -format=opentsdb -timestamp-start=2018-02-01T15:18:00Z -timestamp-end=2018-02-01T15:28:00Z -scale-var=20 -seed=504570971 > $GOPATH/src/github.com/m3db/m3coordinator/benchmark/benchmark_data.json
+
+> Note: The timestamp start and end must be within the `buffer_past` config that is set for m3db, otherwise you will get datapoint too far in the past errors.
+
+3) Start m3db. You can use the config that is in `github.com/m3db/m3coordinator/benchmark/`
+
+4) Build and run the benchmark tool in m3coordinator
+
+    $ cd $GOPATH/src/github.com/m3db/m3coordinator/benchmark/
+    $ go build && ./benchmark -workers=2
 
 <hr>
 
