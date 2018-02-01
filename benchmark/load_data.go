@@ -42,8 +42,8 @@ func init() {
 }
 
 func main() {
-	metrics := convertToM3(dataFile)
-	ch := make(chan M3Metric, workers)
+	metrics := convertToM3(dataFile, workers)
+	ch := make(chan *M3Metric, workers)
 	inputDone = make(chan struct{})
 
 	var cfg config.Configuration
@@ -107,7 +107,7 @@ func main() {
 	}
 }
 
-func addMetricsToChan(ch chan M3Metric, wq []M3Metric) int {
+func addMetricsToChan(ch chan *M3Metric, wq []*M3Metric) int {
 	var items int
 	for _, query := range wq {
 		ch <- query
@@ -117,7 +117,7 @@ func addMetricsToChan(ch chan M3Metric, wq []M3Metric) int {
 	return items
 }
 
-func writeToM3DB(session client.Session, ch chan M3Metric, itemsWrittenCh chan int) {
+func writeToM3DB(session client.Session, ch chan *M3Metric, itemsWrittenCh chan int) {
 	var itemsWritten int
 	// var otherWG sync.WaitGroup
 	for query := range ch {
