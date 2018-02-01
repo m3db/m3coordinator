@@ -44,7 +44,9 @@ func main() {
 	}
 
 	m3dbClientOpts := cfg.M3DBClientCfg
-	m3dbClient, err := m3dbClientOpts.NewClient(client.ConfigurationParameters{})
+	m3dbClient, err := m3dbClientOpts.NewClient(client.ConfigurationParameters{}, func(v client.Options) client.Options {
+		return v.SetWriteBatchSize(5000)
+	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to create m3db client, got error %v\n", err)
 		os.Exit(1)
@@ -98,17 +100,23 @@ func addMetricsToChan(ch chan storage.WriteQuery, wq []storage.WriteQuery) int {
 
 func writeToM3DB(session client.Session, ch chan storage.WriteQuery, itemsWrittenCh chan int) {
 	var itemsWritten int
-	var otherWG sync.WaitGroup
+	// var otherWG sync.WaitGroup
 	for query := range ch {
 		id := query.Tags.ID()
-		go session.Write(namespace, id, query.Datapoints[0].Timestamp, query.Datapoints[0].Value, xtime.Millisecond, nil)
-		otherWG.Add(1)
+		if err := session.Write(namespace, id, query.Datapoints[0].Timestamp, query.Datapoints[0].Value, xtime.Millisecond, nil); err != nil {
+			fmt.Println(err)
+		}
+		// otherWG.Add(1)
+		// go func() {
+		// 	session.Write(namespace, id, query.Datapoints[0].Timestamp, query.Datapoints[0].Value, xtime.Millisecond, nil)
+		// 	otherWG.Done()
+		// }()
 		if itemsWritten%10000 == 0 {
 			fmt.Println(itemsWritten)
 		}
 		itemsWritten++
 	}
-	otherWG.Done()
+	// otherWG.Wait()
 	wg.Done()
 	itemsWrittenCh <- itemsWritten
 }

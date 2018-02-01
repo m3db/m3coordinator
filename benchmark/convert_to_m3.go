@@ -30,12 +30,14 @@ func convertToM3(fileName string) []storage.WriteQuery {
 
 	var metrics []Metrics
 	for _, line := range bytes.Split(raw, []byte{'\n'}) {
-		var m Metrics
-		if err := json.Unmarshal(line, &m); err != nil {
-			fmt.Fprintf(os.Stderr, "Unable to unmarshal json, got error: %v", err)
-			os.Exit(1)
+		if len(bytes.TrimSpace(line)) != 0 {
+			var m Metrics
+			if err := json.Unmarshal(line, &m); err != nil {
+				fmt.Fprintf(os.Stderr, "Unable to unmarshal json, got error: %v", err)
+				os.Exit(1)
+			}
+			metrics = append(metrics, m)
 		}
-		metrics = append(metrics, m)
 	}
 
 	var writeQueries []storage.WriteQuery
