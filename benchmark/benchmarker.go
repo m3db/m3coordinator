@@ -101,7 +101,6 @@ func (b *benchmarker) serve() {
 	})
 	mux.HandleFunc("/stats", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("up\n"))
 		json.NewEncoder(w).Encode(stat.snapshot())
 	})
 	http.ListenAndServe(b.address, mux)
