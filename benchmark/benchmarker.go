@@ -123,11 +123,11 @@ func (b *benchmarker) allAddresses() []string {
 }
 
 func (b *benchmarker) queryBenchmarkers() {
+	client := NewHTTPClient(DefaultHTTPClientOptions())
 	for {
 		var allStats []stats
 		allResponded := true
 		time.Sleep(10 * time.Second)
-		client := NewHTTPClient(DefaultHTTPClientOptions())
 		for _, addr := range b.allAddresses() {
 			req, err := http.NewRequest("GET", fmt.Sprintf("http://%s/stats", addr), nil)
 			if err != nil {
@@ -169,6 +169,7 @@ func (b *benchmarker) queryBenchmarkers() {
 }
 
 func (b *benchmarker) waitForBenchmarkers() {
+	client := NewHTTPClient(DefaultHTTPClientOptions())
 	allUp := false
 	for !allUp {
 		time.Sleep(10 * time.Millisecond)
