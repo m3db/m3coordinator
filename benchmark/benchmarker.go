@@ -181,7 +181,6 @@ func (b *benchmarker) waitForBenchmarkers() {
 			// To be able to use defer run in own fn
 			time.Sleep(10 * time.Millisecond)
 			allUp = true
-			client := NewHTTPClient(DefaultHTTPClientOptions())
 			for _, addr := range b.allAddresses() {
 				req, err := http.NewRequest("GET", fmt.Sprintf("http://%s/health", addr), nil)
 				if err != nil {
