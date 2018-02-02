@@ -20,14 +20,14 @@ func NewStorage(stores []storage.Storage, readFilter filter.Querier, writeFilter
 
 func (s *fanoutStorage) Fetch(ctx context.Context, query *storage.ReadQuery) (*storage.FetchResult, error) {
 	stores := filterReadStores(s.stores, s.readFilter, query)
-	
-
+	//TODO: Actual fanout
+	return stores[0].Fetch(ctx, query)
 }
 
 func (s *fanoutStorage) Write(ctx context.Context, query *storage.WriteQuery) error {
 	stores := filterWriteStores(s.stores, s.writeFilter, query)
-
-	return nil
+	//TODO: Actual fanout
+	return stores[0].Write(ctx, query)
 }
 
 func (s *fanoutStorage) Type() storage.Type {

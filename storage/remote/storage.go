@@ -16,6 +16,7 @@ func NewStorage() storage.Storage {
 }
 
 func (s *remoteStorage) Fetch(ctx context.Context, query *storage.ReadQuery) (*storage.FetchResult, error) {
+	return nil, nil
 }
 
 func (s *remoteStorage) Write(ctx context.Context, query *storage.WriteQuery) error {
