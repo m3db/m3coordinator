@@ -7,6 +7,7 @@ import (
 )
 
 type remoteStorage struct {
+
 }
 
 // NewStorage creates a new remote Storage instance.
@@ -19,4 +20,8 @@ func (s *remoteStorage) Fetch(ctx context.Context, query *storage.ReadQuery) (*s
 
 func (s *remoteStorage) Write(ctx context.Context, query *storage.WriteQuery) error {
 	return nil
+}
+
+func (s *remoteStorage) Type() storage.Type {
+	return storage.TypeRemoteDC
 }
