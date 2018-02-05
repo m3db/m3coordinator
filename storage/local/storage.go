@@ -13,6 +13,7 @@ import (
 
 const (
 	initRawFetchAllocSize = 32
+	cool                  = 0
 )
 
 type localStorage struct {
