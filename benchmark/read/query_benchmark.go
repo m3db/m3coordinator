@@ -81,7 +81,6 @@ func main() {
 	}
 
 	ids := getIDs(dataFile)
-	fmt.Println(len(ids))
 
 	start := time.Now()
 

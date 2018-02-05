@@ -47,7 +47,7 @@ func (s *stats) combine(other stats) stats {
 	}
 }
 
-// ClientOptions specify HTTP Client options.
+// HTTPClientOptions specify HTTP Client options.
 type HTTPClientOptions struct {
 	RequestTimeout      time.Duration `yaml:"requestTimeout"`
 	ConnectTimeout      time.Duration `yaml:"connectTimeout"`
@@ -56,7 +56,7 @@ type HTTPClientOptions struct {
 	DisableCompression  bool          `yaml:"disableCompression"`
 }
 
-// NewClient constructs a new HTTP Client.
+// NewHTTPClient constructs a new HTTP Client.
 func NewHTTPClient(o HTTPClientOptions) *http.Client {
 	return &http.Client{
 		Timeout: o.RequestTimeout,
@@ -73,7 +73,7 @@ func NewHTTPClient(o HTTPClientOptions) *http.Client {
 	}
 }
 
-// DefaultClientOptions returns default options.
+// DefaultHTTPClientOptions returns default options.
 func DefaultHTTPClientOptions() HTTPClientOptions {
 	return HTTPClientOptions{
 		RequestTimeout:      2 * time.Second,

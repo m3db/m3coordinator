@@ -34,7 +34,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&m3dbClientCfg, "m3db-client-config", "benchmark.yml", "used to create m3db client session")
+	flag.StringVar(&m3dbClientCfg, "m3db-client-config", "configs/benchmark.yml", "used to create m3db client session")
 	flag.StringVar(&dataFile, "data-file", "data.json", "input data for benchmark")
 	flag.IntVar(&workers, "workers", 1, "Number of parallel requests to make.")
 	flag.IntVar(&batch, "batch", 5000, "Batch Size")

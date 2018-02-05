@@ -41,7 +41,7 @@ func getIDs(fileName string) []string {
 				fmt.Fprintf(os.Stderr, "Unable to unmarshal json, got error: %v", err)
 				os.Exit(1)
 			}
-			idSet[ID(m.Tags, m.Name)] = struct{}{}
+			idSet[id(m.Tags, m.Name)] = struct{}{}
 		}
 	}
 	if err := scanner.Err(); err != nil {
@@ -55,7 +55,7 @@ func getIDs(fileName string) []string {
 	return ids
 }
 
-func ID(lowerCaseTags map[string]string, name string) string {
+func id(lowerCaseTags map[string]string, name string) string {
 	// Start generating path, write m3 prefix and name to buffer
 	buffer.Truncate(0)
 	buffer.WriteString(strings.ToLower(name))

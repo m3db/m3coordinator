@@ -22,12 +22,12 @@ type Metrics struct {
 	Value float64           `json:"value"`
 }
 
+// M3Metric is a lighterweight Metrics struct
 type M3Metric struct {
 	ID    string
 	Time  time.Time
 	Value float64
 }
-
 
 func convertToM3(fileName string, workers int) []*M3Metric {
 	fd, err := os.OpenFile(fileName, os.O_RDONLY, 0)
@@ -42,12 +42,12 @@ func convertToM3(fileName string, workers int) []*M3Metric {
 		metrics = make([]*M3Metric, 0, 100000)
 		scanner = bufio.NewScanner(fd)
 	)
-	var wg           sync.WaitGroup
+	var wg sync.WaitGroup
 	dataChannel := make(chan []byte, 100000)
 	metricChannel := make(chan *M3Metric, 100000)
-	for w := 0; w < workers ; w++ {
+	for w := 0; w < workers; w++ {
 		wg.Add(1)
-		go func () {
+		go func() {
 			for data := range dataChannel {
 				if len(data) != 0 {
 					var m Metrics
@@ -55,7 +55,7 @@ func convertToM3(fileName string, workers int) []*M3Metric {
 						fmt.Fprintf(os.Stderr, "Unable to unmarshal json, got error: %v", err)
 						os.Exit(1)
 					}
-					metricChannel <- &M3Metric{ID: ID(m.Tags, m.Name), Time: storage.PromTimestampToTime(m.Time), Value: m.Value}
+					metricChannel <- &M3Metric{ID: id(m.Tags, m.Name), Time: storage.PromTimestampToTime(m.Time), Value: m.Value}
 				}
 			}
 			wg.Done()
@@ -85,11 +85,9 @@ func convertToM3(fileName string, workers int) []*M3Metric {
 	}
 
 	return metrics
-
 }
 
-
-func ID(lowerCaseTags map[string]string, name string) string {
+func id(lowerCaseTags map[string]string, name string) string {
 	var sortedKeys []string
 	var buffer = bytes.NewBuffer(nil)
 	buffer.WriteString(strings.ToLower(name))
