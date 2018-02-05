@@ -132,8 +132,8 @@ func main() {
 	fmt.Println(sum)
 	end := time.Now()
 	took := end.Sub(start)
-	atomic.StoreInt64(&endNanosAtomic, int64(end.UnixNano()))
-	rate := float64(itemsRead) / float64(took.Seconds())
+	atomic.StoreInt64(&endNanosAtomic, end.UnixNano())
+	rate := float64(itemsRead) / took.Seconds()
 
 	fmt.Printf("loaded %d items in %fsec with %d workers (mean values rate %f/sec)\n", itemsRead, took.Seconds(), workers, rate)
 

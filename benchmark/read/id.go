@@ -68,7 +68,6 @@ func id(lowerCaseTags map[string]string, name string) string {
 	}
 	sort.Strings(sortedKeys)
 
-	i = 0
 	for i = 0; i < len(sortedKeys)-1; i++ {
 		buffer.WriteString(sortedKeys[i])
 		buffer.WriteString(lowerCaseTags[sortedKeys[i]])

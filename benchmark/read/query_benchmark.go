@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/m3db/m3coordinator/services/m3coordinator/config"
@@ -27,9 +26,6 @@ var (
 
 	timestampStart time.Time
 	timestampEnd   time.Time
-	wg             sync.WaitGroup
-	inputDone      chan struct{}
-	itemsWritten   chan int
 )
 
 func init() {
@@ -92,9 +88,7 @@ func main() {
 
 	end := time.Now()
 	took := end.Sub(start)
-	rate := float64(rawResults.Len()) / float64(took.Seconds())
+	rate := float64(rawResults.Len()) / took.Seconds()
 
 	fmt.Printf("returned %d timeseries in %fsec (mean values rate %f/sec)\n", rawResults.Len(), took.Seconds(), rate)
-
-	return
 }

@@ -38,14 +38,15 @@ func (s *stats) snapshot() stats {
 	return stats{Writes: s.getWrites(), RunTimeMs: s.getRunTimeMs()}
 }
 
-func (s *stats) combine(other stats) stats {
-	otherSnap := other.snapshot()
-	snap := s.snapshot()
-	return stats{
-		Writes:    snap.Writes + otherSnap.Writes,
-		RunTimeMs: snap.RunTimeMs + other.RunTimeMs,
-	}
-}
+// Do we need this? It's not used.
+// func (s *stats) combine(other stats) stats {
+// 	otherSnap := other.snapshot()
+// 	snap := s.snapshot()
+// 	return stats{
+// 		Writes:    snap.Writes + otherSnap.Writes,
+// 		RunTimeMs: snap.RunTimeMs + other.RunTimeMs,
+// 	}
+// }
 
 // HTTPClientOptions specify HTTP Client options.
 type HTTPClientOptions struct {
@@ -164,7 +165,7 @@ func (b *benchmarker) queryBenchmarkers() {
 				}
 				avgTook := float64(sumTook) / float64(len(allStats))
 				avgTookDuration := time.Duration(avgTook)
-				rate := float64(total) / float64(avgTookDuration.Seconds())
+				rate := float64(total) / avgTookDuration.Seconds()
 				fmt.Printf("global stats %d items in %fsec (mean values rate %f/sec)\n",
 					total, avgTookDuration.Seconds(), rate)
 			}
