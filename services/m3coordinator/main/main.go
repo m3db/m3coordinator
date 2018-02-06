@@ -15,6 +15,7 @@ import (
 	"github.com/m3db/m3coordinator/services/m3coordinator/config"
 	"github.com/m3db/m3coordinator/services/m3coordinator/httpd"
 	"github.com/m3db/m3coordinator/storage/local"
+	"github.com/m3db/m3coordinator/tsdb/remote"
 	"github.com/m3db/m3coordinator/util/logging"
 
 	"github.com/m3db/m3db/client"
@@ -49,7 +50,8 @@ func main() {
 	}
 
 	logging.InitWithCores(nil)
-	logger := logging.WithContext(context.TODO())
+	ctx := context.TODO()
+	logger := logging.WithContext(ctx)
 	defer logger.Sync()
 
 	m3dbClientOpts := cfg.M3DBClientCfg
@@ -72,6 +74,13 @@ func main() {
 		os.Exit(1)
 	}
 	handler.RegisterRoutes()
+
+	logger.Info("Starting gRPC server")
+	err = remote.StartNewGrpcServer(ctx, storage)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Unable to start gRPC server, got error %v\n", err)
+		os.Exit(1)
+	}
 
 	logger.Info("Starting server", zap.String("address", flags.listenAddress))
 	go http.ListenAndServe(flags.listenAddress, handler.Router)
