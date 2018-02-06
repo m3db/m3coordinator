@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/m3db/m3coordinator/benchmark/common"
 	"github.com/m3db/m3coordinator/services/m3coordinator/config"
 
 	"github.com/m3db/m3db/client"
@@ -47,8 +48,11 @@ func init() {
 }
 
 func main() {
-	metrics := convertToM3(dataFile, workers)
-	ch := make(chan *M3Metric, workers)
+	metrics := make([]*common.M3Metric, 0, common.MetricsLen)
+	common.ConvertToM3(dataFile, workers, func(m *common.M3Metric) {
+		metrics = append(metrics, m)
+	})
+	ch := make(chan *common.M3Metric, workers)
 	inputDone = make(chan struct{})
 
 	var cfg config.Configuration
@@ -99,7 +103,6 @@ func main() {
 
 	b := &benchmarker{address: address, benchmarkers: benchmarkers}
 	go b.serve()
-	go b.queryBenchmarkers()
 	fmt.Printf("waiting for other benchmarkers to spin up...\n")
 	b.waitForBenchmarkers()
 	fmt.Printf("done\n")
@@ -129,7 +132,6 @@ func main() {
 		sum += <-itemsWritten
 	}
 
-	fmt.Println(sum)
 	end := time.Now()
 	took := end.Sub(start)
 	atomic.StoreInt64(&endNanosAtomic, end.UnixNano())
@@ -144,7 +146,7 @@ func main() {
 	select {}
 }
 
-func addMetricsToChan(ch chan *M3Metric, wq []*M3Metric) int {
+func addMetricsToChan(ch chan *common.M3Metric, wq []*common.M3Metric) int {
 	var items int
 	for _, query := range wq {
 		ch <- query
@@ -154,9 +156,8 @@ func addMetricsToChan(ch chan *M3Metric, wq []*M3Metric) int {
 	return items
 }
 
-func writeToM3DB(session client.Session, ch chan *M3Metric, itemsWrittenCh chan int) {
+func writeToM3DB(session client.Session, ch chan *common.M3Metric, itemsWrittenCh chan int) {
 	var itemsWritten int
-	// var otherWG sync.WaitGroup
 	for query := range ch {
 		id := query.ID
 		if err := session.Write(namespace, id, query.Time, query.Value, xtime.Millisecond, nil); err != nil {
@@ -164,17 +165,11 @@ func writeToM3DB(session client.Session, ch chan *M3Metric, itemsWrittenCh chan 
 		} else {
 			stat.incWrites()
 		}
-		// otherWG.Add(1)
-		// go func() {
-		// 	session.Write(namespace, id, query.Datapoints[0].Timestamp, query.Datapoints[0].Value, xtime.Millisecond, nil)
-		// 	otherWG.Done()
-		// }()
 		if itemsWritten > 0 && itemsWritten%10000 == 0 {
 			fmt.Println(itemsWritten)
 		}
 		itemsWritten++
 	}
-	// otherWG.Wait()
 	wg.Done()
 	itemsWrittenCh <- itemsWritten
 }

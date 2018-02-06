@@ -122,57 +122,6 @@ func (b *benchmarker) allAddresses() []string {
 	return all
 }
 
-func (b *benchmarker) queryBenchmarkers() {
-	client := NewHTTPClient(DefaultHTTPClientOptions())
-	for {
-		func() {
-			// To be able to use defer run in own fn
-			var allStats []stats
-			allResponded := true
-			time.Sleep(10 * time.Second)
-			for _, addr := range b.allAddresses() {
-				req, err := http.NewRequest("GET", fmt.Sprintf("http://%s/stats", addr), nil)
-				if err != nil {
-					panic(err)
-				}
-
-				resp, err := client.Do(req)
-				if resp != nil {
-					defer resp.Body.Close()
-				}
-
-				if err != nil {
-					allResponded = false
-					continue
-				}
-
-				var s stats
-				if err := json.NewDecoder(resp.Body).Decode(&s); err != nil {
-					fmt.Fprintf(os.Stderr, "failed to decode response from benchmarker %s: %v", addr, err)
-					allResponded = false
-					continue
-				}
-
-				allStats = append(allStats, s)
-			}
-
-			if allResponded {
-				total := int64(0)
-				sumTook := time.Duration(0)
-				for _, s := range allStats {
-					total += s.Writes
-					sumTook += time.Duration(s.RunTimeMs) * time.Millisecond
-				}
-				avgTook := float64(sumTook) / float64(len(allStats))
-				avgTookDuration := time.Duration(avgTook)
-				rate := float64(total) / avgTookDuration.Seconds()
-				fmt.Printf("global stats %d items in %fsec (mean values rate %f/sec)\n",
-					total, avgTookDuration.Seconds(), rate)
-			}
-		}()
-	}
-}
-
 func (b *benchmarker) waitForBenchmarkers() {
 	client := NewHTTPClient(DefaultHTTPClientOptions())
 	allUp := false

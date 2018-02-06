@@ -155,12 +155,3 @@ func SeriesToPromSamples(series *ts.Series) []*prompb.Sample {
 	}
 	return samples
 }
-
-// FromMapToTags converts a map[string]string to Tags
-func FromMapToTags(mapTags map[string]string) models.Tags {
-	tags := make(models.Tags, len(mapTags))
-	for k, v := range mapTags {
-		tags[k] = v
-	}
-	return tags
-}

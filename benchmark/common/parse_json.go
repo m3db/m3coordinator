@@ -1,4 +1,4 @@
-package main
+package common
 
 import (
 	"bufio"
@@ -12,6 +12,14 @@ import (
 	"time"
 
 	"github.com/m3db/m3coordinator/storage"
+)
+
+var (
+	wg sync.WaitGroup
+)
+
+const (
+	MetricsLen = 100000
 )
 
 // Metrics is the OpenTSDB style metrics
@@ -29,7 +37,7 @@ type M3Metric struct {
 	Value float64
 }
 
-func convertToM3(fileName string, workers int) []*M3Metric {
+func ConvertToM3(fileName string, workers int, f func(*M3Metric)) {
 	fd, err := os.OpenFile(fileName, os.O_RDONLY, 0)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to read json file, got error: %v", err)
@@ -39,33 +47,20 @@ func convertToM3(fileName string, workers int) []*M3Metric {
 	defer fd.Close()
 
 	var (
-		metrics = make([]*M3Metric, 0, 100000)
 		scanner = bufio.NewScanner(fd)
 	)
-	var wg sync.WaitGroup
-	dataChannel := make(chan []byte, 100000)
-	metricChannel := make(chan *M3Metric, 100000)
+
+	// var wg sync.WaitGroup
+	dataChannel := make(chan []byte, MetricsLen)
+	metricChannel := make(chan *M3Metric, MetricsLen)
 	for w := 0; w < workers; w++ {
 		wg.Add(1)
-		go func() {
-			for data := range dataChannel {
-				if len(data) != 0 {
-					var m Metrics
-					if err := json.Unmarshal(data, &m); err != nil {
-						fmt.Fprintf(os.Stderr, "Unable to unmarshal json, got error: %v", err)
-						os.Exit(1)
-					}
-					metricChannel <- &M3Metric{ID: id(m.Tags, m.Name), Time: storage.PromTimestampToTime(m.Time), Value: m.Value}
-				}
-			}
-			wg.Done()
-		}()
-
+		go unmarshalMetrics(dataChannel, metricChannel)
 	}
 
 	go func() {
 		for metric := range metricChannel {
-			metrics = append(metrics, metric)
+			f(metric)
 		}
 	}()
 
@@ -83,8 +78,21 @@ func convertToM3(fileName string, workers int) []*M3Metric {
 	if err := scanner.Err(); err != nil {
 		panic(err)
 	}
+}
 
-	return metrics
+func unmarshalMetrics(dataChannel chan []byte, metricChannel chan *M3Metric) {
+	for data := range dataChannel {
+		if len(data) != 0 {
+			var m Metrics
+			if err := json.Unmarshal(data, &m); err != nil {
+				fmt.Fprintf(os.Stderr, "Unable to unmarshal json, got error: %v", err)
+				os.Exit(1)
+			}
+
+			metricChannel <- &M3Metric{ID: id(m.Tags, m.Name), Time: storage.PromTimestampToTime(m.Time), Value: m.Value}
+		}
+	}
+	wg.Done()
 }
 
 func id(lowerCaseTags map[string]string, name string) string {

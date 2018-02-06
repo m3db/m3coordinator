@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/m3db/m3coordinator/benchmark/common"
 	"github.com/m3db/m3coordinator/services/m3coordinator/config"
 
 	"github.com/m3db/m3db/client"
@@ -63,7 +64,7 @@ func main() {
 
 	m3dbClientOpts := cfg.M3DBClientCfg
 	m3dbClient, err := m3dbClientOpts.NewClient(client.ConfigurationParameters{}, func(v client.Options) client.Options {
-		return v.SetMinConnectionCount(1).SetMaxConnectionCount(1).SetWriteBatchSize(batch).SetWriteOpPoolSize(batch * 2)
+		return v.SetWriteBatchSize(batch).SetWriteOpPoolSize(batch * 2)
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to create m3db client, got error %v\n", err)
@@ -76,7 +77,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	ids := getIDs(dataFile)
+	ids := make([]string, 0, common.MetricsLen)
+	common.ConvertToM3(dataFile, workers, func(m *common.M3Metric) {
+		ids = append(ids, m.ID)
+	})
 
 	start := time.Now()
 
