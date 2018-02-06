@@ -19,6 +19,7 @@ var (
 )
 
 const (
+	// MetricsLen is used to create the objects that store the parsed metrics
 	MetricsLen = 100000
 )
 
@@ -37,6 +38,7 @@ type M3Metric struct {
 	Value float64
 }
 
+// ConvertToM3 parses the json file that is generated from InfluxDB's bulk_data_gen tool
 func ConvertToM3(fileName string, workers int, f func(*M3Metric)) {
 	fd, err := os.OpenFile(fileName, os.O_RDONLY, 0)
 	if err != nil {
