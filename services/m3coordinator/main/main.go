@@ -34,6 +34,7 @@ var (
 type m3config struct {
 	configFile           string
 	listenAddress        string
+	rpcAddress           string
 	maxConcurrentQueries int
 	queryTimeout         time.Duration
 }
@@ -75,12 +76,17 @@ func main() {
 	}
 	handler.RegisterRoutes()
 
-	logger.Info("Starting gRPC server")
-	err = remote.StartNewGrpcServer(ctx, storage)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to start gRPC server, got error %v\n", err)
-		os.Exit(1)
-	}
+	logger.Info("Creating gRPC server")
+	server := remote.CreateNewGrpcServer(ctx, storage)
+
+	go func() {
+		logger.Info("Starting gRPC server")
+		err = remote.StartNewGrpcServer(server, flags.rpcAddress)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Unable to start gRPC server, got error %v\n", err)
+			os.Exit(1)
+		}
+	}()
 
 	logger.Info("Starting server", zap.String("address", flags.listenAddress))
 	go http.ListenAndServe(flags.listenAddress, handler.Router)
@@ -114,6 +120,9 @@ func parseFlags() *m3config {
 
 	a.Flag("query.max-concurrency", "Maximum number of queries executed concurrently.").
 		Default("20").IntVar(&cfg.maxConcurrentQueries)
+
+	a.Flag("rpc.port", "Address to run rpc on.").
+		Default("0.0.0.0:7288").StringVar(&cfg.rpcAddress)
 
 	_, err := a.Parse(os.Args[1:])
 	if err != nil {

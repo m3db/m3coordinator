@@ -12,8 +12,8 @@ type remoteStorage struct {
 }
 
 // NewStorage creates a new remote Storage instance.
-func NewStorage() (storage.Storage, error) {
-	c, err := remote.NewGrpcClient()
+func NewStorage(address string) (storage.Storage, error) {
+	c, err := remote.NewGrpcClient(address)
 	if err != nil {
 		return nil, err
 	}
