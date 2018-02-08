@@ -48,11 +48,8 @@ func ConvertToM3(fileName string, workers int, f func(*M3Metric)) {
 
 	defer fd.Close()
 
-	var (
-		scanner = bufio.NewScanner(fd)
-	)
+	scanner := bufio.NewScanner(fd)
 
-	// var wg sync.WaitGroup
 	dataChannel := make(chan []byte, MetricsLen)
 	metricChannel := make(chan *M3Metric, MetricsLen)
 	for w := 0; w < workers; w++ {
@@ -74,7 +71,6 @@ func ConvertToM3(fileName string, workers int, f func(*M3Metric)) {
 	}
 
 	close(dataChannel)
-
 	wg.Wait()
 	close(metricChannel)
 	if err := scanner.Err(); err != nil {

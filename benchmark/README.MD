@@ -5,7 +5,7 @@ To benchmark m3db writes using m3coordinator.
 1) Make sure you have the lastest version of m3coordinator
 2) Pull down benraskin92's fork of `influxdb-comparisons`:
 
-       $ git clone https://github.com/benraskin92/influxdb-comparisons.git
+       $ git clone https://github.com/benraskin92/influxdb-comparisons.git $GOPATH/src/github.com/
        $ cd cmd/bulk_data_gen
        $ go build
 
@@ -17,7 +17,7 @@ To benchmark m3db writes using m3coordinator.
 
 4) Start m3db. You can use the config that is in `github.com/m3db/m3coordinator/benchmark/`
 
-        $ ./bin/m3dbnode -f ~/gocode/src/github.com/m3db/m3coordinator/benchmark/m3db_config.yaml
+        $ ./bin/m3dbnode -f $GOPATH/src/github.com/m3db/m3coordinator/benchmark/m3db_config.yaml
 
 5) Build and run the benchmark tool in m3coordinator
 
