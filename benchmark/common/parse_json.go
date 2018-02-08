@@ -83,8 +83,7 @@ func unmarshalMetrics(dataChannel chan []byte, metricChannel chan *M3Metric) {
 		if len(data) != 0 {
 			var m Metrics
 			if err := json.Unmarshal(data, &m); err != nil {
-				fmt.Fprintf(os.Stderr, "Unable to unmarshal json, got error: %v", err)
-				os.Exit(1)
+				panic(err)
 			}
 
 			metricChannel <- &M3Metric{ID: id(m.Tags, m.Name), Time: storage.PromTimestampToTime(m.Time), Value: m.Value}
