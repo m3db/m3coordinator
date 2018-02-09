@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"os"
@@ -46,8 +46,7 @@ func main() {
 
 	var cfg config.Configuration
 	if err := xconfig.LoadFile(&cfg, flags.configFile); err != nil {
-		fmt.Fprintf(os.Stderr, "unable to load %s: %v", flags.configFile, err)
-		os.Exit(1)
+		log.Fatalf("unable to load %s: %v", flags.configFile, err)
 	}
 
 	logging.InitWithCores(nil)
@@ -58,21 +57,18 @@ func main() {
 	m3dbClientOpts := cfg.M3DBClientCfg
 	m3dbClient, err := m3dbClientOpts.NewClient(client.ConfigurationParameters{})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to create m3db client, got error %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Unable to create m3db client, got error %v\n", err)
 	}
 
 	session, err := m3dbClient.NewSession()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to create m3db client session, got error %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Unable to create m3db client session, got error %v\n", err)
 	}
 
 	storage := local.NewStorage(session, namespace, resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
 	handler, err := httpd.NewHandler(storage)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to set up handlers, got error %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Unable to set up handlers, got error %v\n", err)
 	}
 	handler.RegisterRoutes()
 
@@ -83,8 +79,7 @@ func main() {
 		logger.Info("Starting gRPC server")
 		err = remote.StartNewGrpcServer(server, flags.rpcAddress)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Unable to start gRPC server, got error %v\n", err)
-			os.Exit(1)
+			log.Fatalf("Unable to start gRPC server, got error %v\n", err)
 		}
 	}()
 
@@ -96,8 +91,7 @@ func main() {
 
 	<-sigChan
 	if err := session.Close(); err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to close m3db client session, got error %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Unable to close m3db client session, got error %v\n", err)
 	}
 }
 
@@ -121,12 +115,12 @@ func parseFlags() *m3config {
 	a.Flag("query.max-concurrency", "Maximum number of queries executed concurrently.").
 		Default("20").IntVar(&cfg.maxConcurrentQueries)
 
-	a.Flag("rpc.port", "Address to run rpc on.").
+	a.Flag("rpc.port", "Address which the remote gRPC server will listen on for outbound connections.").
 		Default("0.0.0.0:7288").StringVar(&cfg.rpcAddress)
 
 	_, err := a.Parse(os.Args[1:])
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error parsing commandline arguments, got error %v\n", err)
+		log.Printf("Error parsing commandline arguments, got error %v\n", err)
 		a.Usage(os.Args[1:])
 		os.Exit(2)
 	}

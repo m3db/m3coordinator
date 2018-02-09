@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"sync"
 	"testing"
 	"time"
 
@@ -76,17 +77,14 @@ func checkRemoteFetch(t *testing.T, res *storage.FetchResult) {
 	assert.Equal(t, len(values), s.Len())
 }
 
-func startServerAndConnectClient(ctx context.Context, t *testing.T, store storage.Storage) (*grpc.Server, Client) {
+func startServer(ctx context.Context, t *testing.T, store storage.Storage) *grpc.Server {
 	server := CreateNewGrpcServer(ctx, store)
 
 	go func() {
 		err := StartNewGrpcServer(server, "localhost:17762")
 		require.Nil(t, err)
 	}()
-
-	client, err := NewGrpcClient("localhost:17762")
-	require.Nil(t, err)
-	return server, client
+	return server
 }
 
 func TestRpc(t *testing.T) {
@@ -98,7 +96,9 @@ func TestRpc(t *testing.T) {
 		read:  read,
 		write: write,
 	}
-	server, client := startServerAndConnectClient(ctx, t, store)
+	server := startServer(ctx, t, store)
+	client, err := NewGrpcClient("localhost:17762")
+	require.Nil(t, err)
 
 	fetch, err := client.Fetch(ctx, read)
 	require.Nil(t, err)
@@ -106,6 +106,41 @@ func TestRpc(t *testing.T) {
 
 	err = client.Write(ctx, write)
 	require.Equal(t, io.EOF, err)
+	server.GracefulStop()
+}
+
+func TestMultipleClientRpc(t *testing.T) {
+	ctx := context.Background()
+	read, _, _ := createStorageReadQuery(t)
+	write, _ := createStorageWriteQuery(t)
+	store := &mockStorage{
+		t:     t,
+		read:  read,
+		write: write,
+	}
+	server := startServer(ctx, t, store)
+
+	var wg sync.WaitGroup
+
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			time.Sleep(time.Millisecond * 10)
+			client, err := NewGrpcClient("localhost:17762")
+			require.Nil(t, err)
+
+			fetch, err := client.Fetch(ctx, read)
+			require.Nil(t, err)
+			checkRemoteFetch(t, fetch)
+
+			err = client.Write(ctx, write)
+			require.Equal(t, io.EOF, err)
+		}()
+	}
+
+	wg.Wait()
+
 	server.GracefulStop()
 }
 
@@ -138,7 +173,9 @@ func TestErrRpc(t *testing.T) {
 		read:  read,
 		write: write,
 	}
-	server, client := startServerAndConnectClient(ctx, t, store)
+	server := startServer(ctx, t, store)
+	client, err := NewGrpcClient("localhost:17762")
+	require.Nil(t, err)
 
 	fetch, err := client.Fetch(ctx, read)
 	assert.Nil(t, fetch)
