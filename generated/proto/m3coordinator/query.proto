@@ -3,15 +3,20 @@ syntax = "proto3";
 package rpc;
 
 service Query {
-	rpc Fetch(GrpcReadQuery) returns (stream GrpcFetchResult);
-	rpc Write(stream GrpcWriteQuery) returns (Error);
+	rpc Fetch(FetchQuery) returns (stream FetchResult);
+	rpc Write(stream WriteQuery) returns (Error);
 }
 
-message GrpcWriteQuery {
+message WriteQuery {
 	int32 unit = 1;
 	bytes annotation = 2;
 	repeated Datapoint datapoints = 3;
 	map<string, string> tags = 4;
+	WriteOptions options = 5;
+}
+
+message WriteOptions {
+	string id = 1;
 }
 
 message Datapoint {
@@ -23,10 +28,15 @@ message Error {
 	string error = 1;
 }
 
-message GrpcReadQuery {
+message FetchQuery {
 	int64 start = 1;
 	int64 end = 2;
 	repeated Matcher tagMatchers = 3;
+	FetchOptions options = 4;
+}
+
+message FetchOptions {
+	string id = 1;
 }
 
 message Matcher {
@@ -35,7 +45,7 @@ message Matcher {
 	int64 type = 3;
 }
 
-message GrpcFetchResult {
+message FetchResult {
 	repeated Series series = 1;
 }
 

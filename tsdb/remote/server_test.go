@@ -42,14 +42,18 @@ func makeSeries(ctx context.Context) *ts.Series {
 }
 
 type mockStorage struct {
-	t     *testing.T
-	read  *storage.ReadQuery
-	write *storage.WriteQuery
+	t           *testing.T
+	read        *storage.ReadQuery
+	write       *storage.WriteQuery
+	sleepMillis int
 }
 
 func (s *mockStorage) Fetch(ctx context.Context, query *storage.ReadQuery) (*storage.FetchResult, error) {
 	readQueriesAreEqual(s.t, s.read, query)
 
+	if s.sleepMillis > 0 {
+		time.Sleep(time.Millisecond * time.Duration(s.sleepMillis))
+	}
 	tsSeries := []*ts.Series{makeSeries(ctx)}
 	return &storage.FetchResult{
 		SeriesList: tsSeries,
@@ -77,8 +81,8 @@ func checkRemoteFetch(t *testing.T, res *storage.FetchResult) {
 	assert.Equal(t, len(values), s.Len())
 }
 
-func startServer(ctx context.Context, t *testing.T, store storage.Storage) *grpc.Server {
-	server := CreateNewGrpcServer(ctx, store)
+func startServer(t *testing.T, store storage.Storage) *grpc.Server {
+	server := CreateNewGrpcServer(store)
 
 	go func() {
 		err := StartNewGrpcServer(server, "localhost:17762")
@@ -96,7 +100,7 @@ func TestRpc(t *testing.T) {
 		read:  read,
 		write: write,
 	}
-	server := startServer(ctx, t, store)
+	server := startServer(t, store)
 	client, err := NewGrpcClient("localhost:17762")
 	require.Nil(t, err)
 
@@ -114,19 +118,19 @@ func TestMultipleClientRpc(t *testing.T) {
 	read, _, _ := createStorageReadQuery(t)
 	write, _ := createStorageWriteQuery(t)
 	store := &mockStorage{
-		t:     t,
-		read:  read,
-		write: write,
+		t:           t,
+		read:        read,
+		write:       write,
+		sleepMillis: 50,
 	}
-	server := startServer(ctx, t, store)
+	server := startServer(t, store)
 
 	var wg sync.WaitGroup
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 3; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			time.Sleep(time.Millisecond * 10)
 			client, err := NewGrpcClient("localhost:17762")
 			require.Nil(t, err)
 
@@ -173,7 +177,7 @@ func TestErrRpc(t *testing.T) {
 		read:  read,
 		write: write,
 	}
-	server := startServer(ctx, t, store)
+	server := startServer(t, store)
 	client, err := NewGrpcClient("localhost:17762")
 	require.Nil(t, err)
 

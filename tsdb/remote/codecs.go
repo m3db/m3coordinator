@@ -13,8 +13,7 @@ import (
 )
 
 func fromTime(t time.Time) int64 {
-	// Nanos -> Millis
-	return t.UnixNano() / 1000 / 1000
+	return storage.TimeToTimestamp(t)
 }
 
 func toTime(t int64) time.Time {
@@ -22,14 +21,13 @@ func toTime(t int64) time.Time {
 }
 
 // EncodeFetchResult encodes fetch result to rpc result
-func EncodeFetchResult(sResult *storage.FetchResult) *rpc.GrpcFetchResult {
+func EncodeFetchResult(sResult *storage.FetchResult) *rpc.FetchResult {
 	series := make([]*rpc.Series, len(sResult.SeriesList))
 	for i, result := range sResult.SeriesList {
-		values := result.Values()
-		vLen := values.Len()
+		vLen := result.Len()
 		vals := make([]float32, vLen)
 		for j := 0; j < vLen; j++ {
-			vals[j] = float32(result.Values().ValueAt(j))
+			vals[j] = float32(result.ValueAt(j))
 		}
 		series[i] = &rpc.Series{
 			Name:          result.Name(),
@@ -37,10 +35,10 @@ func EncodeFetchResult(sResult *storage.FetchResult) *rpc.GrpcFetchResult {
 			StartTime:     fromTime(result.StartTime()),
 			Tags:          result.Tags,
 			Specification: result.Specification,
-			MillisPerStep: int32(values.MillisPerStep()),
+			MillisPerStep: int32(result.MillisPerStep()),
 		}
 	}
-	return &rpc.GrpcFetchResult{Series: series}
+	return &rpc.FetchResult{Series: series}
 }
 
 // DecodeFetchResult decodes fetch results from a GRPC-compatible type.
@@ -67,12 +65,13 @@ func decodeTs(ctx context.Context, r *rpc.Series) *ts.Series {
 	return series
 }
 
-// EncodeReadQuery encodes read query to rpc read query
-func EncodeReadQuery(query *storage.ReadQuery) *rpc.GrpcReadQuery {
-	return &rpc.GrpcReadQuery{
+// EncodeReadQuery encodes read query to rpc fetch query
+func EncodeReadQuery(query *storage.ReadQuery, queryID string) *rpc.FetchQuery {
+	return &rpc.FetchQuery{
 		Start:       fromTime(query.Start),
 		End:         fromTime(query.End),
 		TagMatchers: encodeTagMatchers(query.TagMatchers),
+		Options:     encodeFetchOptions(queryID),
 	}
 }
 
@@ -89,18 +88,24 @@ func encodeTagMatchers(modelMatchers models.Matchers) []*rpc.Matcher {
 	return matchers
 }
 
-// DecodeReadQuery decodes rpc read query to read query
-func DecodeReadQuery(query *rpc.GrpcReadQuery) (*storage.ReadQuery, error) {
+func encodeFetchOptions(queryID string) *rpc.FetchOptions {
+	return &rpc.FetchOptions{
+		Id: queryID,
+	}
+}
+
+// DecodeFetchQuery decodes rpc fetch query to read query
+func DecodeFetchQuery(query *rpc.FetchQuery) (*storage.ReadQuery, string, error) {
 	tags, err := decodeTagMatchers(query.TagMatchers)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	return &storage.ReadQuery{
 		TagMatchers: tags,
 		Start:       toTime(query.Start),
 		End:         toTime(query.End),
-	}, nil
+	}, query.GetOptions().GetId(), nil
 }
 
 func decodeTagMatchers(rpcMatchers []*rpc.Matcher) (models.Matchers, error) {
@@ -117,17 +122,18 @@ func decodeTagMatchers(rpcMatchers []*rpc.Matcher) (models.Matchers, error) {
 }
 
 // EncodeWriteQuery encodes write query to rpc write query
-func EncodeWriteQuery(query *storage.WriteQuery) *rpc.GrpcWriteQuery {
-	return &rpc.GrpcWriteQuery{
+func EncodeWriteQuery(query *storage.WriteQuery, queryID string) *rpc.WriteQuery {
+	return &rpc.WriteQuery{
 		Unit:       int32(query.Unit),
 		Annotation: query.Annotation,
 		Datapoints: encodeDatapoints(query.Datapoints),
 		Tags:       query.Tags,
+		Options:    encodeWriteOptions(queryID),
 	}
 }
 
 // DecodeWriteQuery decodes rpc write query to write query
-func DecodeWriteQuery(query *rpc.GrpcWriteQuery) *storage.WriteQuery {
+func DecodeWriteQuery(query *rpc.WriteQuery) (*storage.WriteQuery, string) {
 	points := make([]*ts.Datapoint, len(query.GetDatapoints()))
 	for i, point := range query.GetDatapoints() {
 		points[i] = &ts.Datapoint{
@@ -140,7 +146,7 @@ func DecodeWriteQuery(query *rpc.GrpcWriteQuery) *storage.WriteQuery {
 		Datapoints: ts.Datapoints(points),
 		Unit:       xtime.Unit(query.GetUnit()),
 		Annotation: query.Annotation,
-	}
+	}, query.GetOptions().GetId()
 }
 
 func encodeDatapoints(tsPoints ts.Datapoints) []*rpc.Datapoint {
@@ -152,4 +158,10 @@ func encodeDatapoints(tsPoints ts.Datapoints) []*rpc.Datapoint {
 		}
 	}
 	return datapoints
+}
+
+func encodeWriteOptions(queryID string) *rpc.WriteOptions {
+	return &rpc.WriteOptions{
+		Id: queryID,
+	}
 }

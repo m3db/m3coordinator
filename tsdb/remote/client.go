@@ -5,9 +5,10 @@ import (
 	"io"
 
 	"github.com/m3db/m3coordinator/generated/proto/m3coordinator"
-	"github.com/m3db/m3coordinator/ts"
-
 	"github.com/m3db/m3coordinator/storage"
+	"github.com/m3db/m3coordinator/ts"
+	"github.com/m3db/m3coordinator/util/logging"
+
 	"google.golang.org/grpc"
 )
 
@@ -35,7 +36,11 @@ func NewGrpcClient(address string) (Client, error) {
 // Fetch reads from remote client storage
 func (c *grpcClient) Fetch(ctx context.Context, query *storage.ReadQuery) (*storage.FetchResult, error) {
 	client := c.client
-	fetchClient, err := client.Fetch(ctx, EncodeReadQuery(query))
+
+	id := logging.ReadContextID(ctx)
+
+	fetchClient, err := client.Fetch(ctx, EncodeReadQuery(query, id))
+
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +70,9 @@ func (c *grpcClient) Write(ctx context.Context, query *storage.WriteQuery) error
 	if err != nil {
 		return err
 	}
-	rpcQuery := EncodeWriteQuery(query)
+
+	id := logging.ReadContextID(ctx)
+	rpcQuery := EncodeWriteQuery(query, id)
 	err = writeClient.Send(rpcQuery)
 	if err != nil {
 		return err

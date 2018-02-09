@@ -48,8 +48,8 @@ func (b *Series) Len() int { return b.vals.Len() }
 // ValueAt returns the value at a given step. Used for aggregation
 func (b *Series) ValueAt(i int) float64 { return b.vals.ValueAt(i) }
 
-// Values returns the values in the timeseries. Used for coversion
-func (b *Series) Values() Values { return b.vals }
+// MillisPerStep returns the step size for the vals
+func (b *Series) MillisPerStep() int { return b.vals.MillisPerStep() }
 
 // StartTimeForStep returns the time at which the given step starts
 func (b *Series) StartTimeForStep(n int) time.Time {

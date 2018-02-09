@@ -110,6 +110,11 @@ func TimestampToTime(timestampMS int64) time.Time {
 	return time.Unix(0, timestampMS*int64(time.Millisecond))
 }
 
+// TimeToTimestamp converts a time.Time to prometheus timestamp
+func TimeToTimestamp(timestamp time.Time) int64 {
+	return timestamp.UnixNano() / int64(time.Millisecond)
+}
+
 // FetchResultToPromResults converts fetch results from M3 to Prometheus results
 func FetchResultToPromResults(result *FetchResult) ([]*prompb.QueryResult, error) {
 	results := make([]*prompb.QueryResult, len(result.SeriesList))

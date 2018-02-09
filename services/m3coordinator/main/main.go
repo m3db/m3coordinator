@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"math/rand"
 	"net/http"
 	"os"
@@ -42,44 +41,45 @@ type m3config struct {
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	flags := parseFlags()
-
-	var cfg config.Configuration
-	if err := xconfig.LoadFile(&cfg, flags.configFile); err != nil {
-		log.Fatalf("unable to load %s: %v", flags.configFile, err)
-	}
-
 	logging.InitWithCores(nil)
 	ctx := context.TODO()
 	logger := logging.WithContext(ctx)
 	defer logger.Sync()
 
+	flags := parseFlags(logger)
+
+	var cfg config.Configuration
+	if err := xconfig.LoadFile(&cfg, flags.configFile); err != nil {
+		logger.Fatal("Unable to load", zap.String("configFile", flags.configFile), zap.Any("error", err))
+	}
+
 	m3dbClientOpts := cfg.M3DBClientCfg
 	m3dbClient, err := m3dbClientOpts.NewClient(client.ConfigurationParameters{})
 	if err != nil {
-		log.Fatalf("Unable to create m3db client, got error %v\n", err)
+		logger.Fatal("Unable to create m3db client", zap.Any("error", err))
 	}
 
 	session, err := m3dbClient.NewSession()
 	if err != nil {
-		log.Fatalf("Unable to create m3db client session, got error %v\n", err)
+
+		logger.Fatal("Unable to create m3db client session", zap.Any("error", err))
 	}
 
 	storage := local.NewStorage(session, namespace, resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
 	handler, err := httpd.NewHandler(storage)
 	if err != nil {
-		log.Fatalf("Unable to set up handlers, got error %v\n", err)
+		logger.Fatal("Unable to set up handlers", zap.Any("error", err))
 	}
 	handler.RegisterRoutes()
 
 	logger.Info("Creating gRPC server")
-	server := remote.CreateNewGrpcServer(ctx, storage)
+	server := remote.CreateNewGrpcServer(storage)
 
 	go func() {
 		logger.Info("Starting gRPC server")
 		err = remote.StartNewGrpcServer(server, flags.rpcAddress)
 		if err != nil {
-			log.Fatalf("Unable to start gRPC server, got error %v\n", err)
+			logger.Fatal("Unable to start gRPC server", zap.Any("error", err))
 		}
 	}()
 
@@ -91,11 +91,11 @@ func main() {
 
 	<-sigChan
 	if err := session.Close(); err != nil {
-		log.Fatalf("Unable to close m3db client session, got error %v\n", err)
+		logger.Fatal("Unable to close m3db client session", zap.Any("error", err))
 	}
 }
 
-func parseFlags() *m3config {
+func parseFlags(logger *zap.Logger) *m3config {
 	cfg := m3config{}
 	a := kingpin.New(filepath.Base(os.Args[0]), "M3Coordinator")
 
@@ -120,7 +120,7 @@ func parseFlags() *m3config {
 
 	_, err := a.Parse(os.Args[1:])
 	if err != nil {
-		log.Printf("Error parsing commandline arguments, got error %v\n", err)
+		logger.Error("Error parsing commandline arguments", zap.Any("error", err))
 		a.Usage(os.Args[1:])
 		os.Exit(2)
 	}
