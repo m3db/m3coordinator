@@ -38,16 +38,6 @@ func (s *stats) snapshot() stats {
 	return stats{Writes: s.getWrites(), RunTimeMs: s.getRunTimeMs()}
 }
 
-// Do we need this? It's not used.
-// func (s *stats) combine(other stats) stats {
-// 	otherSnap := other.snapshot()
-// 	snap := s.snapshot()
-// 	return stats{
-// 		Writes:    snap.Writes + otherSnap.Writes,
-// 		RunTimeMs: snap.RunTimeMs + other.RunTimeMs,
-// 	}
-// }
-
 // HTTPClientOptions specify HTTP Client options.
 type HTTPClientOptions struct {
 	RequestTimeout      time.Duration `yaml:"requestTimeout"`

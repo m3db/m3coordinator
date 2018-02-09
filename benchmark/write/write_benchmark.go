@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os"
+	"log"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -57,8 +57,7 @@ func main() {
 
 	var cfg config.Configuration
 	if err := xconfig.LoadFile(&cfg, m3dbClientCfg); err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to load %s: %v", m3dbClientCfg, err)
-		os.Exit(1)
+		log.Fatalf("Unable to load %s: %v", m3dbClientCfg, err)
 	}
 
 	m3dbClientOpts := cfg.M3DBClientCfg
@@ -66,14 +65,12 @@ func main() {
 		return v.SetWriteBatchSize(batch).SetWriteOpPoolSize(batch * 2)
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to create m3db client, got error %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Unable to create m3db client, got error %v\n", err)
 	}
 
 	session, err := m3dbClient.NewSession()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to create m3db client session, got error %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Unable to create m3db client session, got error %v\n", err)
 	}
 
 	if cpuprofile {
@@ -140,7 +137,7 @@ func main() {
 	fmt.Printf("loaded %d items in %fsec with %d workers (mean values rate %f/sec)\n", itemsRead, took.Seconds(), workers, rate)
 
 	if err := session.Close(); err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to close m3db client session, got error %v\n", err)
+		log.Fatalf("Unable to close m3db client session, got error %v\n", err)
 	}
 
 	select {}

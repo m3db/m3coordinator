@@ -45,8 +45,7 @@ func init() {
 func main() {
 	var cfg config.Configuration
 	if err := xconfig.LoadFile(&cfg, m3dbClientCfg); err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to load %s: %v", m3dbClientCfg, err)
-		os.Exit(1)
+		log.Fatalf("Unable to load %s: %v", m3dbClientCfg, err)
 	}
 
 	// Parse timestamps:

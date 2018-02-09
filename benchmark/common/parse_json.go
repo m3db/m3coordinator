@@ -93,7 +93,7 @@ func unmarshalMetrics(dataChannel chan []byte, metricChannel chan *M3Metric) {
 }
 
 func id(lowerCaseTags map[string]string, name string) string {
-	var sortedKeys []string
+	sortedKeys := make([]string, len(lowerCaseTags))
 	var buffer = bytes.NewBuffer(nil)
 	buffer.WriteString(strings.ToLower(name))
 
