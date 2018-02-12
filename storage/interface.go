@@ -88,6 +88,7 @@ type Appender interface {
 type FetchResult struct {
 	SeriesList []*ts.Series // The aggregated list of results across all underlying storage calls
 	LocalOnly  bool
+	HasNext    bool
 }
 
 // QueryResult is the result from a query

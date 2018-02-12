@@ -54,12 +54,27 @@ func (s *grpcServer) Fetch(query *rpc.FetchQuery, stream rpc.Query_FetchServer) 
 		return err
 	}
 
-	result, err := s.storage.Fetch(ctx, storeQuery)
-	if err != nil {
-		logger.Error("Unable to fetch local query", zap.Any("error", err))
-		return err
+	// Iterate while there are more results
+	for {
+		stream.Context()
+
+		result, err := s.storage.Fetch(ctx, storeQuery, nil)
+
+		if err != nil {
+			logger.Error("Unable to fetch local query", zap.Any("error", err))
+			return err
+		}
+		err = stream.Send(EncodeFetchResult(result))
+
+		if err != nil {
+			logger.Error("Unable to send fetch result", zap.Any("error", err))
+			return err
+		}
+		if !result.HasNext {
+			break
+		}
 	}
-	return stream.Send(EncodeFetchResult(result))
+	return nil
 }
 
 // Write writes to local storage

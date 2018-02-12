@@ -3,7 +3,8 @@ syntax = "proto3";
 package rpc;
 
 service Query {
-	rpc Fetch(FetchQuery) returns (stream FetchResult);
+// FetchQuery stream allows cancellation
+	rpc Fetch( FetchQuery) returns (stream FetchResult);
 	rpc Write(stream WriteQuery) returns (Error);
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 
+	"github.com/m3db/m3coordinator/errors"
 	"github.com/m3db/m3coordinator/generated/proto/m3coordinator"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/ts"
@@ -34,12 +35,12 @@ func NewGrpcClient(address string) (Client, error) {
 }
 
 // Fetch reads from remote client storage
-func (c *grpcClient) Fetch(ctx context.Context, query *storage.ReadQuery, _ *storage.FetchOptions) (*storage.FetchResult, error) {
+func (c *grpcClient) Fetch(ctx context.Context, query *storage.FetchQuery, options *storage.FetchOptions) (*storage.FetchResult, error) {
 	client := c.client
 
 	id := logging.ReadContextID(ctx)
 
-	fetchClient, err := client.Fetch(ctx, EncodeReadQuery(query, id))
+	fetchClient, err := client.Fetch(ctx, EncodeFetchQuery(query, id))
 
 	if err != nil {
 		return nil, err
@@ -48,6 +49,12 @@ func (c *grpcClient) Fetch(ctx context.Context, query *storage.ReadQuery, _ *sto
 
 	tsSeries := make([]*ts.Series, 0)
 	for {
+		select {
+		// If query is killed during gRPC streaming, close the channel
+		case <-options.KillChan:
+			return nil, errors.ErrQueryInterrupted
+		default:
+		}
 		result, err := fetchClient.Recv()
 		if err == io.EOF {
 			break

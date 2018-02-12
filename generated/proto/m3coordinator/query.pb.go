@@ -327,6 +327,7 @@ const _ = grpc.SupportPackageIsVersion4
 // Client API for Query service
 
 type QueryClient interface {
+	// FetchQuery stream allows cancellation
 	Fetch(ctx context.Context, in *FetchQuery, opts ...grpc.CallOption) (Query_FetchClient, error)
 	Write(ctx context.Context, opts ...grpc.CallOption) (Query_WriteClient, error)
 }
@@ -408,6 +409,7 @@ func (x *queryWriteClient) CloseAndRecv() (*Error, error) {
 // Server API for Query service
 
 type QueryServer interface {
+	// FetchQuery stream allows cancellation
 	Fetch(*FetchQuery, Query_FetchServer) error
 	Write(Query_WriteServer) error
 }

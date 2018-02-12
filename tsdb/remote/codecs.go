@@ -65,8 +65,8 @@ func decodeTs(ctx context.Context, r *rpc.Series) *ts.Series {
 	return series
 }
 
-// EncodeReadQuery encodes read query to rpc fetch query
-func EncodeReadQuery(query *storage.ReadQuery, queryID string) *rpc.FetchQuery {
+// EncodeFetchQuery encodes read query to rpc fetch query
+func EncodeFetchQuery(query *storage.FetchQuery, queryID string) *rpc.FetchQuery {
 	return &rpc.FetchQuery{
 		Start:       fromTime(query.Start),
 		End:         fromTime(query.End),
@@ -95,13 +95,13 @@ func encodeFetchOptions(queryID string) *rpc.FetchOptions {
 }
 
 // DecodeFetchQuery decodes rpc fetch query to read query
-func DecodeFetchQuery(query *rpc.FetchQuery) (*storage.ReadQuery, string, error) {
+func DecodeFetchQuery(query *rpc.FetchQuery) (*storage.FetchQuery, string, error) {
 	tags, err := decodeTagMatchers(query.TagMatchers)
 	if err != nil {
 		return nil, "", err
 	}
 
-	return &storage.ReadQuery{
+	return &storage.FetchQuery{
 		TagMatchers: tags,
 		Start:       toTime(query.Start),
 		End:         toTime(query.End),

@@ -8,11 +8,13 @@ import (
 	"testing"
 	"time"
 
+	m3err "github.com/m3db/m3coordinator/errors"
 	"github.com/m3db/m3coordinator/models"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/ts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"google.golang.org/grpc"
 )
 
@@ -43,21 +45,27 @@ func makeSeries(ctx context.Context) *ts.Series {
 
 type mockStorage struct {
 	t           *testing.T
-	read        *storage.ReadQuery
+	read        *storage.FetchQuery
 	write       *storage.WriteQuery
 	sleepMillis int
+	numPages    int
 }
 
-func (s *mockStorage) Fetch(ctx context.Context, query *storage.ReadQuery) (*storage.FetchResult, error) {
+func (s *mockStorage) Fetch(ctx context.Context, query *storage.FetchQuery, _ *storage.FetchOptions) (*storage.FetchResult, error) {
 	readQueriesAreEqual(s.t, s.read, query)
 
 	if s.sleepMillis > 0 {
 		time.Sleep(time.Millisecond * time.Duration(s.sleepMillis))
 	}
+
+	hasNext := s.numPages > 0
+	s.numPages--
+
 	tsSeries := []*ts.Series{makeSeries(ctx)}
 	return &storage.FetchResult{
 		SeriesList: tsSeries,
 		LocalOnly:  false,
+		HasNext:    hasNext,
 	}, nil
 }
 
@@ -91,10 +99,17 @@ func startServer(t *testing.T, store storage.Storage) *grpc.Server {
 	return server
 }
 
+func createStorageFetchOptions() *storage.FetchOptions {
+	return &storage.FetchOptions{
+		KillChan: make(chan struct{}),
+	}
+}
+
 func TestRpc(t *testing.T) {
 	ctx := context.Background()
-	read, _, _ := createStorageReadQuery(t)
+	read, _, _ := createStorageFetchQuery(t)
 	write, _ := createStorageWriteQuery(t)
+	readOpts := createStorageFetchOptions()
 	store := &mockStorage{
 		t:     t,
 		read:  read,
@@ -104,7 +119,7 @@ func TestRpc(t *testing.T) {
 	client, err := NewGrpcClient("localhost:17762")
 	require.Nil(t, err)
 
-	fetch, err := client.Fetch(ctx, read)
+	fetch, err := client.Fetch(ctx, read, readOpts)
 	require.Nil(t, err)
 	checkRemoteFetch(t, fetch)
 
@@ -113,9 +128,38 @@ func TestRpc(t *testing.T) {
 	server.GracefulStop()
 }
 
+func TestRpcStopsStreamingWhenFetchKilledOnClient(t *testing.T) {
+	ctx := context.Background()
+	read, _, _ := createStorageFetchQuery(t)
+	write, _ := createStorageWriteQuery(t)
+	readOpts := createStorageFetchOptions()
+	store := &mockStorage{
+		t:           t,
+		read:        read,
+		write:       write,
+		sleepMillis: 100,
+		numPages:    10,
+	}
+	server := startServer(t, store)
+	client, err := NewGrpcClient("localhost:17762")
+	require.Nil(t, err)
+
+	go func() {
+		time.Sleep(time.Millisecond * 150)
+		readOpts.KillChan <- struct{}{}
+	}()
+
+	fetch, err := client.Fetch(ctx, read, readOpts)
+
+	require.Nil(t, fetch)
+	assert.Equal(t, err, m3err.ErrQueryInterrupted)
+
+	server.GracefulStop()
+}
+
 func TestMultipleClientRpc(t *testing.T) {
 	ctx := context.Background()
-	read, _, _ := createStorageReadQuery(t)
+	read, _, _ := createStorageFetchQuery(t)
 	write, _ := createStorageWriteQuery(t)
 	store := &mockStorage{
 		t:           t,
@@ -134,7 +178,7 @@ func TestMultipleClientRpc(t *testing.T) {
 			client, err := NewGrpcClient("localhost:17762")
 			require.Nil(t, err)
 
-			fetch, err := client.Fetch(ctx, read)
+			fetch, err := client.Fetch(ctx, read, nil)
 			require.Nil(t, err)
 			checkRemoteFetch(t, fetch)
 
@@ -150,11 +194,11 @@ func TestMultipleClientRpc(t *testing.T) {
 
 type errStorage struct {
 	t     *testing.T
-	read  *storage.ReadQuery
+	read  *storage.FetchQuery
 	write *storage.WriteQuery
 }
 
-func (s *errStorage) Fetch(ctx context.Context, query *storage.ReadQuery) (*storage.FetchResult, error) {
+func (s *errStorage) Fetch(ctx context.Context, query *storage.FetchQuery, _ *storage.FetchOptions) (*storage.FetchResult, error) {
 	readQueriesAreEqual(s.t, s.read, query)
 	return nil, errRead
 }
@@ -170,7 +214,7 @@ func (s *errStorage) Type() storage.Type {
 
 func TestErrRpc(t *testing.T) {
 	ctx := context.Background()
-	read, _, _ := createStorageReadQuery(t)
+	read, _, _ := createStorageFetchQuery(t)
 	write, _ := createStorageWriteQuery(t)
 	store := &errStorage{
 		t:     t,
@@ -181,7 +225,7 @@ func TestErrRpc(t *testing.T) {
 	client, err := NewGrpcClient("localhost:17762")
 	require.Nil(t, err)
 
-	fetch, err := client.Fetch(ctx, read)
+	fetch, err := client.Fetch(ctx, read, nil)
 	assert.Nil(t, fetch)
 	assert.Equal(t, errRead.Error(), grpc.ErrorDesc(err))
 

@@ -13,7 +13,7 @@ func NewMockStorage() storage.Storage {
 	return &mockStorage{}
 }
 
-func (s *mockStorage) Fetch(ctx context.Context, query *storage.ReadQuery) (*storage.FetchResult, error) {
+func (s *mockStorage) Fetch(ctx context.Context, query *storage.FetchQuery, _ *storage.FetchOptions) (*storage.FetchResult, error) {
 	return nil, nil
 }
 

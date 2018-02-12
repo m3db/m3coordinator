@@ -108,7 +108,7 @@ func TestDecodeFetchResult(t *testing.T) {
 	assert.Equal(t, rpcSeries, revert.GetSeries())
 }
 
-func readQueriesAreEqual(t *testing.T, this, other *storage.ReadQuery) {
+func readQueriesAreEqual(t *testing.T, this, other *storage.FetchQuery) {
 	assert.True(t, this.Start.Equal(other.Start))
 	assert.True(t, this.End.Equal(other.End))
 	assert.Equal(t, len(this.TagMatchers), len(other.TagMatchers))
@@ -120,7 +120,7 @@ func readQueriesAreEqual(t *testing.T, this, other *storage.ReadQuery) {
 	}
 }
 
-func createStorageReadQuery(t *testing.T) (*storage.ReadQuery, time.Time, time.Time) {
+func createStorageFetchQuery(t *testing.T) (*storage.FetchQuery, time.Time, time.Time) {
 	m0, err := models.NewMatcher(models.MatchRegexp, name0, val0)
 	require.Nil(t, err)
 	m1, err := models.NewMatcher(models.MatchEqual, name1, val1)
@@ -128,17 +128,17 @@ func createStorageReadQuery(t *testing.T) (*storage.ReadQuery, time.Time, time.T
 	start, end := parseTimes(t)
 
 	matchers := []*models.Matcher{m0, m1}
-	return &storage.ReadQuery{
+	return &storage.FetchQuery{
 		TagMatchers: matchers,
 		Start:       start,
 		End:         end,
 	}, start, end
 }
 
-func TestEncodeReadQuery(t *testing.T) {
-	rQ, start, end := createStorageReadQuery(t)
+func TestEncodeFetchQuery(t *testing.T) {
+	rQ, start, end := createStorageFetchQuery(t)
 
-	grpcQ := EncodeReadQuery(rQ, id)
+	grpcQ := EncodeFetchQuery(rQ, id)
 	require.NotNil(t, grpcQ)
 	assert.Equal(t, fromTime(start), grpcQ.GetStart())
 	assert.Equal(t, fromTime(end), grpcQ.GetEnd())
@@ -154,15 +154,15 @@ func TestEncodeReadQuery(t *testing.T) {
 }
 
 func TestEncodeDecodeFetchQuery(t *testing.T) {
-	rQ, _, _ := createStorageReadQuery(t)
-	gq := EncodeReadQuery(rQ, id)
+	rQ, _, _ := createStorageFetchQuery(t)
+	gq := EncodeFetchQuery(rQ, id)
 	reverted, decodeID, err := DecodeFetchQuery(gq)
 	require.Nil(t, err)
 	assert.Equal(t, id, decodeID)
 	readQueriesAreEqual(t, rQ, reverted)
 
 	// Encode again
-	gqr := EncodeReadQuery(reverted, decodeID)
+	gqr := EncodeFetchQuery(reverted, decodeID)
 	assert.Equal(t, gq, gqr)
 }
 
