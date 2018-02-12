@@ -2,7 +2,6 @@ package remote
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"math/rand"
 	"time"
@@ -71,8 +70,6 @@ func (c *grpcClient) Fetch(ctx context.Context, query *storage.FetchQuery, optio
 		select {
 		// If query is killed during gRPC streaming, close the channel
 		case <-options.KillChan:
-			fmt.Println("kild")
-
 			return nil, errors.ErrQueryInterrupted
 		default:
 		}
@@ -81,8 +78,6 @@ func (c *grpcClient) Fetch(ctx context.Context, query *storage.FetchQuery, optio
 			break
 		}
 		if err != nil {
-			fmt.Println("err inner", err)
-
 			return nil, err
 		}
 		rpcSeries := result.GetSeries()

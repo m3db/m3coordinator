@@ -219,9 +219,9 @@ func TestMultipleClientRpc(t *testing.T) {
 
 	var wg sync.WaitGroup
 
-	clientPool := make(chan struct{}, 10)
+	clientPool := make(chan struct{}, 100)
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 100; i++ {
 		wg.Add(1)
 		go func() {
 			clientPool <- struct{}{}
