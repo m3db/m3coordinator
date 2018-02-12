@@ -2,7 +2,10 @@ package remote
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"math/rand"
+	"time"
 
 	"github.com/m3db/m3coordinator/errors"
 	"github.com/m3db/m3coordinator/generated/proto/m3coordinator"
@@ -11,6 +14,11 @@ import (
 	"github.com/m3db/m3coordinator/util/logging"
 
 	"google.golang.org/grpc"
+)
+
+const (
+	maxRetries   = 10
+	initialDelay = time.Millisecond * 250
 )
 
 // Client is an interface
@@ -24,26 +32,37 @@ type grpcClient struct {
 }
 
 // NewGrpcClient creates grpc client
-func NewGrpcClient(address string) (Client, error) {
+func NewGrpcClient(address string) (Client, *grpc.ClientConn, error) {
 	cc, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	client := rpc.NewQueryClient(cc)
 
-	return &grpcClient{client: client}, nil
+	return &grpcClient{client: client}, cc, nil
 }
 
 // Fetch reads from remote client storage
 func (c *grpcClient) Fetch(ctx context.Context, query *storage.FetchQuery, options *storage.FetchOptions) (*storage.FetchResult, error) {
-	client := c.client
-
 	id := logging.ReadContextID(ctx)
+	var (
+		fetchClient rpc.Query_FetchClient
+		err         error
+	)
+	// Attempt to fetch, with incremental backoff if the server is busy
+	for delay, attempt := initialDelay, 0; ; attempt++ {
+		fetchClient, err = c.client.Fetch(ctx, EncodeFetchQuery(query, id))
+		if err != nil {
+			if attempt > maxRetries {
+				return nil, err
+			}
+			delay = delay * 2
+			randomDelay := time.Millisecond * (time.Duration)(500.0*rand.Float32())
 
-	fetchClient, err := client.Fetch(ctx, EncodeFetchQuery(query, id))
-
-	if err != nil {
-		return nil, err
+			time.Sleep(delay + randomDelay)
+		} else {
+			break
+		}
 	}
 	defer fetchClient.CloseSend()
 
@@ -52,6 +71,8 @@ func (c *grpcClient) Fetch(ctx context.Context, query *storage.FetchQuery, optio
 		select {
 		// If query is killed during gRPC streaming, close the channel
 		case <-options.KillChan:
+			fmt.Println("kild")
+
 			return nil, errors.ErrQueryInterrupted
 		default:
 		}
@@ -60,6 +81,8 @@ func (c *grpcClient) Fetch(ctx context.Context, query *storage.FetchQuery, optio
 			break
 		}
 		if err != nil {
+			fmt.Println("err inner", err)
+
 			return nil, err
 		}
 		rpcSeries := result.GetSeries()

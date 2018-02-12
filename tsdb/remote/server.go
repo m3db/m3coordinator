@@ -1,7 +1,6 @@
 package remote
 
 import (
-	"context"
 	"io"
 	"net"
 
@@ -39,14 +38,13 @@ func StartNewGrpcServer(server *grpc.Server, address string) error {
 	if err != nil {
 		return err
 	}
-	go server.Serve(lis)
-	return nil
+	return server.Serve(lis)
 }
 
 // Fetch reads from local storage
 func (s *grpcServer) Fetch(query *rpc.FetchQuery, stream rpc.Query_FetchServer) error {
 	storeQuery, id, err := DecodeFetchQuery(query)
-	ctx := logging.NewContextWithID(context.TODO(), id)
+	ctx := logging.NewContextWithID(stream.Context(), id)
 	logger := logging.WithContext(ctx)
 	defer logger.Sync()
 	if err != nil {
@@ -81,7 +79,7 @@ func (s *grpcServer) Fetch(query *rpc.FetchQuery, stream rpc.Query_FetchServer) 
 func (s *grpcServer) Write(stream rpc.Query_WriteServer) error {
 	for {
 		write, err := stream.Recv()
-		ctx := context.TODO()
+		ctx := stream.Context()
 		logger := logging.WithContext(ctx)
 		defer logger.Sync()
 		if err == io.EOF {
@@ -92,7 +90,7 @@ func (s *grpcServer) Write(stream rpc.Query_WriteServer) error {
 			return err
 		}
 		query, id := DecodeWriteQuery(write)
-		ctx = logging.NewContextWithID(context.TODO(), id)
+		ctx = logging.NewContextWithID(ctx, id)
 		logger = logging.WithContext(ctx)
 
 		err = s.storage.Write(ctx, query)
