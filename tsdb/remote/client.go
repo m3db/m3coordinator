@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/m3db/m3coordinator/errors"
@@ -52,13 +53,17 @@ func (c *grpcClient) Fetch(ctx context.Context, query *storage.FetchQuery, optio
 	for delay, attempt := initialDelay, 0; ; attempt++ {
 		fetchClient, err = c.client.Fetch(ctx, EncodeFetchQuery(query, id))
 		if err != nil {
-			if attempt > maxRetries {
+			if strings.Contains(err.Error(), "the connection is unavailable") {
+				if attempt > maxRetries {
+					return nil, err
+				}
+				delay = delay * 2
+				randomDelay := time.Millisecond * (time.Duration)(500.0*rand.Float32())
+
+				time.Sleep(delay + randomDelay)
+			} else {
 				return nil, err
 			}
-			delay = delay * 2
-			randomDelay := time.Millisecond * (time.Duration)(500.0*rand.Float32())
-
-			time.Sleep(delay + randomDelay)
 		} else {
 			break
 		}

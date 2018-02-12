@@ -219,13 +219,9 @@ func TestMultipleClientRpc(t *testing.T) {
 
 	var wg sync.WaitGroup
 
-	clientPool := make(chan struct{}, 100)
-
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
 		go func() {
-			clientPool <- struct{}{}
-			defer func() { <-clientPool }()
 			defer wg.Done()
 			client, cc, err := NewGrpcClient(host)
 			defer cc.Close()
