@@ -3,9 +3,6 @@ package remote
 import (
 	"context"
 	"io"
-	"math/rand"
-	"strings"
-	"time"
 
 	"github.com/m3db/m3coordinator/errors"
 	"github.com/m3db/m3coordinator/generated/proto/m3coordinator"
@@ -16,57 +13,43 @@ import (
 	"google.golang.org/grpc"
 )
 
-const (
-	maxRetries   = 10
-	initialDelay = time.Millisecond * 250
-)
-
 // Client is an interface
 type Client interface {
 	storage.Querier
 	storage.Appender
+	Close() error
 }
 
 type grpcClient struct {
-	client rpc.QueryClient
+	client     rpc.QueryClient
+	connection *grpc.ClientConn
 }
 
 // NewGrpcClient creates grpc client
-func NewGrpcClient(address string) (Client, *grpc.ClientConn, error) {
+func NewGrpcClient(address string) (Client, error) {
 	cc, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	client := rpc.NewQueryClient(cc)
 
-	return &grpcClient{client: client}, cc, nil
+	return &grpcClient{
+		client:     client,
+		connection: cc,
+	}, nil
 }
 
 // Fetch reads from remote client storage
 func (c *grpcClient) Fetch(ctx context.Context, query *storage.FetchQuery, options *storage.FetchOptions) (*storage.FetchResult, error) {
 	id := logging.ReadContextID(ctx)
-	var (
-		fetchClient rpc.Query_FetchClient
-		err         error
-	)
-	// Attempt to fetch, with incremental backoff if the server is busy
-	for delay, attempt := initialDelay, 0; ; attempt++ {
-		fetchClient, err = c.client.Fetch(ctx, EncodeFetchQuery(query, id))
-		if err != nil {
-			if strings.Contains(err.Error(), "the connection is unavailable") {
-				if attempt > maxRetries {
-					return nil, err
-				}
-				delay = delay * 2
-				randomDelay := time.Millisecond * (time.Duration)(500.0*rand.Float32())
+	client, err := c.client.Fetch(ctx, EncodeFetchMessage(query, id))
+	if err != nil {
+		return nil, err
+	}
 
-				time.Sleep(delay + randomDelay)
-			} else {
-				return nil, err
-			}
-		} else {
-			break
-		}
+	fetchClient, ok := client.(rpc.Query_FetchClient)
+	if !ok {
+		return nil, nil
 	}
 	defer fetchClient.CloseSend()
 
@@ -102,7 +85,7 @@ func (c *grpcClient) Write(ctx context.Context, query *storage.WriteQuery) error
 	}
 
 	id := logging.ReadContextID(ctx)
-	rpcQuery := EncodeWriteQuery(query, id)
+	rpcQuery := EncodeWriteMessage(query, id)
 	err = writeClient.Send(rpcQuery)
 	if err != nil {
 		return err
@@ -110,4 +93,9 @@ func (c *grpcClient) Write(ctx context.Context, query *storage.WriteQuery) error
 
 	_, err = writeClient.CloseAndRecv()
 	return err
+}
+
+// Close closes the underlying connection
+func (c *grpcClient) Close() error {
+	return c.connection.Close()
 }

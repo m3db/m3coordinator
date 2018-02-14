@@ -65,13 +65,20 @@ func decodeTs(ctx context.Context, r *rpc.Series) *ts.Series {
 	return series
 }
 
-// EncodeFetchQuery encodes read query to rpc fetch query
-func EncodeFetchQuery(query *storage.FetchQuery, queryID string) *rpc.FetchQuery {
+// EncodeFetchMessage encodes fetch query and fetch options into rpc WriteMessage
+func EncodeFetchMessage(query *storage.FetchQuery, queryID string) *rpc.FetchMessage {
+	return &rpc.FetchMessage{
+		Query:   encodeFetchQuery(query),
+		Options: encodeFetchOptions(queryID),
+	}
+
+}
+
+func encodeFetchQuery(query *storage.FetchQuery) *rpc.FetchQuery {
 	return &rpc.FetchQuery{
 		Start:       fromTime(query.Start),
 		End:         fromTime(query.End),
 		TagMatchers: encodeTagMatchers(query.TagMatchers),
-		Options:     encodeFetchOptions(queryID),
 	}
 }
 
@@ -94,18 +101,26 @@ func encodeFetchOptions(queryID string) *rpc.FetchOptions {
 	}
 }
 
-// DecodeFetchQuery decodes rpc fetch query to read query
-func DecodeFetchQuery(query *rpc.FetchQuery) (*storage.FetchQuery, string, error) {
-	tags, err := decodeTagMatchers(query.TagMatchers)
+// DecodeFetchMessage decodes rpc fetch message to read query and read options
+func DecodeFetchMessage(message *rpc.FetchMessage) (*storage.FetchQuery, string, error) {
+	query, err := decodeFetchQuery(message.GetQuery())
 	if err != nil {
 		return nil, "", err
+	}
+	return query, message.GetOptions().GetId(), nil
+}
+
+func decodeFetchQuery(query *rpc.FetchQuery) (*storage.FetchQuery, error) {
+	tags, err := decodeTagMatchers(query.TagMatchers)
+	if err != nil {
+		return nil, err
 	}
 
 	return &storage.FetchQuery{
 		TagMatchers: tags,
 		Start:       toTime(query.Start),
 		End:         toTime(query.End),
-	}, query.GetOptions().GetId(), nil
+	}, nil
 }
 
 func decodeTagMatchers(rpcMatchers []*rpc.Matcher) (models.Matchers, error) {
@@ -121,19 +136,29 @@ func decodeTagMatchers(rpcMatchers []*rpc.Matcher) (models.Matchers, error) {
 	return models.Matchers(matchers), nil
 }
 
-// EncodeWriteQuery encodes write query to rpc write query
-func EncodeWriteQuery(query *storage.WriteQuery, queryID string) *rpc.WriteQuery {
+// EncodeWriteMessage encodes write query and write options into rpc WriteMessage
+func EncodeWriteMessage(query *storage.WriteQuery, queryID string) *rpc.WriteMessage {
+	return &rpc.WriteMessage{
+		Query:   encodeWriteQuery(query),
+		Options: encodeWriteOptions(queryID),
+	}
+}
+
+func encodeWriteQuery(query *storage.WriteQuery) *rpc.WriteQuery {
 	return &rpc.WriteQuery{
 		Unit:       int32(query.Unit),
 		Annotation: query.Annotation,
 		Datapoints: encodeDatapoints(query.Datapoints),
 		Tags:       query.Tags,
-		Options:    encodeWriteOptions(queryID),
 	}
 }
 
-// DecodeWriteQuery decodes rpc write query to write query
-func DecodeWriteQuery(query *rpc.WriteQuery) (*storage.WriteQuery, string) {
+// DecodeWriteMessage decodes rpc write message to write query and write options
+func DecodeWriteMessage(message *rpc.WriteMessage) (*storage.WriteQuery, string) {
+	return decodeWriteQuery(message.GetQuery()), message.GetOptions().GetId()
+}
+
+func decodeWriteQuery(query *rpc.WriteQuery) *storage.WriteQuery {
 	points := make([]*ts.Datapoint, len(query.GetDatapoints()))
 	for i, point := range query.GetDatapoints() {
 		points[i] = &ts.Datapoint{
@@ -146,7 +171,7 @@ func DecodeWriteQuery(query *rpc.WriteQuery) (*storage.WriteQuery, string) {
 		Datapoints: ts.Datapoints(points),
 		Unit:       xtime.Unit(query.GetUnit()),
 		Annotation: query.Annotation,
-	}, query.GetOptions().GetId()
+	}
 }
 
 func encodeDatapoints(tsPoints ts.Datapoints) []*rpc.Datapoint {

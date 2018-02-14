@@ -3,9 +3,13 @@ syntax = "proto3";
 package rpc;
 
 service Query {
-// FetchQuery stream allows cancellation
-	rpc Fetch( FetchQuery) returns (stream FetchResult);
-	rpc Write(stream WriteQuery) returns (Error);
+	rpc Fetch(FetchMessage) returns (stream FetchResult);
+	rpc Write(stream WriteMessage) returns (Error);
+}
+
+message WriteMessage {
+	WriteQuery query = 1;
+	WriteOptions options = 2;
 }
 
 message WriteQuery {
@@ -13,7 +17,6 @@ message WriteQuery {
 	bytes annotation = 2;
 	repeated Datapoint datapoints = 3;
 	map<string, string> tags = 4;
-	WriteOptions options = 5;
 }
 
 message WriteOptions {
@@ -29,11 +32,15 @@ message Error {
 	string error = 1;
 }
 
+message FetchMessage {
+	FetchQuery query = 1;
+	FetchOptions options = 2;
+}
+
 message FetchQuery {
 	int64 start = 1;
 	int64 end = 2;
 	repeated Matcher tagMatchers = 3;
-	FetchOptions options = 4;
 }
 
 message FetchOptions {

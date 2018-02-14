@@ -110,11 +110,12 @@ func checkRemoteFetch(t *testing.T, res *storage.FetchResult) {
 
 func startServer(t *testing.T, host string, store storage.Storage) {
 	server := CreateNewGrpcServer(store)
-
+	waitForStart := make(chan struct{})
 	go func() {
-		err := StartNewGrpcServer(server, host)
+		err := StartNewGrpcServer(server, host, waitForStart)
 		assert.Nil(t, err)
 	}()
+	<-waitForStart
 }
 
 func createStorageFetchOptions() *storage.FetchOptions {
@@ -123,11 +124,16 @@ func createStorageFetchOptions() *storage.FetchOptions {
 	}
 }
 
-func TestRpc(t *testing.T) {
+func createCtxReadWriteOpts(t *testing.T) (context.Context, *storage.FetchQuery, *storage.WriteQuery, *storage.FetchOptions) {
 	ctx := context.Background()
 	read, _, _ := createStorageFetchQuery(t)
 	write, _ := createStorageWriteQuery(t)
 	readOpts := createStorageFetchOptions()
+	return ctx, read, write, readOpts
+}
+
+func TestRpc(t *testing.T) {
+	ctx, read, write, readOpts := createCtxReadWriteOpts(t)
 	store := &mockStorage{
 		t:     t,
 		read:  read,
@@ -135,9 +141,12 @@ func TestRpc(t *testing.T) {
 	}
 	host := generateAddress()
 	startServer(t, host, store)
-	client, cc, err := NewGrpcClient(host)
-	defer cc.Close()
+	client, err := NewGrpcClient(host)
 	require.Nil(t, err)
+	defer func() {
+		err = client.Close()
+		assert.NoError(t, err)
+	}()
 
 	fetch, err := client.Fetch(ctx, read, readOpts)
 	require.Nil(t, err)
@@ -148,10 +157,7 @@ func TestRpc(t *testing.T) {
 }
 
 func TestRpcMultipleRead(t *testing.T) {
-	ctx := context.Background()
-	read, _, _ := createStorageFetchQuery(t)
-	write, _ := createStorageWriteQuery(t)
-	readOpts := createStorageFetchOptions()
+	ctx, read, write, readOpts := createCtxReadWriteOpts(t)
 	pages := 10
 	store := &mockStorage{
 		t:        t,
@@ -161,8 +167,11 @@ func TestRpcMultipleRead(t *testing.T) {
 	}
 	host := generateAddress()
 	startServer(t, host, store)
-	client, cc, err := NewGrpcClient(host)
-	defer cc.Close()
+	client, err := NewGrpcClient(host)
+	defer func() {
+		err = client.Close()
+		assert.NoError(t, err)
+	}()
 	require.Nil(t, err)
 
 	fetch, err := client.Fetch(ctx, read, readOpts)
@@ -174,10 +183,7 @@ func TestRpcMultipleRead(t *testing.T) {
 }
 
 func TestRpcStopsStreamingWhenFetchKilledOnClient(t *testing.T) {
-	ctx := context.Background()
-	read, _, _ := createStorageFetchQuery(t)
-	write, _ := createStorageWriteQuery(t)
-	readOpts := createStorageFetchOptions()
+	ctx, read, write, readOpts := createCtxReadWriteOpts(t)
 	store := &mockStorage{
 		t:           t,
 		read:        read,
@@ -187,8 +193,11 @@ func TestRpcStopsStreamingWhenFetchKilledOnClient(t *testing.T) {
 	}
 	host := generateAddress()
 	startServer(t, host, store)
-	client, cc, err := NewGrpcClient(host)
-	defer cc.Close()
+	client, err := NewGrpcClient(host)
+	defer func() {
+		err = client.Close()
+		assert.NoError(t, err)
+	}()
 	require.Nil(t, err)
 
 	go func() {
@@ -203,16 +212,12 @@ func TestRpcStopsStreamingWhenFetchKilledOnClient(t *testing.T) {
 }
 
 func TestMultipleClientRpc(t *testing.T) {
-	ctx := context.Background()
-	read, _, _ := createStorageFetchQuery(t)
-	write, _ := createStorageWriteQuery(t)
-	readOpts := createStorageFetchOptions()
-
+	ctx, read, write, readOpts := createCtxReadWriteOpts(t)
 	store := &mockStorage{
 		t:           t,
 		read:        read,
 		write:       write,
-		sleepMillis: 100,
+		sleepMillis: 300,
 	}
 	host := generateAddress()
 	startServer(t, host, store)
@@ -223,8 +228,11 @@ func TestMultipleClientRpc(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			client, cc, err := NewGrpcClient(host)
-			defer cc.Close()
+			client, err := NewGrpcClient(host)
+			defer func() {
+				err = client.Close()
+				assert.NoError(t, err)
+			}()
 			require.Nil(t, err)
 
 			fetch, err := client.Fetch(ctx, read, readOpts)
@@ -260,10 +268,7 @@ func (s *errStorage) Type() storage.Type {
 }
 
 func TestErrRpc(t *testing.T) {
-	ctx := context.Background()
-	read, _, _ := createStorageFetchQuery(t)
-	write, _ := createStorageWriteQuery(t)
-	readOpts := createStorageFetchOptions()
+	ctx, read, write, readOpts := createCtxReadWriteOpts(t)
 	store := &errStorage{
 		t:     t,
 		read:  read,
@@ -271,8 +276,11 @@ func TestErrRpc(t *testing.T) {
 	}
 	host := generateAddress()
 	startServer(t, host, store)
-	client, cc, err := NewGrpcClient(host)
-	defer cc.Close()
+	client, err := NewGrpcClient(host)
+	defer func() {
+		err = client.Close()
+		assert.NoError(t, err)
+	}()
 	require.Nil(t, err)
 
 	fetch, err := client.Fetch(ctx, read, readOpts)

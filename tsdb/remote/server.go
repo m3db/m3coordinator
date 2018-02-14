@@ -24,29 +24,31 @@ func newServer(store storage.Storage) *grpcServer {
 
 // CreateNewGrpcServer creates server, given context local storage
 func CreateNewGrpcServer(store storage.Storage) *grpc.Server {
+	logging.InitWithCores(nil)
+
 	server := grpc.NewServer()
 	grpcServer := newServer(store)
 	rpc.RegisterQueryServer(server, grpcServer)
-	logging.InitWithCores(nil)
 
 	return server
 }
 
 // StartNewGrpcServer starts server on given address
-func StartNewGrpcServer(server *grpc.Server, address string) error {
+func StartNewGrpcServer(server *grpc.Server, address string, c chan<- struct{}) error {
 	lis, err := net.Listen("tcp", address)
 	if err != nil {
 		return err
 	}
+	c <- struct{}{}
 	return server.Serve(lis)
 }
 
 // Fetch reads from local storage
-func (s *grpcServer) Fetch(query *rpc.FetchQuery, stream rpc.Query_FetchServer) error {
-	storeQuery, id, err := DecodeFetchQuery(query)
+func (s *grpcServer) Fetch(message *rpc.FetchMessage, stream rpc.Query_FetchServer) error {
+	storeQuery, id, err := DecodeFetchMessage(message)
 	ctx := logging.NewContextWithID(stream.Context(), id)
 	logger := logging.WithContext(ctx)
-	defer logger.Sync()
+
 	if err != nil {
 		logger.Error("Unable to decode fetch query", zap.Any("error", err))
 		return err
@@ -54,8 +56,6 @@ func (s *grpcServer) Fetch(query *rpc.FetchQuery, stream rpc.Query_FetchServer) 
 
 	// Iterate while there are more results
 	for {
-		stream.Context()
-
 		result, err := s.storage.Fetch(ctx, storeQuery, nil)
 
 		if err != nil {
@@ -78,10 +78,10 @@ func (s *grpcServer) Fetch(query *rpc.FetchQuery, stream rpc.Query_FetchServer) 
 // Write writes to local storage
 func (s *grpcServer) Write(stream rpc.Query_WriteServer) error {
 	for {
-		write, err := stream.Recv()
+		message, err := stream.Recv()
 		ctx := stream.Context()
 		logger := logging.WithContext(ctx)
-		defer logger.Sync()
+
 		if err == io.EOF {
 			return nil
 		}
@@ -89,7 +89,7 @@ func (s *grpcServer) Write(stream rpc.Query_WriteServer) error {
 			logger.Error("Unable to use remote write", zap.Any("error", err))
 			return err
 		}
-		query, id := DecodeWriteQuery(write)
+		query, id := DecodeWriteMessage(message)
 		ctx = logging.NewContextWithID(ctx, id)
 		logger = logging.WithContext(ctx)
 

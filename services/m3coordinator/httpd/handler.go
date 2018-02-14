@@ -62,7 +62,6 @@ func (h *Handler) registerProfileEndpoints() {
 func withResponseTimeLogging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		startTime := time.Now()
-
 		rqCtx := logging.NewContextWithGeneratedID(r.Context())
 		logger := logging.WithContext(rqCtx)
 

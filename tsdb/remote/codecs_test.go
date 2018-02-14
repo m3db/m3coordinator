@@ -135,14 +135,14 @@ func createStorageFetchQuery(t *testing.T) (*storage.FetchQuery, time.Time, time
 	}, start, end
 }
 
-func TestEncodeFetchQuery(t *testing.T) {
+func TestEncodeFetchMessage(t *testing.T) {
 	rQ, start, end := createStorageFetchQuery(t)
 
-	grpcQ := EncodeFetchQuery(rQ, id)
+	grpcQ := EncodeFetchMessage(rQ, id)
 	require.NotNil(t, grpcQ)
-	assert.Equal(t, fromTime(start), grpcQ.GetStart())
-	assert.Equal(t, fromTime(end), grpcQ.GetEnd())
-	mRPC := grpcQ.GetTagMatchers()
+	assert.Equal(t, fromTime(start), grpcQ.GetQuery().GetStart())
+	assert.Equal(t, fromTime(end), grpcQ.GetQuery().GetEnd())
+	mRPC := grpcQ.GetQuery().GetTagMatchers()
 	assert.Equal(t, 2, len(mRPC))
 	assert.Equal(t, name0, mRPC[0].GetName())
 	assert.Equal(t, val0, mRPC[0].GetValue())
@@ -155,14 +155,14 @@ func TestEncodeFetchQuery(t *testing.T) {
 
 func TestEncodeDecodeFetchQuery(t *testing.T) {
 	rQ, _, _ := createStorageFetchQuery(t)
-	gq := EncodeFetchQuery(rQ, id)
-	reverted, decodeID, err := DecodeFetchQuery(gq)
+	gq := EncodeFetchMessage(rQ, id)
+	reverted, decodeID, err := DecodeFetchMessage(gq)
 	require.Nil(t, err)
 	assert.Equal(t, id, decodeID)
 	readQueriesAreEqual(t, rQ, reverted)
 
 	// Encode again
-	gqr := EncodeFetchQuery(reverted, decodeID)
+	gqr := EncodeFetchMessage(reverted, decodeID)
 	assert.Equal(t, gq, gqr)
 }
 
@@ -186,14 +186,14 @@ func createStorageWriteQuery(t *testing.T) (*storage.WriteQuery, ts.Datapoints) 
 	}, points
 }
 
-func TestEncodeWriteQuery(t *testing.T) {
+func TestEncodeWriteMessage(t *testing.T) {
 	write, points := createStorageWriteQuery(t)
-	encw := EncodeWriteQuery(write, id)
-	assert.Equal(t, tags0, encw.GetTags())
-	assert.Equal(t, ann, encw.GetAnnotation())
-	assert.Equal(t, int32(2), encw.GetUnit())
+	encw := EncodeWriteMessage(write, id)
+	assert.Equal(t, tags0, encw.GetQuery().GetTags())
+	assert.Equal(t, ann, encw.GetQuery().GetAnnotation())
+	assert.Equal(t, int32(2), encw.GetQuery().GetUnit())
 	assert.Equal(t, id, encw.GetOptions().GetId())
-	encPoints := encw.GetDatapoints()
+	encPoints := encw.GetQuery().GetDatapoints()
 	assert.Equal(t, len(points), len(encPoints))
 	for i, v := range points {
 		assert.Equal(t, fromTime(v.Timestamp), encPoints[i].GetTimestamp())
@@ -214,12 +214,12 @@ func writeQueriesAreEqual(t *testing.T, this, other *storage.WriteQuery) {
 
 func TestEncodeDecodeWriteQuery(t *testing.T) {
 	write, _ := createStorageWriteQuery(t)
-	encw := EncodeWriteQuery(write, id)
-	rev, decodeID := DecodeWriteQuery(encw)
+	encw := EncodeWriteMessage(write, id)
+	rev, decodeID := DecodeWriteMessage(encw)
 	writeQueriesAreEqual(t, write, rev)
 	require.Equal(t, id, decodeID)
 
 	// Encode again
-	reencw := EncodeWriteQuery(rev, decodeID)
+	reencw := EncodeWriteMessage(rev, decodeID)
 	assert.Equal(t, encw, reencw)
 }

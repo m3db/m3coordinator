@@ -62,7 +62,6 @@ func main() {
 
 	session, err := m3dbClient.NewSession()
 	if err != nil {
-
 		logger.Fatal("Unable to create m3db client session", zap.Any("error", err))
 	}
 
@@ -76,13 +75,15 @@ func main() {
 	logger.Info("Creating gRPC server")
 	server := remote.CreateNewGrpcServer(storage)
 
+	waitForStart := make(chan struct{})
 	go func() {
 		logger.Info("Starting gRPC server")
-		err = remote.StartNewGrpcServer(server, flags.rpcAddress)
+		err = remote.StartNewGrpcServer(server, flags.rpcAddress, waitForStart)
 		if err != nil {
 			logger.Fatal("Unable to start gRPC server", zap.Any("error", err))
 		}
 	}()
+	<-waitForStart
 
 	logger.Info("Starting server", zap.String("address", flags.listenAddress))
 	go http.ListenAndServe(flags.listenAddress, handler.Router)
