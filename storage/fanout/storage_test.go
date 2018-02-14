@@ -29,6 +29,10 @@ func filterFunc(output bool) filter.Storage {
 	}
 }
 
+func fakeIterator() encoding.SeriesIterator{
+	return encoding.NewSeriesIterator("id", time.Now(), time.Now(), nil, nil)
+}
+
 type fetchResponse struct {
 	result encoding.SeriesIterator
 	err    error
@@ -84,7 +88,7 @@ func TestFanoutReadError(t *testing.T) {
 
 func TestFanoutReadSuccess(t *testing.T) {
 	logging.InitWithCores(nil)
-	store := setupFanoutRead(t, true, &fetchResponse{result: encoding.NewSeriesIterator("id", time.Now(), time.Now(), nil, nil)})
+	store := setupFanoutRead(t, true, &fetchResponse{result: fakeIterator()}, &fetchResponse{result: fakeIterator()})
 	res, err := store.Fetch(context.TODO(), &storage.FetchQuery{}, &storage.FetchOptions{})
 	require.NoError(t, err, "no error on read")
 	assert.NotNil(t, res, "read success")
