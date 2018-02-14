@@ -52,7 +52,7 @@ Run Prometheus Docker image:
 
     $ docker run -p 9090:9090 -v $GOPATH/src/github.com/m3db/m3coordinator/docker/prometheus-mac.yml:/etc/prometheus/prometheus.yml quay.io/prometheus/prometheus
 
-## Running on GCP
+### Running on GCP
 
 Setup GCP for m3db:
 
