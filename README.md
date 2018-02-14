@@ -56,7 +56,7 @@ Run Prometheus Docker image:
 
 Setup GCP for m3db:
 
-    1. See m3db repo (m3db/example/README.md)
+    1. See [m3db repo](https://github.com/m3db/m3db/pull/452/files?short_path=20bfc3f#diff-20bfc3ff6a860483887b93bf9cf0d135)
 
 Setup GCP for m3coordinator:
 
