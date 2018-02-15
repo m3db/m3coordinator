@@ -50,7 +50,7 @@ func (s *grpcServer) Fetch(message *rpc.FetchMessage, stream rpc.Query_FetchServ
 	logger := logging.WithContext(ctx)
 
 	if err != nil {
-		logger.Error("Unable to decode fetch query", zap.Any("error", err))
+		logger.Error("unable to decode fetch query", zap.Any("error", err))
 		return err
 	}
 
@@ -59,13 +59,13 @@ func (s *grpcServer) Fetch(message *rpc.FetchMessage, stream rpc.Query_FetchServ
 		result, err := s.storage.Fetch(ctx, storeQuery, nil)
 
 		if err != nil {
-			logger.Error("Unable to fetch local query", zap.Any("error", err))
+			logger.Error("unable to fetch local query", zap.Any("error", err))
 			return err
 		}
 		err = stream.Send(EncodeFetchResult(result))
 
 		if err != nil {
-			logger.Error("Unable to send fetch result", zap.Any("error", err))
+			logger.Error("unable to send fetch result", zap.Any("error", err))
 			return err
 		}
 		if !result.HasNext {
@@ -86,7 +86,7 @@ func (s *grpcServer) Write(stream rpc.Query_WriteServer) error {
 			return nil
 		}
 		if err != nil {
-			logger.Error("Unable to use remote write", zap.Any("error", err))
+			logger.Error("unable to use remote write", zap.Any("error", err))
 			return err
 		}
 		query, id := DecodeWriteMessage(message)
@@ -95,7 +95,7 @@ func (s *grpcServer) Write(stream rpc.Query_WriteServer) error {
 
 		err = s.storage.Write(ctx, query)
 		if err != nil {
-			logger.Error("Unable to write local query", zap.Any("error", err))
+			logger.Error("unable to write local query", zap.Any("error", err))
 			return err
 		}
 	}

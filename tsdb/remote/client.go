@@ -26,8 +26,14 @@ type grpcClient struct {
 }
 
 // NewGrpcClient creates grpc client
-func NewGrpcClient(address string) (Client, error) {
-	cc, err := grpc.Dial(address, grpc.WithInsecure())
+func NewGrpcClient(addresses []string) (Client, error) {
+	if len(addresses) == 0 {
+		return nil, errors.ErrNoClientAddresses
+	}
+	resolver := newStaticResolver(addresses)
+	balancer := grpc.RoundRobin(resolver)
+	dialOption := grpc.WithBalancer(balancer)
+	cc, err := grpc.Dial("", grpc.WithInsecure(), dialOption)
 	if err != nil {
 		return nil, err
 	}
@@ -42,15 +48,11 @@ func NewGrpcClient(address string) (Client, error) {
 // Fetch reads from remote client storage
 func (c *grpcClient) Fetch(ctx context.Context, query *storage.FetchQuery, options *storage.FetchOptions) (*storage.FetchResult, error) {
 	id := logging.ReadContextID(ctx)
-	client, err := c.client.Fetch(ctx, EncodeFetchMessage(query, id))
+	fetchClient, err := c.client.Fetch(ctx, EncodeFetchMessage(query, id))
 	if err != nil {
 		return nil, err
 	}
 
-	fetchClient, ok := client.(rpc.Query_FetchClient)
-	if !ok {
-		return nil, nil
-	}
 	defer fetchClient.CloseSend()
 
 	tsSeries := make([]*ts.Series, 0)

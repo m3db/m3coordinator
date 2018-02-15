@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/m3db/m3coordinator/generated/proto/m3coordinator"
+	"github.com/m3db/m3coordinator/models"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/ts"
 
-	"github.com/m3db/m3coordinator/models"
 	xtime "github.com/m3db/m3x/time"
 )
 

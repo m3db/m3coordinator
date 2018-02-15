@@ -72,12 +72,12 @@ func main() {
 	}
 	handler.RegisterRoutes()
 
-	logger.Info("Creating gRPC server")
+	logger.Info("creating gRPC server")
 	server := remote.CreateNewGrpcServer(storage)
 
 	waitForStart := make(chan struct{})
 	go func() {
-		logger.Info("Starting gRPC server")
+		logger.Info("starting gRPC server")
 		err = remote.StartNewGrpcServer(server, flags.rpcAddress, waitForStart)
 		if err != nil {
 			logger.Fatal("unable to start gRPC server", zap.Any("error", err))
@@ -85,7 +85,7 @@ func main() {
 	}()
 	<-waitForStart
 
-	logger.Info("Starting server", zap.String("address", flags.listenAddress))
+	logger.Info("starting server", zap.String("address", flags.listenAddress))
 	go http.ListenAndServe(flags.listenAddress, handler.Router)
 
 	sigChan := make(chan os.Signal, 1)

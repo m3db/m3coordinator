@@ -141,7 +141,8 @@ func TestRpc(t *testing.T) {
 		write: write,
 	}
 	startServer(t, host, store)
-	client, err := NewGrpcClient(host)
+	hosts := []string{host}
+	client, err := NewGrpcClient(hosts)
 	require.NoError(t, err)
 	defer func() {
 		err = client.Close()
@@ -166,7 +167,8 @@ func TestRpcMultipleRead(t *testing.T) {
 		numPages: pages,
 	}
 	startServer(t, host, store)
-	client, err := NewGrpcClient(host)
+	hosts := []string{host}
+	client, err := NewGrpcClient(hosts)
 	defer func() {
 		err = client.Close()
 		assert.NoError(t, err)
@@ -191,7 +193,8 @@ func TestRpcStopsStreamingWhenFetchKilledOnClient(t *testing.T) {
 		numPages:    10,
 	}
 	startServer(t, host, store)
-	client, err := NewGrpcClient(host)
+	hosts := []string{host}
+	client, err := NewGrpcClient(hosts)
 	defer func() {
 		err = client.Close()
 		assert.NoError(t, err)
@@ -224,7 +227,8 @@ func TestMultipleClientRpc(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			client, err := NewGrpcClient(host)
+			hosts := []string{host}
+			client, err := NewGrpcClient(hosts)
 			defer func() {
 				err = client.Close()
 				assert.NoError(t, err)
@@ -263,6 +267,13 @@ func (s *errStorage) Type() storage.Type {
 	return storage.Type(-1)
 }
 
+func TestEmptyAddressListErrors(t *testing.T) {
+	addresses := []string{}
+	client, err := NewGrpcClient(addresses)
+	assert.Nil(t, client)
+	assert.Equal(t, m3err.ErrNoClientAddresses, err)
+}
+
 func TestErrRpc(t *testing.T) {
 	ctx, read, write, readOpts, host := createCtxReadWriteOpts(t)
 	store := &errStorage{
@@ -271,7 +282,8 @@ func TestErrRpc(t *testing.T) {
 		write: write,
 	}
 	startServer(t, host, store)
-	client, err := NewGrpcClient(host)
+	hosts := []string{host}
+	client, err := NewGrpcClient(hosts)
 	defer func() {
 		err = client.Close()
 		assert.NoError(t, err)
@@ -284,4 +296,48 @@ func TestErrRpc(t *testing.T) {
 
 	err = client.Write(ctx, write)
 	assert.Equal(t, errWrite.Error(), grpc.ErrorDesc(err))
+}
+
+func TestRoundRobinClientRpc(t *testing.T) {
+	ctx, read, write, readOpts, host := createCtxReadWriteOpts(t)
+	store := &mockStorage{
+		t:     t,
+		read:  read,
+		write: write,
+	}
+	startServer(t, host, store)
+	errHost := generateAddress()
+	errStore := &errStorage{
+		t:     t,
+		read:  read,
+		write: write,
+	}
+	startServer(t, errHost, errStore)
+
+	// Expected order: fail, pass, fail, pass...
+	hosts := []string{errHost, host}
+	client, err := NewGrpcClient(hosts)
+	defer func() {
+		err = client.Close()
+		assert.NoError(t, err)
+	}()
+	require.NoError(t, err)
+
+	// Fetch called on errHost
+	fetch, err := client.Fetch(ctx, read, readOpts)
+	assert.Nil(t, fetch)
+	assert.Equal(t, errRead.Error(), grpc.ErrorDesc(err))
+
+	// Write called on host
+	err = client.Write(ctx, write)
+	require.Equal(t, io.EOF, err)
+
+	// Write called on errHost
+	err = client.Write(ctx, write)
+	assert.Equal(t, errWrite.Error(), grpc.ErrorDesc(err))
+
+	// Fetch called on host
+	fetch, err = client.Fetch(ctx, read, readOpts)
+	require.NoError(t, err)
+	checkRemoteFetch(t, fetch)
 }
