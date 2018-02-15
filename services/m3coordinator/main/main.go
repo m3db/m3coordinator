@@ -51,24 +51,24 @@ func main() {
 
 	var cfg config.Configuration
 	if err := xconfig.LoadFile(&cfg, flags.configFile); err != nil {
-		logger.Fatal("Unable to load", zap.String("configFile", flags.configFile), zap.Any("error", err))
+		logger.Fatal("unable to load", zap.String("configFile", flags.configFile), zap.Any("error", err))
 	}
 
 	m3dbClientOpts := cfg.M3DBClientCfg
 	m3dbClient, err := m3dbClientOpts.NewClient(client.ConfigurationParameters{})
 	if err != nil {
-		logger.Fatal("Unable to create m3db client", zap.Any("error", err))
+		logger.Fatal("unable to create m3db client", zap.Any("error", err))
 	}
 
 	session, err := m3dbClient.NewSession()
 	if err != nil {
-		logger.Fatal("Unable to create m3db client session", zap.Any("error", err))
+		logger.Fatal("unable to create m3db client session", zap.Any("error", err))
 	}
 
 	storage := local.NewStorage(session, namespace, resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
 	handler, err := httpd.NewHandler(storage, executor.NewEngine(storage))
 	if err != nil {
-		logger.Fatal("Unable to set up handlers", zap.Any("error", err))
+		logger.Fatal("unable to set up handlers", zap.Any("error", err))
 	}
 	handler.RegisterRoutes()
 
@@ -80,7 +80,7 @@ func main() {
 		logger.Info("Starting gRPC server")
 		err = remote.StartNewGrpcServer(server, flags.rpcAddress, waitForStart)
 		if err != nil {
-			logger.Fatal("Unable to start gRPC server", zap.Any("error", err))
+			logger.Fatal("unable to start gRPC server", zap.Any("error", err))
 		}
 	}()
 	<-waitForStart
@@ -93,7 +93,7 @@ func main() {
 
 	<-sigChan
 	if err := session.Close(); err != nil {
-		logger.Fatal("Unable to close m3db client session", zap.Any("error", err))
+		logger.Fatal("unable to close m3db client session", zap.Any("error", err))
 	}
 }
 
@@ -122,7 +122,7 @@ func parseFlags(logger *zap.Logger) *m3config {
 
 	_, err := a.Parse(os.Args[1:])
 	if err != nil {
-		logger.Error("Error parsing commandline arguments", zap.Any("error", err))
+		logger.Error("unable to parse command line arguments", zap.Any("error", err))
 		a.Usage(os.Args[1:])
 		os.Exit(2)
 	}
