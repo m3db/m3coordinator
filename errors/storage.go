@@ -5,16 +5,16 @@ import (
 )
 
 var (
-	// InvalidFetchResponse is returned when fetch fails from storage.
-	InvalidFetchResponse = errors.New("invalid response from fetch")
+	// ErrInvalidFetchResponse is returned when fetch fails from storage.
+	ErrInvalidFetchResponse = errors.New("invalid response from fetch")
 
-	// FetchResponseOrder is returned fetch responses are not in order.
-	FetchResponseOrder = errors.New("responses out of order for fetch")
+	// ErrFetchResponseOrder is returned fetch responses are not in order.
+	ErrFetchResponseOrder = errors.New("responses out of order for fetch")
 
-	// FetchRequestType is an error returned when response from fetch has invalid type.
-	FetchRequestType = errors.New("invalid request type")
+	// ErrFetchRequestType is an error returned when response from fetch has invalid type.
+	ErrFetchRequestType = errors.New("invalid request type")
 
-	// InvalidFetchResult is an error returned when fetch result is invalid.
-	InvalidFetchResult = errors.New("invalid fetch result")
+	// ErrInvalidFetchResult is an error returned when fetch result is invalid.
+	ErrInvalidFetchResult = errors.New("invalid fetch result")
 
 )

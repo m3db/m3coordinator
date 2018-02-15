@@ -11,17 +11,18 @@ import (
 )
 
 type fanoutStorage struct {
-	stores []storage.Storage
-	filter filter.Storage
+	stores      []storage.Storage
+	readFilter  filter.Storage
+	writeFilter filter.Storage
 }
 
 // NewStorage creates a new remote Storage instance.
-func NewStorage(stores []storage.Storage, filter filter.Storage) storage.Storage {
-	return &fanoutStorage{stores: stores, filter: filter}
+func NewStorage(stores []storage.Storage, readFilter filter.Storage, writeFilter filter.Storage) storage.Storage {
+	return &fanoutStorage{stores: stores, readFilter: readFilter, writeFilter: writeFilter}
 }
 
 func (s *fanoutStorage) Fetch(ctx context.Context, query *storage.FetchQuery, options *storage.FetchOptions) (*storage.FetchResult, error) {
-	stores := filterStores(s.stores, s.filter, query)
+	stores := filterStores(s.stores, s.readFilter, query)
 	requests := make([]execution.Request, len(stores))
 	for idx, store := range stores {
 		requests[idx] = newFetchRequest(ctx, store, query, options)
@@ -43,14 +44,14 @@ func handleFetchResponses(requestResponseChan <-chan *execution.RequestResponse)
 		// This type cast can be removed if we were to create a slice of *fetchRequest instead
 		fetchreq, ok := reqResponse.Request.(*fetchRequest)
 		if !ok {
-			return nil, errors.FetchRequestType
+			return nil, errors.ErrFetchRequestType
 		}
 
 		// We can  optimize this by storing the result on the fetch request but that makes it less clean since
 		// you will be both reading and writing to the same slice concurrently
 		fetchResult, ok := reqResponse.Response.Value.(*storage.FetchResult)
 		if !ok {
-			return nil, errors.InvalidFetchResult
+			return nil, errors.ErrInvalidFetchResult
 		}
 
 		if fetchreq.store.Type() != storage.TypeLocalDC {
@@ -64,7 +65,7 @@ func handleFetchResponses(requestResponseChan <-chan *execution.RequestResponse)
 }
 
 func (s *fanoutStorage) Write(ctx context.Context, query *storage.WriteQuery) error {
-	stores := filterStores(s.stores, s.filter, query)
+	stores := filterStores(s.stores, s.writeFilter, query)
 	requests := make([]execution.Request, len(stores))
 	for idx, store := range stores {
 		requests[idx] = newWriteRequest(ctx, store, query)
@@ -97,7 +98,6 @@ func filterStores(stores []storage.Storage, filterPolicy filter.Storage, query s
 
 type fetchRequest struct {
 	store   storage.Storage
-	order   int
 	query   *storage.FetchQuery
 	options *storage.FetchOptions
 	ctx     context.Context
@@ -121,22 +121,22 @@ func (f *fetchRequest) Process() *execution.Response {
 }
 
 type writeRequest struct {
-	store   storage.Storage
-	query   *storage.WriteQuery
-	ctx     context.Context
+	store storage.Storage
+	query *storage.WriteQuery
+	ctx   context.Context
 }
 
 func newWriteRequest(ctx context.Context, store storage.Storage, query *storage.WriteQuery) execution.Request {
 	return &writeRequest{
-		store:   store,
-		ctx:     ctx,
-		query:   query,
+		store: store,
+		ctx:   ctx,
+		query: query,
 	}
 }
 
 func (f *writeRequest) Process() *execution.Response {
 	err := f.store.Write(f.ctx, f.query)
 	return &execution.Response{
-		Err:   err,
+		Err: err,
 	}
 }

@@ -60,7 +60,7 @@ func setupFanoutRead(t *testing.T, output bool, response ...*fetchResponse) stor
 		local.NewStorage(session2, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48))),
 	}
 
-	store := NewStorage(stores, filterFunc(output))
+	store := NewStorage(stores, filterFunc(output), filterFunc(output))
 	return store
 }
 
@@ -75,7 +75,7 @@ func setupFanoutWrite(t *testing.T, output bool, errs ...error) storage.Storage 
 
 	stores[0] = local.NewStorage(session1, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
 	stores[1] = local.NewStorage(session2, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
-	store := NewStorage(stores, filterFunc(output))
+	store := NewStorage(stores, filterFunc(output), filterFunc(output))
 	return store
 }
 

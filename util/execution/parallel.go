@@ -9,6 +9,7 @@ type Request interface {
 	Process() *Response
 }
 
+// RequestResponse is used to combine both request and response in output
 type RequestResponse struct {
 	Request  Request
 	Response *Response
