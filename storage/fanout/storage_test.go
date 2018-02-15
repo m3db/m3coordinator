@@ -38,25 +38,34 @@ type fetchResponse struct {
 	err    error
 }
 
+func setup() {
+	logging.InitWithCores(nil)
+	logger := logging.WithContext(context.TODO())
+	defer logger.Sync()
+}
+
 func setupFanoutRead(t *testing.T, output bool, response ...*fetchResponse) storage.Storage {
+	setup()
 	if len(response) == 0 {
 		response = []*fetchResponse{{err: fmt.Errorf("unable to get response")}}
 	}
 
-	stores := make([]storage.Storage, 2)
 	ctrl := gomock.NewController(t)
 	session1 := client.NewMockSession(ctrl)
 	session2 := client.NewMockSession(ctrl)
 	session1.EXPECT().Fetch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(response[0].result, response[0].err)
 	session2.EXPECT().Fetch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(response[len(response)-1].result, response[len(response)-1].err)
+	stores := []storage.Storage{
+		local.NewStorage(session1, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48))),
+		local.NewStorage(session2, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48))),
+	}
 
-	stores[0] = local.NewStorage(session1, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
-	stores[1] = local.NewStorage(session2, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
 	store := NewStorage(stores, filterFunc(output))
 	return store
 }
 
 func setupFanoutWrite(t *testing.T, output bool, errs ...error) storage.Storage {
+	setup()
 	stores := make([]storage.Storage, 2)
 	ctrl := gomock.NewController(t)
 	session1 := client.NewMockSession(ctrl)
@@ -71,23 +80,20 @@ func setupFanoutWrite(t *testing.T, output bool, errs ...error) storage.Storage 
 }
 
 func TestFanoutReadEmpty(t *testing.T) {
-	logging.InitWithCores(nil)
 	store := setupFanoutRead(t, false)
 	res, err := store.Fetch(context.TODO(), nil, nil)
 	assert.NoError(t, err, "No error")
 	require.NotNil(t, res, "Non empty result")
-	assert.Equal(t, len(res.SeriesList), 0, "No series")
+	assert.Len(t, res.SeriesList, 0, "No series")
 }
 
 func TestFanoutReadError(t *testing.T) {
-	logging.InitWithCores(nil)
 	store := setupFanoutRead(t, true)
 	_, err := store.Fetch(context.TODO(), &storage.FetchQuery{}, &storage.FetchOptions{})
 	assert.Error(t, err, "read error")
 }
 
 func TestFanoutReadSuccess(t *testing.T) {
-	logging.InitWithCores(nil)
 	store := setupFanoutRead(t, true, &fetchResponse{result: fakeIterator()}, &fetchResponse{result: fakeIterator()})
 	res, err := store.Fetch(context.TODO(), &storage.FetchQuery{}, &storage.FetchOptions{})
 	require.NoError(t, err, "no error on read")
@@ -95,14 +101,12 @@ func TestFanoutReadSuccess(t *testing.T) {
 }
 
 func TestFanoutWriteEmpty(t *testing.T) {
-	logging.InitWithCores(nil)
 	store := setupFanoutWrite(t, false, fmt.Errorf("write error"))
 	err := store.Write(context.TODO(), nil)
 	assert.NoError(t, err, "No error")
 }
 
 func TestFanoutWriteError(t *testing.T) {
-	logging.InitWithCores(nil)
 	store := setupFanoutWrite(t, true, fmt.Errorf("write error"))
 	datapoints := make(ts.Datapoints, 1)
 	datapoints[0] = &ts.Datapoint{time.Now(), 1}
@@ -113,7 +117,6 @@ func TestFanoutWriteError(t *testing.T) {
 }
 
 func TestFanoutWriteSuccess(t *testing.T) {
-	logging.InitWithCores(nil)
 	store := setupFanoutWrite(t, true, nil)
 	datapoints := make(ts.Datapoints, 1)
 	datapoints[0] = &ts.Datapoint{Timestamp: time.Now(), Value: 1}
