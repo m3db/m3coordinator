@@ -25,7 +25,8 @@ To benchmark m3db writes using m3coordinator.
         $ sudo apt-get install golang golint make git golang-glide
     2. Setup paths and clone m3db
         $ export GOPATH=$HOME/code
-        $ mkdir -p $HOME/code/src/github.com/m3db
+        $ mkdir -p $GOPATH/src/github.com/m3db
+        $ cd $GOPATH/src/github.com/m3db
         $ git clone https://github.com/m3db/m3db
     3. Build m3db
         $ git submodule update --init --recursive
