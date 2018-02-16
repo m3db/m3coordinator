@@ -133,6 +133,28 @@ func createCtxReadWriteOpts(t *testing.T) (context.Context, *storage.FetchQuery,
 	return ctx, read, write, readOpts, host
 }
 
+func checkFetch(ctx context.Context, t *testing.T, client Client, read *storage.FetchQuery, readOpts *storage.FetchOptions) {
+	fetch, err := client.Fetch(ctx, read, readOpts)
+	require.NoError(t, err)
+	checkRemoteFetch(t, fetch)
+}
+
+func checkWrite(ctx context.Context, t *testing.T, client Client, write *storage.WriteQuery) {
+	err := client.Write(ctx, write)
+	require.Equal(t, io.EOF, err)
+}
+
+func checkErrorFetch(ctx context.Context, t *testing.T, client Client, read *storage.FetchQuery, readOpts *storage.FetchOptions) {
+	fetch, err := client.Fetch(ctx, read, readOpts)
+	assert.Nil(t, fetch)
+	assert.Equal(t, errRead.Error(), grpc.ErrorDesc(err))
+}
+
+func checkErrorWrite(ctx context.Context, t *testing.T, client Client, write *storage.WriteQuery) {
+	err := client.Write(ctx, write)
+	assert.Equal(t, errWrite.Error(), grpc.ErrorDesc(err))
+}
+
 func TestRpc(t *testing.T) {
 	ctx, read, write, readOpts, host := createCtxReadWriteOpts(t)
 	store := &mockStorage{
@@ -149,12 +171,8 @@ func TestRpc(t *testing.T) {
 		assert.NoError(t, err)
 	}()
 
-	fetch, err := client.Fetch(ctx, read, readOpts)
-	require.NoError(t, err)
-	checkRemoteFetch(t, fetch)
-
-	err = client.Write(ctx, write)
-	require.Equal(t, io.EOF, err)
+	checkWrite(ctx, t, client, write)
+	checkFetch(ctx, t, client, read, readOpts)
 }
 
 func TestRpcMultipleRead(t *testing.T) {
@@ -174,13 +192,11 @@ func TestRpcMultipleRead(t *testing.T) {
 		assert.NoError(t, err)
 	}()
 	require.NoError(t, err)
-
 	fetch, err := client.Fetch(ctx, read, readOpts)
 	require.NoError(t, err)
 	checkMultipleRemoteFetch(t, fetch, pages)
 
-	err = client.Write(ctx, write)
-	require.Equal(t, io.EOF, err)
+	checkWrite(ctx, t, client, write)
 }
 
 func TestRpcStopsStreamingWhenFetchKilledOnClient(t *testing.T) {
@@ -205,7 +221,6 @@ func TestRpcStopsStreamingWhenFetchKilledOnClient(t *testing.T) {
 		time.Sleep(time.Millisecond * 150)
 		readOpts.KillChan <- struct{}{}
 	}()
-
 	fetch, err := client.Fetch(ctx, read, readOpts)
 	assert.Nil(t, fetch)
 	assert.Equal(t, err, m3err.ErrQueryInterrupted)
@@ -235,12 +250,8 @@ func TestMultipleClientRpc(t *testing.T) {
 			}()
 			require.NoError(t, err)
 
-			fetch, err := client.Fetch(ctx, read, readOpts)
-			require.NoError(t, err)
-			checkRemoteFetch(t, fetch)
-
-			err = client.Write(ctx, write)
-			require.Equal(t, io.EOF, err)
+			checkWrite(ctx, t, client, write)
+			checkFetch(ctx, t, client, read, readOpts)
 		}()
 	}
 
@@ -290,12 +301,8 @@ func TestErrRpc(t *testing.T) {
 	}()
 	require.NoError(t, err)
 
-	fetch, err := client.Fetch(ctx, read, readOpts)
-	assert.Nil(t, fetch)
-	assert.Equal(t, errRead.Error(), grpc.ErrorDesc(err))
-
-	err = client.Write(ctx, write)
-	assert.Equal(t, errWrite.Error(), grpc.ErrorDesc(err))
+	checkErrorWrite(ctx, t, client, write)
+	checkErrorFetch(ctx, t, client, read, readOpts)
 }
 
 func TestRoundRobinClientRpc(t *testing.T) {
@@ -324,20 +331,14 @@ func TestRoundRobinClientRpc(t *testing.T) {
 	require.NoError(t, err)
 
 	// Fetch called on errHost
-	fetch, err := client.Fetch(ctx, read, readOpts)
-	assert.Nil(t, fetch)
-	assert.Equal(t, errRead.Error(), grpc.ErrorDesc(err))
+	checkErrorFetch(ctx, t, client, read, readOpts)
 
 	// Write called on host
-	err = client.Write(ctx, write)
-	require.Equal(t, io.EOF, err)
+	checkWrite(ctx, t, client, write)
 
 	// Write called on errHost
-	err = client.Write(ctx, write)
-	assert.Equal(t, errWrite.Error(), grpc.ErrorDesc(err))
+	checkErrorWrite(ctx, t, client, write)
 
 	// Fetch called on host
-	fetch, err = client.Fetch(ctx, read, readOpts)
-	require.NoError(t, err)
-	checkRemoteFetch(t, fetch)
+	checkFetch(ctx, t, client, read, readOpts)
 }
