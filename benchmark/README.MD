@@ -23,18 +23,16 @@ To benchmark m3db writes using m3coordinator.
 
     1. Download necessary packages
         $ sudo apt-get install golang golint make git golang-glide
-    2. Set GOPATH:
-        $ export GOPATH=/home/<user_name>/code
-    3. Create m3db directory
-        $ mkdir -p /home/<user_name>/code/src/github.com/m3db
-    4. cd into m3db directory and git clone m3db
+    2. Setup paths and clone m3db
+        $ export GOPATH=$HOME/code
+        $ mkdir -p $HOME/code/src/github.com/m3db
         $ git clone https://github.com/m3db/m3db
-    5. Build m3db
+    3. Build m3db
         $ git submodule update --init --recursive
         $ glide install
         $ make services
-    6. There are three config files in the `$GOPATH/src/github.com/m3db/m3coordinator/benchmark/configs/multi_node_setup` directory (`m3dbnode-server1-config.yaml`, `m3dbnode-server2-config.yaml`, `m3dbnode-server3-config.yaml`) - you will use one config per GCP instance
-    7. Update config on each host to reflect the correct IP addresses of the GCP instances and the names of the m3db servers. NB: this example is for a three node m3db cluster.
+    4. There are three config files in the `$GOPATH/src/github.com/m3db/m3coordinator/benchmark/configs/multi_node_setup` directory (`m3dbnode-server1-config.yaml`, `m3dbnode-server2-config.yaml`, `m3dbnode-server3-config.yaml`) - you will use one config per GCP instance
+    5. Update config on each host to reflect the correct IP addresses of the GCP instances and the names of the m3db servers. NB: this example is for a three node m3db cluster.
         - You should only need to update the IP addresses for the topology under the config section. e.g.:
             ```
             config:
@@ -56,7 +54,7 @@ To benchmark m3db writes using m3coordinator.
                           blockSize: 4h
                           bufferPast: 2h
             ```
-    8. Run m3db:
+    6. Run m3db:
         $ sudo ./bin/m3dbnode -f $GOPATH/src/github.com/m3db/m3coordinator/benchmark/configs/multi_node_setup/m3dbnode-server[1-3]-config.yaml
 
 5) Build and run the benchmark tool in m3coordinator
