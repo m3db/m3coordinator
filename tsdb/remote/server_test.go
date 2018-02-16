@@ -201,12 +201,13 @@ func TestRpcMultipleRead(t *testing.T) {
 
 func TestRpcStopsStreamingWhenFetchKilledOnClient(t *testing.T) {
 	ctx, read, write, readOpts, host := createCtxReadWriteOpts(t)
+	sleepMillis, numPages := 100, 10
 	store := &mockStorage{
 		t:           t,
 		read:        read,
 		write:       write,
-		sleepMillis: 100,
-		numPages:    10,
+		sleepMillis: sleepMillis,
+		numPages:    numPages,
 	}
 	startServer(t, host, store)
 	hosts := []string{host}
@@ -221,9 +222,12 @@ func TestRpcStopsStreamingWhenFetchKilledOnClient(t *testing.T) {
 		time.Sleep(time.Millisecond * 150)
 		readOpts.KillChan <- struct{}{}
 	}()
+	testStart := time.Now()
 	fetch, err := client.Fetch(ctx, read, readOpts)
+	testDuration := time.Since(testStart)
 	assert.Nil(t, fetch)
 	assert.Equal(t, err, m3err.ErrQueryInterrupted)
+	assert.True(t, testDuration < time.Duration(sleepMillis*numPages)*time.Millisecond)
 }
 
 func TestMultipleClientRpc(t *testing.T) {
@@ -330,15 +334,21 @@ func TestRoundRobinClientRpc(t *testing.T) {
 	}()
 	require.NoError(t, err)
 
+	pause := func() { time.Sleep(time.Millisecond * 10) }
+
+	pause()
 	// Fetch called on errHost
 	checkErrorFetch(ctx, t, client, read, readOpts)
 
+	pause()
 	// Write called on host
 	checkWrite(ctx, t, client, write)
 
+	pause()
 	// Write called on errHost
 	checkErrorWrite(ctx, t, client, write)
 
+	pause()
 	// Fetch called on host
 	checkFetch(ctx, t, client, read, readOpts)
 }
