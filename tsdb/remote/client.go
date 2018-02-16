@@ -47,6 +47,7 @@ func NewGrpcClient(addresses []string) (Client, error) {
 
 // Fetch reads from remote client storage
 func (c *grpcClient) Fetch(ctx context.Context, query *storage.FetchQuery, options *storage.FetchOptions) (*storage.FetchResult, error) {
+	// Send the id from the client to the remote server so that provides logging
 	id := logging.ReadContextID(ctx)
 	fetchClient, err := c.client.Fetch(ctx, EncodeFetchMessage(query, id))
 	if err != nil {

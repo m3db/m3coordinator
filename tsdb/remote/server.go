@@ -7,8 +7,8 @@ import (
 	"github.com/m3db/m3coordinator/generated/proto/m3coordinator"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/util/logging"
-	"go.uber.org/zap"
 
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
@@ -24,8 +24,6 @@ func newServer(store storage.Storage) *grpcServer {
 
 // CreateNewGrpcServer creates server, given context local storage
 func CreateNewGrpcServer(store storage.Storage) *grpc.Server {
-	logging.InitWithCores(nil)
-
 	server := grpc.NewServer()
 	grpcServer := newServer(store)
 	rpc.RegisterQueryServer(server, grpcServer)
@@ -33,13 +31,13 @@ func CreateNewGrpcServer(store storage.Storage) *grpc.Server {
 	return server
 }
 
-// StartNewGrpcServer starts server on given address
-func StartNewGrpcServer(server *grpc.Server, address string, c chan<- struct{}) error {
+// StartNewGrpcServer starts server on given address, then notifies channel
+func StartNewGrpcServer(server *grpc.Server, address string, waitForStart chan<- struct{}) error {
 	lis, err := net.Listen("tcp", address)
 	if err != nil {
 		return err
 	}
-	c <- struct{}{}
+	waitForStart <- struct{}{}
 	return server.Serve(lis)
 }
 

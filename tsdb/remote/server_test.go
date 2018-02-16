@@ -13,6 +13,7 @@ import (
 	"github.com/m3db/m3coordinator/models"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/ts"
+	"github.com/m3db/m3coordinator/util/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -125,6 +126,8 @@ func createStorageFetchOptions() *storage.FetchOptions {
 }
 
 func createCtxReadWriteOpts(t *testing.T) (context.Context, *storage.FetchQuery, *storage.WriteQuery, *storage.FetchOptions, string) {
+	logging.InitWithCores(nil)
+
 	ctx := context.Background()
 	read, _, _ := createStorageFetchQuery(t)
 	write, _ := createStorageWriteQuery(t)
