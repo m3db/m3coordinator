@@ -17,7 +17,6 @@ type request struct {
 }
 
 func (f *request) Process(ctx context.Context) error {
-	f.processed = true
 	if f.err != nil {
 		return f.err
 	}
@@ -26,7 +25,13 @@ func (f *request) Process(ctx context.Context) error {
 		time.Sleep(2 * time.Millisecond)
 	}
 
-	return nil
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		f.processed = true
+		return nil
+	}
 }
 
 func (f *request) String() string {
@@ -42,4 +47,15 @@ func TestOrderedParallel(t *testing.T) {
 	err := ExecuteParallel(context.Background(), requests)
 	require.NoError(t, err, "no error during parallel execute")
 	assert.True(t, requests[0].(*request).processed, "slowest request processed")
+}
+
+func TestSingleError(t *testing.T) {
+	requests := make([]Request, 3)
+	requests[0] = &request{order: 0}
+	requests[1] = &request{order: 1, err: fmt.Errorf("problem executing")}
+	requests[2] = &request{order: 2}
+
+	err := ExecuteParallel(context.Background(), requests)
+	assert.Error(t, err, "error in second request")
+	assert.False(t, requests[0].(*request).processed, "skip request on error")
 }
