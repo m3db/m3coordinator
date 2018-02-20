@@ -123,5 +123,5 @@ func TestFanoutWriteSuccess(t *testing.T) {
 	err := store.Write(context.TODO(), &storage.WriteQuery{
 		Datapoints: datapoints,
 	})
-	assert.NoError(t, err, "write success")
+	assert.NoError(t, err, "no error from session")
 }

@@ -41,5 +41,5 @@ func TestOrderedParallel(t *testing.T) {
 
 	err := ExecuteParallel(context.Background(), requests)
 	require.NoError(t, err, "no error during parallel execute")
-	assert.True(t, requests[0].(*request).processed, "request processed")
+	assert.True(t, requests[0].(*request).processed, "slowest request processed")
 }

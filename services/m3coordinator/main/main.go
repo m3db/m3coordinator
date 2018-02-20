@@ -69,11 +69,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// setup storages
-	localStorage := local.NewStorage(session, namespace, resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
-	stores := []storage.Storage{localStorage}
-	fanoutStorage := fanout.NewStorage(stores, filter.LocalOnly, filter.LocalOnly)
-
+	fanoutStorage := setupStorages(session)
 	handler, err := httpd.NewHandler(fanoutStorage, executor.NewEngine(fanoutStorage))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to set up handlers, got error %v\n", err)
@@ -122,4 +118,12 @@ func parseFlags() *m3config {
 	}
 
 	return &cfg
+}
+
+// Setup all the storages
+func setupStorages(session client.Session) storage.Storage {
+	localStorage := local.NewStorage(session, namespace, resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
+	stores := []storage.Storage{localStorage}
+	fanoutStorage := fanout.NewStorage(stores, filter.LocalOnly, filter.LocalOnly)
+	return fanoutStorage
 }
