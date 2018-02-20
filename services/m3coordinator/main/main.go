@@ -11,12 +11,16 @@ import (
 	"time"
 
 	"github.com/m3db/m3coordinator/executor"
+	"github.com/m3db/m3coordinator/policy/filter"
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/services/m3coordinator/config"
 	"github.com/m3db/m3coordinator/services/m3coordinator/httpd"
 	"github.com/m3db/m3coordinator/storage"
+
+	"github.com/m3db/m3coordinator/storage/fanout"
 	"github.com/m3db/m3coordinator/storage/local"
-	"github.com/m3db/m3coordinator/tsdb/remote"
+	"github.com/m3db/m3coordinator/storage/remote"
+	tsdbRemote "github.com/m3db/m3coordinator/tsdb/remote"
 	"github.com/m3db/m3coordinator/util/logging"
 
 	"github.com/m3db/m3db/client"
@@ -38,6 +42,7 @@ type m3config struct {
 	listenAddress        string
 	rpcEnabled           bool
 	rpcAddress           string
+	remotes              []string
 	maxConcurrentQueries int
 	queryTimeout         time.Duration
 }
@@ -46,7 +51,7 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 
 	logging.InitWithCores(nil)
-	ctx := context.TODO()
+	ctx := context.Background()
 	logger := logging.WithContext(ctx)
 	defer logger.Sync()
 
@@ -68,17 +73,14 @@ func main() {
 		logger.Fatal("unable to create m3db client session", zap.Any("error", err))
 	}
 
-	storage := local.NewStorage(session, namespace, resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
-	handler, err := httpd.NewHandler(storage, executor.NewEngine(storage))
+	fanoutStorage, storageCleanup := setupStorages(logger, session, flags)
+	defer storageCleanup()
+
+	handler, err := httpd.NewHandler(fanoutStorage, executor.NewEngine(fanoutStorage))
 	if err != nil {
 		logger.Fatal("unable to set up handlers", zap.Any("error", err))
 	}
 	handler.RegisterRoutes()
-
-	if flags.rpcEnabled {
-		server := startGrpcServer(logger, storage, flags)
-		defer server.GracefulStop()
-	}
 
 	logger.Info("starting server", zap.String("address", flags.listenAddress))
 	go http.ListenAndServe(flags.listenAddress, handler.Router)
@@ -90,21 +92,6 @@ func main() {
 	if err := session.Close(); err != nil {
 		logger.Fatal("unable to close m3db client session", zap.Any("error", err))
 	}
-}
-
-func startGrpcServer(logger *zap.Logger, storage storage.Storage, flags *m3config) *grpc.Server {
-	logger.Info("creating gRPC server")
-	server := remote.CreateNewGrpcServer(storage)
-	waitForStart := make(chan struct{})
-	go func() {
-		logger.Info("starting gRPC server")
-		err := remote.StartNewGrpcServer(server, flags.rpcAddress, waitForStart)
-		if err != nil {
-			logger.Fatal("unable to start gRPC server", zap.Any("error", err))
-		}
-	}()
-	<-waitForStart
-	return server
 }
 
 func parseFlags(logger *zap.Logger) *m3config {
@@ -133,6 +120,9 @@ func parseFlags(logger *zap.Logger) *m3config {
 	a.Flag("rpc.port", "Address which the remote gRPC server will listen on for outbound connections.").
 		Default("0.0.0.0:7288").StringVar(&cfg.rpcAddress)
 
+	a.Flag("rpc.remotes", "Address which the remote gRPC server will listen on for outbound connections.").
+		Default("[]").StringsVar(&cfg.remotes)
+
 	_, err := a.Parse(os.Args[1:])
 	if err != nil {
 		logger.Error("unable to parse command line arguments", zap.Any("error", err))
@@ -141,4 +131,42 @@ func parseFlags(logger *zap.Logger) *m3config {
 	}
 
 	return &cfg
+}
+
+func startGrpcServer(logger *zap.Logger, storage storage.Storage, flags *m3config) *grpc.Server {
+	logger.Info("creating gRPC server")
+	server := tsdbRemote.CreateNewGrpcServer(storage)
+	waitForStart := make(chan struct{})
+	go func() {
+		logger.Info("starting gRPC server")
+		err := tsdbRemote.StartNewGrpcServer(server, flags.rpcAddress, waitForStart)
+		if err != nil {
+			logger.Fatal("unable to start gRPC server", zap.Any("error", err))
+		}
+	}()
+	<-waitForStart
+	return server
+}
+
+// Setup all the storages
+func setupStorages(logger *zap.Logger, session client.Session, flags *m3config) (storage.Storage, func()) {
+	cleanup := func() {}
+	localStorage := local.NewStorage(session, namespace, resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
+	stores := []storage.Storage{localStorage}
+	if flags.rpcEnabled {
+		logger.Info("rpc enabled")
+		server := startGrpcServer(logger, localStorage, flags)
+		cleanup = func() {
+			server.GracefulStop()
+		}
+		if len(flags.remotes) > 0 {
+			client, err := tsdbRemote.NewGrpcClient(flags.remotes)
+			if err != nil {
+				logger.Fatal("unable to start remote clients for addresses", zap.Any("error", err))
+			}
+			stores = append(stores, remote.NewStorage(client))
+		}
+	}
+	fanoutStorage := fanout.NewStorage(stores, filter.LocalOnly, filter.LocalOnly)
+	return fanoutStorage, cleanup
 }
