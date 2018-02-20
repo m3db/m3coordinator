@@ -14,9 +14,9 @@ import (
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/ts"
 	"github.com/m3db/m3coordinator/util/logging"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
 	"google.golang.org/grpc"
 )
 

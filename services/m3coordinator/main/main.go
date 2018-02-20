@@ -18,7 +18,6 @@ import (
 	"github.com/m3db/m3coordinator/storage/local"
 	"github.com/m3db/m3coordinator/tsdb/remote"
 	"github.com/m3db/m3coordinator/util/logging"
-	"google.golang.org/grpc"
 
 	"github.com/m3db/m3db/client"
 	"github.com/m3db/m3metrics/policy"
@@ -26,6 +25,7 @@ import (
 	xtime "github.com/m3db/m3x/time"
 
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
