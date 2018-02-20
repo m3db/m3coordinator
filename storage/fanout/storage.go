@@ -37,7 +37,7 @@ func (s *fanoutStorage) Fetch(ctx context.Context, query *storage.FetchQuery, op
 }
 
 func handleFetchResponses(requests []execution.Request) (*storage.FetchResult, error) {
-	seriesList := make([]*ts.Series, 0)
+	seriesList := make([]*ts.Series, 0, len(requests))
 	result := &storage.FetchResult{SeriesList: seriesList, LocalOnly: true}
 	for _, req := range requests {
 		fetchreq, ok := req.(*fetchRequest)
@@ -45,13 +45,12 @@ func handleFetchResponses(requests []execution.Request) (*storage.FetchResult, e
 			return nil, errors.ErrFetchRequestType
 		}
 
-		if fetchreq.store.Type() != storage.TypeLocalDC {
-			result.LocalOnly = false
-		}
-
 		if fetchreq.result == nil {
 			return nil, errors.ErrInvalidFetchResult
+		}
 
+		if fetchreq.store.Type() != storage.TypeLocalDC {
+			result.LocalOnly = false
 		}
 
 		result.SeriesList = append(result.SeriesList, fetchreq.result.SeriesList...)
