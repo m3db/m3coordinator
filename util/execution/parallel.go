@@ -1,12 +1,14 @@
 package execution
 
 import (
-	"sync"
+	"context"
+
+	"golang.org/x/sync/errgroup"
 )
 
 // Request is input for parallel execution
 type Request interface {
-	Process() *Response
+	Process(ctx context.Context) error
 }
 
 // RequestResponse is used to combine both request and response in output
@@ -22,22 +24,21 @@ type Response struct {
 }
 
 // ExecuteParallel executes a slice of requests in parallel and returns unordered results
-func ExecuteParallel(requests []Request) <-chan *RequestResponse {
-	requestResponse := make(chan *RequestResponse)
-	go processParallel(requests, requestResponse)
-	return requestResponse
+func ExecuteParallel(ctx context.Context, requests []Request) error {
+	return processParallel(ctx, requests)
 }
 
-func processParallel(requests []Request, requestResponse chan<- *RequestResponse) {
-	defer close(requestResponse)
-	var wg sync.WaitGroup
-	wg.Add(len(requests))
+// Process the requests in parallel and stop on first error
+func processParallel(ctx context.Context, requests []Request) error {
+	g, ctx := errgroup.WithContext(ctx)
 	for _, req := range requests {
-		go func(r Request) {
-			defer wg.Done()
-			response := r.Process()
-			requestResponse <- &RequestResponse{Request: r, Response: response}
+		// Need to use a separate func since g.Go doesn't take input
+		func (req Request) {
+			g.Go(func() error {
+				return req.Process(ctx)
+			})
 		}(req)
 	}
-	wg.Wait()
+
+	return g.Wait()
 }

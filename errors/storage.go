@@ -16,5 +16,4 @@ var (
 
 	// ErrInvalidFetchResult is an error returned when fetch result is invalid.
 	ErrInvalidFetchResult = errors.New("invalid fetch result")
-
 )

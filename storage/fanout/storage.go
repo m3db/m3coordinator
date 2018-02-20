@@ -25,40 +25,36 @@ func (s *fanoutStorage) Fetch(ctx context.Context, query *storage.FetchQuery, op
 	stores := filterStores(s.stores, s.readFilter, query)
 	requests := make([]execution.Request, len(stores))
 	for idx, store := range stores {
-		requests[idx] = newFetchRequest(ctx, store, query, options)
+		requests[idx] = newFetchRequest(store, query, options)
 	}
 
-	requestResponseChan := execution.ExecuteParallel(requests)
-	return handleFetchResponses(requestResponseChan)
+	err := execution.ExecuteParallel(ctx, requests)
+	if err != nil {
+		return nil, err
+	}
+
+	return handleFetchResponses(requests)
 }
 
-func handleFetchResponses(requestResponseChan <-chan *execution.RequestResponse) (*storage.FetchResult, error) {
+func handleFetchResponses(requests []execution.Request) (*storage.FetchResult, error) {
 	seriesList := make([]*ts.Series, 0)
 	result := &storage.FetchResult{SeriesList: seriesList, LocalOnly: true}
-	for reqResponse := range requestResponseChan {
-
-		if reqResponse.Response.Err != nil {
-			return nil, reqResponse.Response.Err
-		}
-
-		// This type cast can be removed if we were to create a slice of *fetchRequest instead
-		fetchreq, ok := reqResponse.Request.(*fetchRequest)
+	for _, req := range requests {
+		fetchreq, ok := req.(*fetchRequest)
 		if !ok {
 			return nil, errors.ErrFetchRequestType
-		}
-
-		// We can  optimize this by storing the result on the fetch request but that makes it less clean since
-		// you will be both reading and writing to the same slice concurrently
-		fetchResult, ok := reqResponse.Response.Value.(*storage.FetchResult)
-		if !ok {
-			return nil, errors.ErrInvalidFetchResult
 		}
 
 		if fetchreq.store.Type() != storage.TypeLocalDC {
 			result.LocalOnly = false
 		}
 
-		result.SeriesList = append(result.SeriesList, fetchResult.SeriesList...)
+		if fetchreq.result == nil {
+			return nil, errors.ErrInvalidFetchResult
+
+		}
+
+		result.SeriesList = append(result.SeriesList, fetchreq.result.SeriesList...)
 	}
 
 	return result, nil
@@ -68,18 +64,10 @@ func (s *fanoutStorage) Write(ctx context.Context, query *storage.WriteQuery) er
 	stores := filterStores(s.stores, s.writeFilter, query)
 	requests := make([]execution.Request, len(stores))
 	for idx, store := range stores {
-		requests[idx] = newWriteRequest(ctx, store, query)
+		requests[idx] = newWriteRequest(store, query)
 	}
 
-	requestResponseChan := execution.ExecuteParallel(requests)
-	// Fail on single error, assume writes are idempotent
-	for reqResponse := range requestResponseChan {
-		if reqResponse.Response.Err != nil {
-			return reqResponse.Response.Err
-		}
-	}
-
-	return nil
+	return execution.ExecuteParallel(ctx, requests)
 }
 
 func (s *fanoutStorage) Type() storage.Type {
@@ -100,43 +88,39 @@ type fetchRequest struct {
 	store   storage.Storage
 	query   *storage.FetchQuery
 	options *storage.FetchOptions
-	ctx     context.Context
+	result  *storage.FetchResult
 }
 
-func newFetchRequest(ctx context.Context, store storage.Storage, query *storage.FetchQuery, options *storage.FetchOptions) execution.Request {
+func newFetchRequest(store storage.Storage, query *storage.FetchQuery, options *storage.FetchOptions) execution.Request {
 	return &fetchRequest{
 		store:   store,
-		ctx:     ctx,
 		query:   query,
 		options: options,
 	}
 }
 
-func (f *fetchRequest) Process() *execution.Response {
-	result, err := f.store.Fetch(f.ctx, f.query, f.options)
-	return &execution.Response{
-		Value: result,
-		Err:   err,
+func (f *fetchRequest) Process(ctx context.Context) error {
+	result, err := f.store.Fetch(ctx, f.query, f.options)
+	if err != nil {
+		return err
 	}
+
+	f.result = result
+	return nil
 }
 
 type writeRequest struct {
 	store storage.Storage
 	query *storage.WriteQuery
-	ctx   context.Context
 }
 
-func newWriteRequest(ctx context.Context, store storage.Storage, query *storage.WriteQuery) execution.Request {
+func newWriteRequest(store storage.Storage, query *storage.WriteQuery) execution.Request {
 	return &writeRequest{
 		store: store,
-		ctx:   ctx,
 		query: query,
 	}
 }
 
-func (f *writeRequest) Process() *execution.Response {
-	err := f.store.Write(f.ctx, f.query)
-	return &execution.Response{
-		Err: err,
-	}
+func (f *writeRequest) Process(ctx context.Context) error {
+	return f.store.Write(ctx, f.query)
 }
