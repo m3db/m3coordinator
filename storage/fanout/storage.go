@@ -12,17 +12,17 @@ import (
 
 type fanoutStorage struct {
 	stores      []storage.Storage
-	readFilter  filter.Storage
+	fetchFilter filter.Storage
 	writeFilter filter.Storage
 }
 
 // NewStorage creates a new remote Storage instance.
-func NewStorage(stores []storage.Storage, readFilter filter.Storage, writeFilter filter.Storage) storage.Storage {
-	return &fanoutStorage{stores: stores, readFilter: readFilter, writeFilter: writeFilter}
+func NewStorage(stores []storage.Storage, fetchFilter filter.Storage, writeFilter filter.Storage) storage.Storage {
+	return &fanoutStorage{stores: stores, fetchFilter: fetchFilter, writeFilter: writeFilter}
 }
 
 func (s *fanoutStorage) Fetch(ctx context.Context, query *storage.FetchQuery, options *storage.FetchOptions) (*storage.FetchResult, error) {
-	stores := filterStores(s.stores, s.readFilter, query)
+	stores := filterStores(s.stores, s.fetchFilter, query)
 	requests := make([]execution.Request, len(stores))
 	for idx, store := range stores {
 		requests[idx] = newFetchRequest(store, query, options)

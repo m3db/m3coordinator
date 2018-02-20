@@ -66,15 +66,15 @@ func setupFanoutRead(t *testing.T, output bool, response ...*fetchResponse) stor
 
 func setupFanoutWrite(t *testing.T, output bool, errs ...error) storage.Storage {
 	setup()
-	stores := make([]storage.Storage, 2)
 	ctrl := gomock.NewController(t)
 	session1 := client.NewMockSession(ctrl)
 	session2 := client.NewMockSession(ctrl)
 	session1.EXPECT().Write(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errs[0])
 	session2.EXPECT().Write(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errs[len(errs)-1])
-
-	stores[0] = local.NewStorage(session1, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
-	stores[1] = local.NewStorage(session2, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
+	stores := []storage.Storage{
+		local.NewStorage(session1, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48))),
+		local.NewStorage(session2, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48))),
+	}
 	store := NewStorage(stores, filterFunc(output), filterFunc(output))
 	return store
 }
