@@ -14,9 +14,11 @@ import (
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/services/m3coordinator/config"
 	"github.com/m3db/m3coordinator/services/m3coordinator/httpd"
+	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/storage/local"
 	"github.com/m3db/m3coordinator/tsdb/remote"
 	"github.com/m3db/m3coordinator/util/logging"
+	"google.golang.org/grpc"
 
 	"github.com/m3db/m3db/client"
 	"github.com/m3db/m3metrics/policy"
@@ -34,6 +36,7 @@ var (
 type m3config struct {
 	configFile           string
 	listenAddress        string
+	rpcEnabled           bool
 	rpcAddress           string
 	maxConcurrentQueries int
 	queryTimeout         time.Duration
@@ -72,18 +75,10 @@ func main() {
 	}
 	handler.RegisterRoutes()
 
-	logger.Info("creating gRPC server")
-	server := remote.CreateNewGrpcServer(storage)
-
-	waitForStart := make(chan struct{})
-	go func() {
-		logger.Info("starting gRPC server")
-		err = remote.StartNewGrpcServer(server, flags.rpcAddress, waitForStart)
-		if err != nil {
-			logger.Fatal("unable to start gRPC server", zap.Any("error", err))
-		}
-	}()
-	<-waitForStart
+	if flags.rpcEnabled {
+		server := startGrpcServer(logger, storage, flags)
+		defer server.GracefulStop()
+	}
 
 	logger.Info("starting server", zap.String("address", flags.listenAddress))
 	go http.ListenAndServe(flags.listenAddress, handler.Router)
@@ -95,6 +90,21 @@ func main() {
 	if err := session.Close(); err != nil {
 		logger.Fatal("unable to close m3db client session", zap.Any("error", err))
 	}
+}
+
+func startGrpcServer(logger *zap.Logger, storage storage.Storage, flags *m3config) *grpc.Server {
+	logger.Info("creating gRPC server")
+	server := remote.CreateNewGrpcServer(storage)
+	waitForStart := make(chan struct{})
+	go func() {
+		logger.Info("starting gRPC server")
+		err := remote.StartNewGrpcServer(server, flags.rpcAddress, waitForStart)
+		if err != nil {
+			logger.Fatal("unable to start gRPC server", zap.Any("error", err))
+		}
+	}()
+	<-waitForStart
+	return server
 }
 
 func parseFlags(logger *zap.Logger) *m3config {
@@ -116,6 +126,9 @@ func parseFlags(logger *zap.Logger) *m3config {
 
 	a.Flag("query.max-concurrency", "Maximum number of queries executed concurrently.").
 		Default("20").IntVar(&cfg.maxConcurrentQueries)
+
+	a.Flag("rpc.enabled", "True enables remote clients.").
+		Default("false").BoolVar(&cfg.rpcEnabled)
 
 	a.Flag("rpc.port", "Address which the remote gRPC server will listen on for outbound connections.").
 		Default("0.0.0.0:7288").StringVar(&cfg.rpcAddress)
