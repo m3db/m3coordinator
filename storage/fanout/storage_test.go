@@ -29,7 +29,7 @@ func filterFunc(output bool) filter.Storage {
 	}
 }
 
-func fakeIterator() encoding.SeriesIterator{
+func fakeIterator() encoding.SeriesIterator {
 	return encoding.NewSeriesIterator("id", time.Now(), time.Now(), nil, nil)
 }
 
@@ -90,30 +90,30 @@ func TestFanoutReadEmpty(t *testing.T) {
 func TestFanoutReadError(t *testing.T) {
 	store := setupFanoutRead(t, true)
 	_, err := store.Fetch(context.TODO(), &storage.FetchQuery{}, &storage.FetchOptions{})
-	assert.Error(t, err, "read error")
+	assert.Error(t, err)
 }
 
 func TestFanoutReadSuccess(t *testing.T) {
 	store := setupFanoutRead(t, true, &fetchResponse{result: fakeIterator()}, &fetchResponse{result: fakeIterator()})
 	res, err := store.Fetch(context.TODO(), &storage.FetchQuery{}, &storage.FetchOptions{})
 	require.NoError(t, err, "no error on read")
-	assert.NotNil(t, res, "read success")
+	assert.NotNil(t, res)
 }
 
 func TestFanoutWriteEmpty(t *testing.T) {
 	store := setupFanoutWrite(t, false, fmt.Errorf("write error"))
 	err := store.Write(context.TODO(), nil)
-	assert.NoError(t, err, "No error")
+	assert.NoError(t, err)
 }
 
 func TestFanoutWriteError(t *testing.T) {
 	store := setupFanoutWrite(t, true, fmt.Errorf("write error"))
 	datapoints := make(ts.Datapoints, 1)
-	datapoints[0] = &ts.Datapoint{time.Now(), 1}
+	datapoints[0] = &ts.Datapoint{Timestamp: time.Now(), Value: 1}
 	err := store.Write(context.TODO(), &storage.WriteQuery{
 		Datapoints: datapoints,
 	})
-	assert.Error(t, err, "write error")
+	assert.Error(t, err)
 }
 
 func TestFanoutWriteSuccess(t *testing.T) {
@@ -123,5 +123,5 @@ func TestFanoutWriteSuccess(t *testing.T) {
 	err := store.Write(context.TODO(), &storage.WriteQuery{
 		Datapoints: datapoints,
 	})
-	assert.NoError(t, err, "no error from session")
+	assert.NoError(t, err)
 }
