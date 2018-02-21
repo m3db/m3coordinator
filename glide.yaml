@@ -17,9 +17,11 @@ import:
 - package: github.com/spaolacci/murmur3
   version: 9f5d223c60793748f04a9d5b4b4eacddfc1f755d
 - package: github.com/m3db/m3x
-  version: c79492efa39435ffea6c04b72faf1402ed784211
+  version: 870290a8e708beb5e2ea2165d0c4517ddc8ca534
 - package: github.com/m3db/m3db
-  version: 2cf3dff4e917703d093717210c8dc96e088e4b05
+  version: 007a332c3add09a2ca417abf57601de4a6a28f99
+- package: github.com/m3db/m3ninx
+  version: b2628ee8f986f6df48d3f7589d85a6f390f174a2
   subpackages:
   - client
 - package: github.com/m3db/m3metrics

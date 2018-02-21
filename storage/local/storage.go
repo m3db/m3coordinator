@@ -10,6 +10,7 @@ import (
 	"github.com/m3db/m3coordinator/ts"
 
 	"github.com/m3db/m3db/client"
+	"github.com/m3db/m3x/ident"
 )
 
 const (
@@ -44,7 +45,9 @@ func (s *localStorage) Fetch(ctx context.Context, query *storage.FetchQuery, opt
 
 	req := fetchReqs[0]
 	reqRange := req.Ranges[0]
-	iter, err := s.session.Fetch(s.namespace, req.ID, reqRange.Start, reqRange.End)
+	id := ident.StringID(req.ID)
+	namespace := ident.StringID(s.namespace)
+	iter, err := s.session.Fetch(namespace, id, reqRange.Start, reqRange.End)
 	if err != nil {
 		return nil, err
 	}
@@ -87,10 +90,12 @@ func (s *localStorage) Write(ctx context.Context, query *storage.WriteQuery) err
 	default:
 	}
 
-	id := query.Tags.ID()
+	id := ident.StringID(query.Tags.ID())
+	namespace := ident.StringID(s.namespace)
+	tags := storage.TagsToIdentTags(query.Tags)
 	// todo (braskin): parallelize this
 	for _, datapoint := range query.Datapoints {
-		if err := s.session.Write(s.namespace, id, datapoint.Timestamp, datapoint.Value, query.Unit, query.Annotation); err != nil {
+		if err := s.session.WriteTagged(namespace, id, tags, datapoint.Timestamp, datapoint.Value, query.Unit, query.Annotation); err != nil {
 			return err
 		}
 	}

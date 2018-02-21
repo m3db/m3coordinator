@@ -8,12 +8,23 @@ import (
 	"github.com/m3db/m3coordinator/models"
 	"github.com/m3db/m3coordinator/ts"
 
+	"github.com/m3db/m3x/ident"
 	xtime "github.com/m3db/m3x/time"
 )
 
 const (
 	xTimeUnit = xtime.Millisecond
 )
+
+// TagsToIdentTags converts m3Tags to ident tags
+func TagsToIdentTags(m3Tags models.Tags) ident.TagIterator {
+	tags := make(ident.Tags, len(m3Tags))
+	for k, v := range m3Tags {
+		tags = append(tags, ident.StringTag(k, v))
+	}
+
+	return ident.NewTagIterator(tags...)
+}
 
 // PromWriteTSToM3 converts a prometheus write query to an M3 one
 func PromWriteTSToM3(timeseries *prompb.TimeSeries) *WriteQuery {
@@ -125,7 +136,7 @@ func FetchResultToPromResult(result *FetchResult) *prompb.QueryResult {
 }
 
 // SeriesToPromTS converts a series to prometheus timeseries
-func SeriesToPromTS(series *ts.Series) (*prompb.TimeSeries) {
+func SeriesToPromTS(series *ts.Series) *prompb.TimeSeries {
 	labels := TagsToPromLabels(series.Tags)
 	samples := SeriesToPromSamples(series)
 	return &prompb.TimeSeries{Labels: labels, Samples: samples}

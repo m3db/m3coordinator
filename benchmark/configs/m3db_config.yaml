@@ -179,6 +179,9 @@ pooling:
               lowWatermark: 0.7
               highWatermark: 1.0
 
+index:
+    enabled: true
+
 config:
     static:
         topology:

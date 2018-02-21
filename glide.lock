@@ -1,5 +1,5 @@
-hash: 5025184e8304272800fb90463ad47dd45843dc9f74ebb55285b91f8bde012d4d
-updated: 2018-02-16T13:34:11.449517667-05:00
+hash: f15db8c81710377a2083b02b135121afab927cab096290af0b9b17df193be9f1
+updated: 2018-02-20T16:01:35.303556346-05:00
 imports:
 - name: github.com/alecthomas/template
   version: a0175ee3bccc567396460bf5acd36800cb10c49c
@@ -35,6 +35,8 @@ imports:
   version: 600d898af40aa09a7a93ecb9265d87b0504b6f03
 - name: github.com/ghodss/yaml
   version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
+- name: github.com/glycerine/go-unsnap-stream
+  version: 62a9a9eb44fd8932157b1a8ace2149eff5971af6
 - name: github.com/go-ole/go-ole
   version: de8695c8edbf8236f30d6e1376e20b198a028d42
   subpackages:
@@ -95,11 +97,10 @@ imports:
   - services/leader/election
   - shard
 - name: github.com/m3db/m3db
-  version: 2cf3dff4e917703d093717210c8dc96e088e4b05
+  version: 007a332c3add09a2ca417abf57601de4a6a28f99
   subpackages:
   - client
   - clock
-  - context
   - digest
   - encoding
   - encoding/m3tsz
@@ -115,30 +116,40 @@ imports:
   - sharding
   - storage/block
   - storage/bootstrap/result
+  - storage/index
   - storage/namespace
   - storage/series
   - topology
   - ts
-  - x/io
   - x/tchannel
+  - x/xio
 - name: github.com/m3db/m3metrics
   version: 17e4ddf89f2b0c8fbb16b6d5b71a871b793d2a00
   subpackages:
   - generated/proto/schema
   - metric
   - policy
+- name: github.com/m3db/m3ninx
+  version: b2628ee8f986f6df48d3f7589d85a6f390f174a2
+  subpackages:
+  - client
+  - doc
+  - index/segment
 - name: github.com/m3db/m3x
-  version: c79492efa39435ffea6c04b72faf1402ed784211
+  version: 870290a8e708beb5e2ea2165d0c4517ddc8ca534
   subpackages:
   - checked
   - clock
   - close
   - config
+  - context
   - errors
+  - ident
   - instrument
   - log
   - pool
   - process
+  - resource
   - retry
   - sync
   - time
@@ -149,12 +160,16 @@ imports:
   version: c12348ce28de40eed0136aa2b644d0ee0650e56c
   subpackages:
   - pbutil
+- name: github.com/mschoch/smat
+  version: 90eadee771aeab36e8bf796039b8c261bebebe4f
 - name: github.com/opentracing/opentracing-go
   version: 855519783f479520497c6b3445611b05fc42f009
   subpackages:
   - ext
 - name: github.com/pborman/uuid
   version: e790cca94e6cc75c7064b1332e63811d4aae1a53
+- name: github.com/philhofer/fwd
+  version: bb6d471dc95d4fe11e432687f8b70ff496cf3136
 - name: github.com/pkg/profile
   version: 5b67d428864e92711fcbd2f8629456121a56d91f
 - name: github.com/pmezard/go-difflib
@@ -177,6 +192,8 @@ imports:
   - model
 - name: github.com/prometheus/procfs
   version: 1878d9fbb537119d24b21ca07effd591627cd160
+- name: github.com/RoaringBitmap/roaring
+  version: 4bbba8874933b985c9160558fddea525dde73e63
 - name: github.com/shirou/gopsutil
   version: b62e301a8b9958eebb7299683eb57fab229a9501
   subpackages:
@@ -197,10 +214,14 @@ imports:
   subpackages:
   - assert
   - require
+- name: github.com/tinylib/msgp
+  version: 3b5c87ab5fb00c660bf85b888445d9a01db64db4
+  subpackages:
+  - msgp
 - name: github.com/uber-go/atomic
   version: e682c1008ac17bf26d2e4b5ad6cdd08520ed0b22
 - name: github.com/uber-go/tally
-  version: 6c4631652c6aab57c64f65c2e0aaec2e9aae3a64
+  version: 522328b48efad0c6034dba92bf39228694e9d31f
   subpackages:
   - m3
   - m3/customtransports
