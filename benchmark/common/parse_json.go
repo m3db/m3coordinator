@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/m3db/m3coordinator/models"
 	"github.com/m3db/m3coordinator/storage"
 )
 
@@ -36,6 +37,7 @@ type M3Metric struct {
 	ID    string
 	Time  time.Time
 	Value float64
+	Tags  models.Tags
 }
 
 // ConvertToM3 parses the json file that is generated from InfluxDB's bulk_data_gen tool
@@ -86,7 +88,7 @@ func unmarshalMetrics(dataChannel chan []byte, metricChannel chan *M3Metric) {
 				panic(err)
 			}
 
-			metricChannel <- &M3Metric{ID: id(m.Tags, m.Name), Time: storage.PromTimestampToTime(m.Time), Value: m.Value}
+			metricChannel <- &M3Metric{ID: id(m.Tags, m.Name), Tags: m.Tags, Time: storage.PromTimestampToTime(m.Time), Value: m.Value}
 		}
 	}
 	wg.Done()

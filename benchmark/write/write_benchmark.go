@@ -10,9 +10,12 @@ import (
 
 	"github.com/m3db/m3coordinator/benchmark/common"
 	"github.com/m3db/m3coordinator/services/m3coordinator/config"
+	"github.com/m3db/m3coordinator/storage"
 
 	"github.com/m3db/m3db/client"
+
 	xconfig "github.com/m3db/m3x/config"
+	"github.com/m3db/m3x/ident"
 	xtime "github.com/m3db/m3x/time"
 
 	"github.com/pkg/profile"
@@ -156,8 +159,11 @@ func addMetricsToChan(ch chan *common.M3Metric, wq []*common.M3Metric) int {
 func writeToM3DB(session client.Session, ch chan *common.M3Metric, itemsWrittenCh chan int) {
 	var itemsWritten int
 	for query := range ch {
-		id := query.ID
-		if err := session.Write(namespace, id, query.Time, query.Value, xtime.Millisecond, nil); err != nil {
+		id := ident.StringID(query.ID)
+		namespace := ident.StringID(namespace)
+		tags := storage.TagsToIdentTags(query.Tags)
+		// id := query.ID
+		if err := session.WriteTagged(namespace, id, tags, query.Time, query.Value, xtime.Millisecond, nil); err != nil {
 			fmt.Println(err)
 		} else {
 			stat.incWrites()
