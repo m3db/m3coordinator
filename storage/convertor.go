@@ -18,7 +18,7 @@ const (
 
 // TagsToIdentTags converts m3Tags to ident tags
 func TagsToIdentTags(m3Tags models.Tags) ident.TagIterator {
-	tags := make(ident.Tags, len(m3Tags))
+	tags := make(ident.Tags, 0, len(m3Tags))
 	for k, v := range m3Tags {
 		tags = append(tags, ident.StringTag(k, v))
 	}
