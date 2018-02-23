@@ -11,6 +11,7 @@ import (
 	"github.com/m3db/m3coordinator/util/execution"
 
 	"github.com/m3db/m3db/client"
+	xtime "github.com/m3db/m3x/time"
 )
 
 const (
@@ -95,7 +96,8 @@ func (s *localStorage) Write(ctx context.Context, query *storage.WriteQuery) err
 	id := query.Tags.ID()
 	writeRequestCommon := writeRequestCommon{
 		store:      s,
-		writeQuery: query,
+		annotation: query.Annotation,
+		unit:       query.Unit,
 		id:         id,
 	}
 
@@ -111,14 +113,15 @@ func (s *localStorage) Type() storage.Type {
 }
 
 func (w *writeRequest) Process(ctx context.Context) error {
-	localStore := w.writeRequestCommon.store
-	query := w.writeRequestCommon.writeQuery
-	return localStore.session.Write(localStore.namespace, w.writeRequestCommon.id, w.timestamp, w.value, query.Unit, query.Annotation)
+	common := w.writeRequestCommon
+	store := common.store
+	return store.session.Write(store.namespace, common.id, w.timestamp, w.value, common.unit, common.annotation)
 }
 
 type writeRequestCommon struct {
 	store      *localStorage
-	writeQuery *storage.WriteQuery
+	annotation []byte
+	unit       xtime.Unit
 	id         string
 }
 
