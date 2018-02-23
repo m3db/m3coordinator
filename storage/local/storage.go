@@ -8,6 +8,7 @@ import (
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/ts"
+	"github.com/m3db/m3coordinator/util/execution"
 
 	"github.com/m3db/m3db/client"
 )
@@ -87,16 +88,50 @@ func (s *localStorage) Write(ctx context.Context, query *storage.WriteQuery) err
 	default:
 	}
 
-	id := query.Tags.ID()
-	// todo (braskin): parallelize this
-	for _, datapoint := range query.Datapoints {
-		if err := s.session.Write(s.namespace, id, datapoint.Timestamp, datapoint.Value, query.Unit, query.Annotation); err != nil {
-			return err
-		}
+	if query == nil {
+		return errors.ErrNilQuery
 	}
-	return nil
+
+	id := query.Tags.ID()
+	writeRequestCommon := writeRequestCommon{
+		store:      s,
+		writeQuery: query,
+		id:         id,
+	}
+
+	requests := make([]execution.Request, len(query.Datapoints))
+	for idx, datapoint := range query.Datapoints {
+		requests[idx] = newWriteRequest(&writeRequestCommon, datapoint.Timestamp, datapoint.Value)
+	}
+	return execution.ExecuteParallel(ctx, requests)
 }
 
 func (s *localStorage) Type() storage.Type {
 	return storage.TypeLocalDC
+}
+
+func (w *writeRequest) Process(ctx context.Context) error {
+	localStore := w.writeRequestCommon.store
+	query := w.writeRequestCommon.writeQuery
+	return localStore.session.Write(localStore.namespace, w.writeRequestCommon.id, w.timestamp, w.value, query.Unit, query.Annotation)
+}
+
+type writeRequestCommon struct {
+	store      *localStorage
+	writeQuery *storage.WriteQuery
+	id         string
+}
+
+type writeRequest struct {
+	writeRequestCommon *writeRequestCommon
+	timestamp          time.Time
+	value              float64
+}
+
+func newWriteRequest(writeRequestCommon *writeRequestCommon, timestamp time.Time, value float64) execution.Request {
+	return &writeRequest{
+		writeRequestCommon: writeRequestCommon,
+		timestamp:          timestamp,
+		value:              value,
+	}
 }
