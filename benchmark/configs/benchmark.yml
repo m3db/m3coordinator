@@ -22,7 +22,7 @@ client:
   clusterConnectConsistencyLevel: any
   writeTimeout: 10s
   fetchTimeout: 15s
-  connectTimeout: 20s
+  connectTimeout: 3s
   writeRetry:
       initialBackoff: 500ms
       backoffFactor: 3
