@@ -20,15 +20,16 @@ import (
 )
 
 var (
-	m3dbClientCfg string
-	dataFile      string
-	workers       int
-	batch         int
-	namespace     string
-	address       string
-	benchmarkers  string
-	memprofile    bool
-	cpuprofile    bool
+	m3dbClientCfg   string
+	dataFile        string
+	workers         int
+	batch           int
+	namespaceString string
+	namespace       ident.ID
+	address         string
+	benchmarkers    string
+	memprofile      bool
+	cpuprofile      bool
 
 	wg           sync.WaitGroup
 	inputDone    chan struct{}
@@ -40,7 +41,7 @@ func init() {
 	flag.StringVar(&dataFile, "data-file", "data.json", "input data for benchmark")
 	flag.IntVar(&workers, "workers", 1, "Number of parallel requests to make.")
 	flag.IntVar(&batch, "batch", 5000, "Batch Size")
-	flag.StringVar(&namespace, "namespace", "metrics", "M3DB namespace where to store result metrics")
+	flag.StringVar(&namespaceString, "namespace", "metrics", "M3DB namespace where to store result metrics")
 	flag.StringVar(&address, "address", "localhost:8888", "Address to expose benchmarker health and stats")
 	flag.StringVar(&benchmarkers, "benchmarkers", "localhost:8888", "Comma separated host:ports addresses of benchmarkers to coordinate")
 	flag.BoolVar(&memprofile, "memprofile", false, "Enable memory profile")
@@ -60,6 +61,8 @@ func main() {
 	if err := xconfig.LoadFile(&cfg, m3dbClientCfg); err != nil {
 		log.Fatalf("Unable to load %s: %v", m3dbClientCfg, err)
 	}
+
+	namespace = ident.StringID(namespaceString)
 
 	m3dbClientOpts := cfg.M3DBClientCfg
 	m3dbClient, err := m3dbClientOpts.NewClient(client.ConfigurationParameters{}, func(v client.Options) client.Options {
@@ -158,7 +161,7 @@ func writeToM3DB(session client.Session, ch chan *common.M3Metric, itemsWrittenC
 	var itemsWritten int
 	for query := range ch {
 		id := query.ID
-		err := session.Write(ident.StringID(namespace), ident.StringID(id), query.Time, query.Value, xtime.Millisecond, nil)
+		err := session.Write(namespace, id, query.Time, query.Value, xtime.Millisecond, nil)
 		if err != nil {
 			fmt.Println(err)
 		} else {

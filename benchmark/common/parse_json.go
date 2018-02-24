@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/m3db/m3coordinator/storage"
+
+	"github.com/m3db/m3x/ident"
 )
 
 var (
@@ -33,7 +35,8 @@ type Metrics struct {
 
 // M3Metric is a lighterweight Metrics struct
 type M3Metric struct {
-	ID    string
+	ID    ident.ID
+	Tags  ident.Tags
 	Time  time.Time
 	Value float64
 }
@@ -86,29 +89,30 @@ func unmarshalMetrics(dataChannel chan []byte, metricChannel chan *M3Metric) {
 				panic(err)
 			}
 
-			metricChannel <- &M3Metric{ID: id(m.Tags, m.Name), Time: storage.TimestampToTime(m.Time), Value: m.Value}
+			id, tags := parse(m.Tags, m.Name)
+			metricChannel <- &M3Metric{ID: id, Tags: tags, Time: storage.TimestampToTime(m.Time), Value: m.Value}
 		}
 	}
 	wg.Done()
 }
 
-func id(lowerCaseTags map[string]string, name string) string {
+func parse(lowerCaseTags map[string]string, name string) (ident.ID, ident.Tags) {
+	tags := make(ident.Tags, 0, len(lowerCaseTags))
 	sortedKeys := make([]string, len(lowerCaseTags))
 	var buffer = bytes.NewBuffer(nil)
 	buffer.WriteString(strings.ToLower(name))
 
 	// Generate tags in alphabetical order & write to buffer
-	i := 0
 	for key := range lowerCaseTags {
 		sortedKeys = append(sortedKeys, key)
-		i++
+		tags = append(tags, ident.StringTag(key, lowerCaseTags[key]))
 	}
 	sort.Strings(sortedKeys)
 
-	for i = 0; i < len(sortedKeys)-1; i++ {
+	for i := 0; i < len(sortedKeys)-1; i++ {
 		buffer.WriteString(sortedKeys[i])
 		buffer.WriteString(lowerCaseTags[sortedKeys[i]])
 	}
 
-	return buffer.String()
+	return ident.StringID(buffer.String()), tags
 }
