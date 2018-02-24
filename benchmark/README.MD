@@ -6,8 +6,8 @@ To benchmark m3db writes using m3coordinator.
 2) Pull down benraskin92's fork of `influxdb-comparisons`:
 
        $ go get -u https://github.com/benraskin92/influxdb-comparisons
-       $ cd $GOPATH/src/github.com/benraskin92/influxdb-comparisons
-       $ go build ./cmd/bulk_data_gen
+       $ cd $GOPATH/src/github.com/benraskin92/influxdb-comparisons/cmd/bulk_data_gen
+       $ go build .
 
 3) Create metrics - from the `github.com/m3db/m3coordinator/benchmark/data` directory, run:
 
@@ -17,6 +17,7 @@ To benchmark m3db writes using m3coordinator.
 
 4) Start m3db. You can use the config that is in `github.com/m3db/m3coordinator/benchmark/`
 
+        $ sudo mkdir -p /var/lib/m3db && sudo chmod -R 777 /var/lib/m3db
         $ ./bin/m3dbnode -f $GOPATH/src/github.com/m3db/m3coordinator/benchmark/m3db_config.yaml
 
 4a) For a three-node m3db cluster on GCP:
@@ -60,6 +61,8 @@ To benchmark m3db writes using m3coordinator.
 
 5) Build and run the benchmark tool in m3coordinator
 
-        $ cd $GOPATH/src/github.com/m3db/m3coordinator/benchmark/
-        $ go build
-        $ ./write -data-file=$GOPATH/src/github.com/influxdb-comparisons/cmd/bulk_data_gen/benchmark_opentsdb -workers=2000
+        $ go get -u github.com/pkg/profile
+        $ cd $GOPATH/src/github.com/m3db/m3coordinator/
+        $ go build ./benchmark/write
+        $ ./write -data-file=$GOPATH/src/github.com/benraskin92/influxdb-comparisons/cmd/bulk_data_gen/benchmark_opentsdb \
+            -workers=2000

@@ -13,6 +13,7 @@ import (
 
 	"github.com/m3db/m3db/client"
 	xconfig "github.com/m3db/m3x/config"
+	"github.com/m3db/m3x/ident"
 	xtime "github.com/m3db/m3x/time"
 
 	"github.com/pkg/profile"
@@ -157,7 +158,8 @@ func writeToM3DB(session client.Session, ch chan *common.M3Metric, itemsWrittenC
 	var itemsWritten int
 	for query := range ch {
 		id := query.ID
-		if err := session.Write(namespace, id, query.Time, query.Value, xtime.Millisecond, nil); err != nil {
+		err := session.Write(ident.StringID(namespace), ident.StringID(id), query.Time, query.Value, xtime.Millisecond, nil)
+		if err != nil {
 			fmt.Println(err)
 		} else {
 			stat.incWrites()
