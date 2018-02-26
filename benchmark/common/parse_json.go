@@ -105,13 +105,13 @@ func parse(lowerCaseTags map[string]string, name string) (ident.ID, ident.Tags) 
 	// Generate tags in alphabetical order & write to buffer
 	for key := range lowerCaseTags {
 		sortedKeys = append(sortedKeys, key)
-		tags = append(tags, ident.StringTag(key, lowerCaseTags[key]))
 	}
 	sort.Strings(sortedKeys)
 
-	for i := 0; i < len(sortedKeys)-1; i++ {
-		buffer.WriteString(sortedKeys[i])
-		buffer.WriteString(lowerCaseTags[sortedKeys[i]])
+	for _, key := range sortedKeys {
+		buffer.WriteString(key)
+		buffer.WriteString(lowerCaseTags[key])
+		tags = append(tags, ident.StringTag(key, lowerCaseTags[key]))
 	}
 
 	return ident.StringID(buffer.String()), tags

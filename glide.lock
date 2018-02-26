@@ -95,7 +95,7 @@ imports:
   - services/leader/election
   - shard
 - name: github.com/m3db/m3db
-  version: 6eadcd923657e0386e5bf43c473e2aeb2af72356
+  version: d756703503ba3220de63b485a99c98febbd412ff
   subpackages:
   - client
   - clock

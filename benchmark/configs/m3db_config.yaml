@@ -62,6 +62,9 @@ commitlog:
     retentionPeriod: 24h
     blockSize: 10m
 
+index:
+    enabled: true
+
 fs:
     filePathPrefix: /var/lib/m3db
     writeBufferSize: 65536
