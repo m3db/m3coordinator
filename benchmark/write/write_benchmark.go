@@ -10,10 +10,8 @@ import (
 
 	"github.com/m3db/m3coordinator/benchmark/common"
 	"github.com/m3db/m3coordinator/services/m3coordinator/config"
-	"github.com/m3db/m3coordinator/storage"
 
 	"github.com/m3db/m3db/client"
-
 	xconfig "github.com/m3db/m3x/config"
 	"github.com/m3db/m3x/ident"
 	xtime "github.com/m3db/m3x/time"
@@ -22,15 +20,17 @@ import (
 )
 
 var (
-	m3dbClientCfg string
-	dataFile      string
-	workers       int
-	batch         int
-	namespace     string
-	address       string
-	benchmarkers  string
-	memprofile    bool
-	cpuprofile    bool
+	m3dbClientCfg   string
+	dataFile        string
+	workers         int
+	batch           int
+	namespaceString string
+	writeTagged     bool
+	namespace       ident.ID
+	address         string
+	benchmarkers    string
+	memprofile      bool
+	cpuprofile      bool
 
 	wg           sync.WaitGroup
 	inputDone    chan struct{}
@@ -42,9 +42,10 @@ func init() {
 	flag.StringVar(&dataFile, "data-file", "data.json", "input data for benchmark")
 	flag.IntVar(&workers, "workers", 1, "Number of parallel requests to make.")
 	flag.IntVar(&batch, "batch", 5000, "Batch Size")
-	flag.StringVar(&namespace, "namespace", "metrics", "M3DB namespace where to store result metrics")
+	flag.StringVar(&namespaceString, "namespace", "metrics", "M3DB namespace where to store result metrics")
 	flag.StringVar(&address, "address", "localhost:8888", "Address to expose benchmarker health and stats")
 	flag.StringVar(&benchmarkers, "benchmarkers", "localhost:8888", "Comma separated host:ports addresses of benchmarkers to coordinate")
+	flag.BoolVar(&writeTagged, "write-tagged", false, "write tagged or un-tagged metrics")
 	flag.BoolVar(&memprofile, "memprofile", false, "Enable memory profile")
 	flag.BoolVar(&cpuprofile, "cpuprofile", false, "Enable cpu profile")
 	flag.Parse()
@@ -63,8 +64,11 @@ func main() {
 		log.Fatalf("Unable to load %s: %v", m3dbClientCfg, err)
 	}
 
+	namespace = ident.StringID(namespaceString)
+
 	m3dbClientOpts := cfg.M3DBClientCfg
 	m3dbClient, err := m3dbClientOpts.NewClient(client.ConfigurationParameters{}, func(v client.Options) client.Options {
+
 		return v.SetWriteBatchSize(batch).SetWriteOpPoolSize(batch * 2)
 	})
 	if err != nil {
@@ -86,6 +90,11 @@ func main() {
 		defer p.Stop()
 	}
 
+	fn := writeToM3DB
+	if writeTagged {
+		fn = writeToM3DBTagged
+	}
+
 	itemsWritten = make(chan int)
 	var waitForInit sync.WaitGroup
 	for i := 0; i < workers; i++ {
@@ -93,7 +102,7 @@ func main() {
 		waitForInit.Add(1)
 		go func() {
 			waitForInit.Done()
-			writeToM3DB(session, ch, itemsWritten)
+			fn(session, ch, itemsWritten)
 		}()
 	}
 
@@ -159,11 +168,29 @@ func addMetricsToChan(ch chan *common.M3Metric, wq []*common.M3Metric) int {
 func writeToM3DB(session client.Session, ch chan *common.M3Metric, itemsWrittenCh chan int) {
 	var itemsWritten int
 	for query := range ch {
-		id := ident.StringID(query.ID)
-		namespace := ident.StringID(namespace)
-		tags := storage.TagsToIdentTags(query.Tags)
-		// id := query.ID
-		if err := session.WriteTagged(namespace, id, tags, query.Time, query.Value, xtime.Millisecond, nil); err != nil {
+		id := query.ID
+		err := session.Write(namespace, id, time.Now(), query.Value, xtime.Millisecond, nil)
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			stat.incWrites()
+		}
+		if itemsWritten > 0 && itemsWritten%10000 == 0 {
+			fmt.Println(itemsWritten)
+		}
+		itemsWritten++
+	}
+	wg.Done()
+	itemsWrittenCh <- itemsWritten
+}
+
+func writeToM3DBTagged(session client.Session, ch chan *common.M3Metric, itemsWrittenCh chan int) {
+	var itemsWritten int
+	for query := range ch {
+		id := query.ID
+		err := session.WriteTagged(namespace, id,
+			ident.NewTagSliceIterator(query.Tags), time.Now(), query.Value, xtime.Millisecond, nil)
+		if err != nil {
 			fmt.Println(err)
 		} else {
 			stat.incWrites()
