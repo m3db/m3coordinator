@@ -151,5 +151,4 @@ func (b *benchmarker) waitForBenchmarkers() {
 	now := time.Now()
 	waitFor := now.Truncate(sync).Add(sync).Sub(now)
 	time.Sleep(waitFor)
-	fmt.Println("hi")
 }

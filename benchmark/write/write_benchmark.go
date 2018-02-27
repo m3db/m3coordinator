@@ -25,17 +25,14 @@ var (
 	dataFile      string
 	workers       int
 	batch         int
-	batchSize     int
 	namespace     string
 	address       string
 	benchmarkers  string
 	memprofile    bool
 	cpuprofile    bool
 
-	coordinator bool
-
-	// inputDone    chan struct{}
-	// itemsWritten chan int
+	coordinatorAddress string
+	coordinator        bool
 )
 
 func init() {
@@ -43,12 +40,12 @@ func init() {
 	flag.StringVar(&dataFile, "data-file", "data.json", "input data for benchmark")
 	flag.IntVar(&workers, "workers", 1, "Number of parallel requests to make.")
 	flag.IntVar(&batch, "batch", 5000, "Batch Size")
-	flag.IntVar(&batchSize, "batchSize", 100, "Number of write requests per batch.")
 	flag.StringVar(&namespace, "namespace", "metrics", "M3DB namespace where to store result metrics")
 	flag.StringVar(&address, "address", "localhost:8888", "Address to expose benchmarker health and stats")
 	flag.StringVar(&benchmarkers, "benchmarkers", "localhost:8888", "Comma separated host:ports addresses of benchmarkers to coordinate")
 	flag.BoolVar(&memprofile, "memprofile", false, "Enable memory profile")
 	flag.BoolVar(&cpuprofile, "cpuprofile", false, "Enable cpu profile")
+	flag.StringVar(&coordinatorAddress, "coordinatorAddress", "http://localhost:7201/api/v1/prom/write", "Address coordinator is listening on")
 	flag.BoolVar(&coordinator, "coordinator", false, "Benchmark through coordinator rather than m3db directly")
 	flag.Parse()
 }
@@ -90,10 +87,9 @@ func benchmarkM3DB() {
 		log.Fatalf("Unable to create m3db client session, got error %v\n", err)
 	}
 
-	itemsWritten := make(chan int)
 	workerFunction := func() {
 		wg.Add(1)
-		writeToM3DB(session, ch, itemsWritten)
+		writeToM3DB(session, ch)
 		wg.Done()
 	}
 
@@ -116,25 +112,22 @@ func benchmarkM3DB() {
 		}
 	}
 
-	genericBenchmarker(itemsWritten, workerFunction, appendReadCount, cleanup)
+	genericBenchmarker(workerFunction, appendReadCount, cleanup)
 }
 
 func benchmarkCoordinator() {
 	// Setup
-	metrics := make([]*bytes.Reader, 0, common.MetricsLen/batchSize)
-	common.ConvertToProm(dataFile, workers, batchSize, func(m *bytes.Reader) {
+	metrics := make([]*bytes.Reader, 0, common.MetricsLen/batch)
+	common.ConvertToProm(dataFile, workers, batch, func(m *bytes.Reader) {
 		metrics = append(metrics, m)
 	})
 
 	ch := make(chan *bytes.Reader, workers)
-	itemsWritten := make(chan int)
 	wg := new(sync.WaitGroup)
 
 	workerFunction := func() {
-		fmt.Println("Workerfunctioning")
 		wg.Add(1)
-		writeToCoordinator(ch, itemsWritten)
-		fmt.Println("Wrote to coord")
+		writeToCoordinator(ch)
 		wg.Done()
 	}
 
@@ -150,24 +143,21 @@ func benchmarkCoordinator() {
 	}
 
 	cleanup := func() {
-		fmt.Println("predone")
 		<-inputDone
-		fmt.Println("done")
 		close(ch)
-		fmt.Println("closed")
 		wg.Wait()
-		fmt.Println("waited")
 	}
-	genericBenchmarker(itemsWritten, workerFunction, appendReadCount, cleanup)
+	genericBenchmarker(workerFunction, appendReadCount, cleanup)
 }
 
-func genericBenchmarker(itemsWritten <-chan int, workerFunction func(), appendReadCount func() int, cleanup func()) {
+func genericBenchmarker(workerFunction func(), appendReadCount func() int, cleanup func()) {
 	if cpuprofile {
 		p := profile.Start(profile.CPUProfile)
 		defer p.Stop()
-	}
-
-	if memprofile {
+		if memprofile {
+			fmt.Println("cannot have both cpu and mem profile active at once; defaulting to cpu profiling")
+		}
+	} else if memprofile {
 		p := profile.Start(profile.MemProfile)
 		defer p.Stop()
 	}
@@ -182,15 +172,13 @@ func genericBenchmarker(itemsWritten <-chan int, workerFunction func(), appendRe
 		}()
 	}
 
-	fmt.Printf("waiting for workers to spin up...\n")
+	fmt.Println("waiting for workers to spin up...")
 	waitForInit.Wait()
-	fmt.Println("done")
 
 	b := &benchmarker{address: address, benchmarkers: benchmarkers}
 	go b.serve()
-	fmt.Printf("waiting for other benchmarkers to spin up...\n")
+	fmt.Println("waiting for other benchmarkers to spin up...")
 	b.waitForBenchmarkers()
-	fmt.Println("done")
 
 	var (
 		start          = time.Now()
@@ -208,17 +196,7 @@ func genericBenchmarker(itemsWritten <-chan int, workerFunction func(), appendRe
 		}
 	}()
 
-	fmt.Println("cleanip")
-	sumChan := make(chan int)
-	go func() {
-		sum := 0
-		for i := 0; i < workers; i++ {
-			sum += <-itemsWritten
-		}
-		sumChan <- sum
-	}()
 	cleanup()
-	<-sumChan
 
 	end := time.Now()
 	took := end.Sub(start)
@@ -229,11 +207,8 @@ func genericBenchmarker(itemsWritten <-chan int, workerFunction func(), appendRe
 	fmt.Printf("loaded %d items in %fsec with %d workers (mean values rate %f/sec); per worker %f/sec\n", itemsRead, took.Seconds(), workers, rate, perWorker)
 }
 
-func writeToCoordinator(ch <-chan *bytes.Reader, itemsWrittenCh chan<- int) {
-	var itemsWritten int
+func writeToCoordinator(ch <-chan *bytes.Reader) {
 	for query := range ch {
-		fmt.Println("tochanAA")
-
 		if r, err := http.Post("http://localhost:7201/api/v1/prom/write", "", query); err != nil {
 			fmt.Println(err)
 		} else {
@@ -245,15 +220,10 @@ func writeToCoordinator(ch <-chan *bytes.Reader, itemsWrittenCh chan<- int) {
 			}
 			stat.incWrites()
 		}
-		itemsWritten++
 	}
-	fmt.Println("tochan")
-
-	itemsWrittenCh <- itemsWritten
-	fmt.Println("finitop")
 }
 
-func writeToM3DB(session client.Session, ch <-chan *common.M3Metric, itemsWrittenCh chan<- int) {
+func writeToM3DB(session client.Session, ch <-chan *common.M3Metric) {
 	var itemsWritten int
 	for query := range ch {
 		id := query.ID
@@ -267,5 +237,4 @@ func writeToM3DB(session client.Session, ch <-chan *common.M3Metric, itemsWritte
 		}
 		itemsWritten++
 	}
-	itemsWrittenCh <- itemsWritten
 }
