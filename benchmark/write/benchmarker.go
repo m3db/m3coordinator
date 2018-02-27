@@ -145,7 +145,7 @@ func (b *benchmarker) waitForBenchmarkers() {
 		}()
 	}
 
-	fmt.Printf("all ready, now synchronizing to nearest 10s...\n")
+	fmt.Println("all ready, now synchronizing to nearest 10s...\n")
 	sync := 5 * time.Second
 	now := time.Now()
 	waitFor := now.Truncate(sync).Add(sync).Sub(now)

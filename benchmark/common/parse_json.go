@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"fmt"
+	"log"
 	"os"
 	"sort"
 	"strings"
@@ -90,8 +90,7 @@ func ConvertToProm(fileName string, workers int, batchSize int, f func(*bytes.Re
 func convertToGeneric(fileName string, dataChannel chan<- []byte, workFunction func()) {
 	fd, err := os.OpenFile(fileName, os.O_RDONLY, 0)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to read json file, got error: %v", err)
-		os.Exit(1)
+		log.Fatalf("unable to read json file, got error: %v\n", err)
 	}
 
 	defer fd.Close()
@@ -108,7 +107,7 @@ func convertToGeneric(fileName string, dataChannel chan<- []byte, workFunction f
 	workFunction()
 
 	if err := scanner.Err(); err != nil {
-		panic(err)
+		log.Fatalf("scanner encountered error: %v\n", err)
 	}
 }
 
@@ -119,7 +118,7 @@ func unmarshalMetrics(dataChannel <-chan []byte, metricChannel chan<- *M3Metric)
 		}
 		var m Metrics
 		if err := json.Unmarshal(data, &m); err != nil {
-			panic(err)
+			log.Fatalf("failed to unmarshal metrics, got error: %v\n", err)
 		}
 
 		metricChannel <- &M3Metric{ID: id(m.Tags, m.Name), Time: storage.TimestampToTime(m.Time), Value: m.Value}
@@ -165,7 +164,7 @@ func marshalTsdbToProm(dataChannel <-chan []byte, metricChannel chan<- *bytes.Re
 		}
 		var m Metrics
 		if err := json.Unmarshal(data, &m); err != nil {
-			panic(err)
+			log.Fatalf("failed to unmarshal metrics for prom conversion, got error: %v\n", err)
 		}
 		timeseries[idx] = metricsToPromTS(m)
 		idx++
