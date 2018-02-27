@@ -29,7 +29,7 @@ seed=$seedOne
 echo "start: $start"
 echo "end: $end"
 
-$GOPATH/src/github.com/influxdata/influxdb-comparisons/cmd/bulk_data_gen/bulk_data_gen -timestamp-start=$start -timestamp-end=$end -scale-var=1000 -seed=$seed > $GOPATH/src/github.com/influxdata/influxdb-comparisons/cmd/bulk_data_gen/benchmark_influx && $GOPATH/src/github.com/influxdata/influxdb-comparisons/cmd/bulk_data_gen/bulk_data_gen -format=opentsdb -timestamp-start=$start -timestamp-end=$end -scale-var=1000 -seed=$seed > $GOPATH/src/github.com/influxdata/influxdb-comparisons/cmd/bulk_data_gen/benchmark_opentsdb
+$GOPATH/src/github.com/influxdb-comparisons/cmd/bulk_data_gen/bulk_data_gen -timestamp-start=$start -timestamp-end=$end -scale-var=1000 -seed=$seed > $GOPATH/src/github.com/influxdb-comparisons/cmd/bulk_data_gen/benchmark_influx && $GOPATH/src/github.com/influxdb-comparisons/cmd/bulk_data_gen/bulk_data_gen -format=opentsdb -timestamp-start=$start -timestamp-end=$end -scale-var=1000 -seed=$seed > $GOPATH/src/github.com/influxdb-comparisons/cmd/bulk_data_gen/benchmark_opentsdb
 
 # uncomment to run actual benchmark (GCP)
 # ./benchmark -workers=2000 -data-file=$GOPATH/src/github.com/influxdata/influxdb-comparisons/cmd/bulk_data_gen/benchmark_opentsdb -cpuprofile=false -batch=5000 -address="0.0.0.0:8000" -benchmarkers="10.142.0.2:8000,10.142.0.4:8000,10.142.0.5:8000"

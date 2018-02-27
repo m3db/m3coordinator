@@ -42,9 +42,6 @@ type M3Metric struct {
 func ConvertToM3(fileName string, workers int, f func(*M3Metric)) {
 	metricChannel := make(chan *M3Metric, MetricsLen)
 	dataChannel := make(chan []byte, MetricsLen)
-	cleanup := func() {
-		close(metricChannel)
-	}
 	wg := new(sync.WaitGroup)
 	workFunction := func() {
 		for w := 0; w < workers; w++ {
@@ -57,17 +54,18 @@ func ConvertToM3(fileName string, workers int, f func(*M3Metric)) {
 			}
 		}()
 	}
+	cleanup := func() {
+		wg.Wait()
+		close(metricChannel)
+	}
 
-	convertToGeneric(fileName, workers, dataChannel, wg, workFunction, cleanup)
+	convertToGeneric(fileName, workers, dataChannel, workFunction, cleanup)
 }
 
 // ConvertToProm parses the json file that is generated from InfluxDB's bulk_data_gen tool into Prom format
 func ConvertToProm(fileName string, workers int, batchSize int, f func(*bytes.Reader)) {
 	metricChannel := make(chan *bytes.Reader, MetricsLen)
 	dataChannel := make(chan []byte, MetricsLen)
-	cleanup := func() {
-		close(metricChannel)
-	}
 	wg := new(sync.WaitGroup)
 	workFunction := func() {
 		for w := 0; w < workers; w++ {
@@ -80,10 +78,14 @@ func ConvertToProm(fileName string, workers int, batchSize int, f func(*bytes.Re
 			}
 		}()
 	}
-	convertToGeneric(fileName, workers, dataChannel, wg, workFunction, cleanup)
+	cleanup := func() {
+		wg.Wait()
+		close(metricChannel)
+	}
+	convertToGeneric(fileName, workers, dataChannel, workFunction, cleanup)
 }
 
-func convertToGeneric(fileName string, workers int, dataChannel chan<- []byte, wg *sync.WaitGroup, workFunction func(), cleanup func()) {
+func convertToGeneric(fileName string, workers int, dataChannel chan<- []byte, workFunction func(), cleanup func()) {
 	fd, err := os.OpenFile(fileName, os.O_RDONLY, 0)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to read json file, got error: %v", err)
@@ -103,7 +105,7 @@ func convertToGeneric(fileName string, workers int, dataChannel chan<- []byte, w
 	}
 
 	close(dataChannel)
-	wg.Wait()
+
 	cleanup()
 	if err := scanner.Err(); err != nil {
 		panic(err)
