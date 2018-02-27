@@ -59,7 +59,7 @@ func ConvertToM3(fileName string, workers int, f func(*M3Metric)) {
 		close(metricChannel)
 	}
 
-	convertToGeneric(fileName, workers, dataChannel, workFunction, cleanup)
+	convertToGeneric(fileName, dataChannel, workFunction, cleanup)
 }
 
 // ConvertToProm parses the json file that is generated from InfluxDB's bulk_data_gen tool into Prom format
@@ -82,10 +82,10 @@ func ConvertToProm(fileName string, workers int, batchSize int, f func(*bytes.Re
 		wg.Wait()
 		close(metricChannel)
 	}
-	convertToGeneric(fileName, workers, dataChannel, workFunction, cleanup)
+	convertToGeneric(fileName, dataChannel, workFunction, cleanup)
 }
 
-func convertToGeneric(fileName string, workers int, dataChannel chan<- []byte, workFunction func(), cleanup func()) {
+func convertToGeneric(fileName string, dataChannel chan<- []byte, workFunction func(), cleanup func()) {
 	fd, err := os.OpenFile(fileName, os.O_RDONLY, 0)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to read json file, got error: %v", err)
