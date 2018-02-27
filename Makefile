@@ -3,7 +3,7 @@ include $(SELF_DIR)/.ci/common.mk
 
 SHELL=/bin/bash -o pipefail
 
-m3coord_package         := github.com/m3db/m3coordinator
+m3coord_package      := github.com/m3db/m3coordinator
 gopath_prefix        := $(GOPATH)/src
 vendor_prefix        := vendor
 license_dir          := .ci/uber-licence

@@ -95,7 +95,7 @@ imports:
   - services/leader/election
   - shard
 - name: github.com/m3db/m3db
-  version: 2cf3dff4e917703d093717210c8dc96e088e4b05
+  version: 6eadcd923657e0386e5bf43c473e2aeb2af72356
   subpackages:
   - client
   - clock
@@ -128,7 +128,7 @@ imports:
   - metric
   - policy
 - name: github.com/m3db/m3x
-  version: c79492efa39435ffea6c04b72faf1402ed784211
+  version: 1e5d5308d8cd07753da2f6775921d7640d50f1df
   subpackages:
   - checked
   - clock
