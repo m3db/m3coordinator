@@ -10,7 +10,7 @@ func LocalOnly(query storage.Query, store storage.Storage) bool {
 	return store.Type() == storage.TypeLocalDC
 }
 
-// All does not filter any storages
-func All(_ storage.Query, _ storage.Storage) bool {
+// AllowAll does not filter any storages
+func AllowAll(_ storage.Query, _ storage.Storage) bool {
 	return true
 }

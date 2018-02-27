@@ -118,7 +118,6 @@ func (h *PromReadHandler) read(reqCtx context.Context, w http.ResponseWriter, r 
 		}
 
 		promRes := storage.FetchResultToPromResult(result.FetchResult)
-		// fmt.Println(promRes)
 		promResults = append(promResults, promRes)
 	}
 

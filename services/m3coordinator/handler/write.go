@@ -57,13 +57,6 @@ func (h *PromWriteHandler) parseRequest(r *http.Request) (*prompb.WriteRequest, 
 }
 
 func (h *PromWriteHandler) write(ctx context.Context, r *prompb.WriteRequest) error {
-	labels, samples := 0, 0
-	for _, t := range r.Timeseries {
-		labels += len(t.Labels)
-		samples += len(t.Samples)
-	}
-	// fmt.Println(time.Now().Format(time.StampMicro), len(r.Timeseries), "labels", labels, r.Timeseries[0].Labels, "samples", samples, r.Timeseries[0].Samples)
-
 	for _, t := range r.Timeseries {
 		writeQuery := storage.PromWriteTSToM3(t)
 		if err := h.store.Write(ctx, writeQuery); err != nil {

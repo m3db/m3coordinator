@@ -107,7 +107,6 @@ func (b *benchmarker) allAddresses() []string {
 		if addr != "" {
 			all = append(all, addr)
 		}
-		continue
 	}
 	return all
 }

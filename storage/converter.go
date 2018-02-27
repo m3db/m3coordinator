@@ -19,6 +19,7 @@ const (
 func PromWriteTSToM3(timeseries *prompb.TimeSeries) *WriteQuery {
 	tags := PromLabelsToM3Tags(timeseries.Labels)
 	datapoints := PromSamplesToM3Datapoints(timeseries.Samples)
+
 	return &WriteQuery{
 		Tags:       tags,
 		Datapoints: datapoints,

@@ -28,8 +28,6 @@ func ParsePromRequest(r *http.Request) ([]byte, *ParseError) {
 	}
 	defer body.Close()
 	compressed, err := ioutil.ReadAll(body)
-	// fmt.Println(compressed)
-	// fmt.Println(string(compressed))
 
 	if err != nil {
 		return nil, NewParseError(err, http.StatusInternalServerError)

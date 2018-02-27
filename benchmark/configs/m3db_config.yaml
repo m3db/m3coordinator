@@ -190,4 +190,3 @@ config:
                 retentionPeriod: 24h
                 blockSize: 4h
                 bufferPast: 2h
-                bufferFuture: 10m
