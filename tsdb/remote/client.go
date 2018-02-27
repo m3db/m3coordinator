@@ -2,7 +2,6 @@ package remote
 
 import (
 	"context"
-	"fmt"
 	"io"
 
 	"github.com/m3db/m3coordinator/errors"
@@ -30,9 +29,6 @@ type grpcClient struct {
 func NewGrpcClient(addresses []string) (Client, error) {
 	if len(addresses) == 0 {
 		return nil, errors.ErrNoClientAddresses
-	}
-	for _, r := range addresses {
-		fmt.Println(" Address is ", r)
 	}
 	resolver := newStaticResolver(addresses)
 	balancer := grpc.RoundRobin(resolver)

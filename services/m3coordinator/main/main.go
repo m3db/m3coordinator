@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"io"
 	"math/rand"
 	"net/http"
 	"os"
@@ -12,7 +10,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/m3db/m3coordinator/benchmark/common"
 	"github.com/m3db/m3coordinator/executor"
 	"github.com/m3db/m3coordinator/policy/filter"
 	"github.com/m3db/m3coordinator/policy/resolver"
@@ -53,14 +50,6 @@ type m3config struct {
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	metrics2 := make([]*bytes.Reader, 0, common.MetricsLen/100)
-	dataFile := "/Users/artemnikolayevsky/gocode/src/github.com/influxdata/influxdb-comparisons/cmd/bulk_data_gen/benchmark_opentsdb"
-	common.ConvertToProm(dataFile, 1, func(m *bytes.Reader) {
-		metrics2 = append(metrics2, m)
-	})
-	io.Copy(os.Stdout, metrics2[0])
-
-	// fmt.Println(metrics2[0])
 	logging.InitWithCores(nil)
 	ctx := context.Background()
 	logger := logging.WithContext(ctx)
@@ -178,6 +167,6 @@ func setupStorages(logger *zap.Logger, session client.Session, flags *m3config) 
 			stores = append(stores, remote.NewStorage(client))
 		}
 	}
-	fanoutStorage := fanout.NewStorage(stores, filter.All, filter.All)
+	fanoutStorage := fanout.NewStorage(stores, filter.LocalOnly, filter.LocalOnly)
 	return fanoutStorage, cleanup
 }
