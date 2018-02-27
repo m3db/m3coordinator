@@ -90,7 +90,7 @@ func (s *localStorage) Write(ctx context.Context, query *storage.WriteQuery) err
 	}
 
 	if query == nil {
-		return errors.ErrNilQuery
+		return errors.ErrNilWriteQuery
 	}
 
 	id := query.Tags.ID()
