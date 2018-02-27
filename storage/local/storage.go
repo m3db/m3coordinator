@@ -94,7 +94,7 @@ func (s *localStorage) Write(ctx context.Context, query *storage.WriteQuery) err
 	}
 
 	id := query.Tags.ID()
-	writeRequestCommon := writeRequestCommon{
+	common := &writeRequestCommon{
 		store:      s,
 		annotation: query.Annotation,
 		unit:       query.Unit,
@@ -103,7 +103,7 @@ func (s *localStorage) Write(ctx context.Context, query *storage.WriteQuery) err
 
 	requests := make([]execution.Request, len(query.Datapoints))
 	for idx, datapoint := range query.Datapoints {
-		requests[idx] = newWriteRequest(&writeRequestCommon, datapoint.Timestamp, datapoint.Value)
+		requests[idx] = newWriteRequest(common, datapoint.Timestamp, datapoint.Value)
 	}
 	return execution.ExecuteParallel(ctx, requests)
 }

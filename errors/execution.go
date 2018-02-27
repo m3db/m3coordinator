@@ -9,9 +9,6 @@ var (
 	// ErrInvalidQuery is returned when executing an unknown query type.
 	ErrInvalidQuery = errors.New("invalid query")
 
-	// ErrNilQuery is returned when trying to write a nil query
-	ErrNilQuery = errors.New("write query must not be nil")
-
 	// ErrNotExecuted is returned when a statement is not executed in a query.
 	// This can occur when a previous statement in the same query has errored.
 	ErrNotExecuted = errors.New("not executed")
