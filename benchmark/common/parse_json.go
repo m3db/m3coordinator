@@ -46,20 +46,21 @@ func ConvertToM3(fileName string, workers int, f func(*M3Metric)) {
 	workFunction := func() {
 		for w := 0; w < workers; w++ {
 			wg.Add(1)
-			go unmarshalMetrics(dataChannel, metricChannel, wg)
+			go func() {
+				unmarshalMetrics(dataChannel, metricChannel)
+				wg.Done()
+			}()
 		}
 		go func() {
 			for metric := range metricChannel {
 				f(metric)
 			}
 		}()
-	}
-	cleanup := func() {
 		wg.Wait()
 		close(metricChannel)
 	}
 
-	convertToGeneric(fileName, dataChannel, workFunction, cleanup)
+	convertToGeneric(fileName, dataChannel, workFunction)
 }
 
 // ConvertToProm parses the json file that is generated from InfluxDB's bulk_data_gen tool into Prom format
@@ -70,22 +71,23 @@ func ConvertToProm(fileName string, workers int, batchSize int, f func(*bytes.Re
 	workFunction := func() {
 		for w := 0; w < workers; w++ {
 			wg.Add(1)
-			go marshalTsdbToProm(dataChannel, metricChannel, batchSize, wg)
+			go func() {
+				marshalTsdbToProm(dataChannel, metricChannel, batchSize)
+				wg.Done()
+			}()
 		}
 		go func() {
 			for metric := range metricChannel {
 				f(metric)
 			}
 		}()
-	}
-	cleanup := func() {
 		wg.Wait()
 		close(metricChannel)
 	}
-	convertToGeneric(fileName, dataChannel, workFunction, cleanup)
+	convertToGeneric(fileName, dataChannel, workFunction)
 }
 
-func convertToGeneric(fileName string, dataChannel chan<- []byte, workFunction func(), cleanup func()) {
+func convertToGeneric(fileName string, dataChannel chan<- []byte, workFunction func()) {
 	fd, err := os.OpenFile(fileName, os.O_RDONLY, 0)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to read json file, got error: %v", err)
@@ -95,7 +97,6 @@ func convertToGeneric(fileName string, dataChannel chan<- []byte, workFunction f
 	defer fd.Close()
 
 	scanner := bufio.NewScanner(fd)
-	workFunction()
 
 	for scanner.Scan() {
 		data := bytes.TrimSpace(scanner.Bytes())
@@ -103,26 +104,25 @@ func convertToGeneric(fileName string, dataChannel chan<- []byte, workFunction f
 		copy(b, data)
 		dataChannel <- b
 	}
-
 	close(dataChannel)
+	workFunction()
 
-	cleanup()
 	if err := scanner.Err(); err != nil {
 		panic(err)
 	}
 }
 
-func unmarshalMetrics(dataChannel <-chan []byte, metricChannel chan<- *M3Metric, wg *sync.WaitGroup) {
-	defer wg.Done()
+func unmarshalMetrics(dataChannel <-chan []byte, metricChannel chan<- *M3Metric) {
 	for data := range dataChannel {
-		if len(data) != 0 {
-			var m Metrics
-			if err := json.Unmarshal(data, &m); err != nil {
-				panic(err)
-			}
-
-			metricChannel <- &M3Metric{ID: id(m.Tags, m.Name), Time: storage.TimestampToTime(m.Time), Value: m.Value}
+		if len(data) == 0 {
+			continue
 		}
+		var m Metrics
+		if err := json.Unmarshal(data, &m); err != nil {
+			panic(err)
+		}
+
+		metricChannel <- &M3Metric{ID: id(m.Tags, m.Name), Time: storage.TimestampToTime(m.Time), Value: m.Value}
 	}
 }
 
@@ -147,27 +147,27 @@ func id(lowerCaseTags map[string]string, name string) string {
 	return buffer.String()
 }
 
-func marshalTsdbToProm(dataChannel <-chan []byte, metricChannel chan<- *bytes.Reader, batchSize int, wg *sync.WaitGroup) {
-	defer wg.Done()
+func marshalTsdbToProm(dataChannel <-chan []byte, metricChannel chan<- *bytes.Reader, batchSize int) {
 	timeseries := make([]*prompb.TimeSeries, batchSize)
 	idx := 0
 	for data := range dataChannel {
-		if len(data) != 0 {
-			var m Metrics
-			if err := json.Unmarshal(data, &m); err != nil {
-				panic(err)
-			}
-			labels := metricsTagsToLabels(m.Tags)
-			samples := metricsPointsToSamples(m.Value, m.Time)
-			timeseries[idx] = &prompb.TimeSeries{
-				Labels:  labels,
-				Samples: samples,
-			}
-			idx++
-			if idx == batchSize {
-				metricChannel <- encodeWriteRequest(timeseries)
-				idx = 0
-			}
+		if len(data) == 0 {
+			continue
+		}
+		var m Metrics
+		if err := json.Unmarshal(data, &m); err != nil {
+			panic(err)
+		}
+		labels := metricsTagsToLabels(m.Tags)
+		samples := metricsPointsToSamples(m.Value, m.Time)
+		timeseries[idx] = &prompb.TimeSeries{
+			Labels:  labels,
+			Samples: samples,
+		}
+		idx++
+		if idx == batchSize {
+			metricChannel <- encodeWriteRequest(timeseries)
+			idx = 0
 		}
 	}
 	if idx > 0 {

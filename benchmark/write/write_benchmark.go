@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net/http"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -31,8 +30,8 @@ var (
 	memprofile    bool
 	cpuprofile    bool
 
-	coordinatorAddress string
-	coordinator        bool
+	writeEndpoint string
+	coordinator   bool
 )
 
 func init() {
@@ -45,15 +44,17 @@ func init() {
 	flag.StringVar(&benchmarkers, "benchmarkers", "localhost:8888", "Comma separated host:ports addresses of benchmarkers to coordinate")
 	flag.BoolVar(&memprofile, "memprofile", false, "Enable memory profile")
 	flag.BoolVar(&cpuprofile, "cpuprofile", false, "Enable cpu profile")
-	flag.StringVar(&coordinatorAddress, "coordinatorAddress", "http://localhost:7201/api/v1/prom/write", "Address coordinator is listening on")
+	flag.StringVar(&writeEndpoint, "writeEndpoint", "http://localhost:7201/api/v1/prom/write", "Write endpoint for m3coordinator")
 	flag.BoolVar(&coordinator, "coordinator", false, "Benchmark through coordinator rather than m3db directly")
 	flag.Parse()
 }
 
 func main() {
 	if coordinator {
+		log.Println("Benchmarking on m3coordinator...")
 		benchmarkCoordinator()
 	} else {
+		log.Println("Benchmarking on m3db...")
 		benchmarkM3DB()
 	}
 }
@@ -209,7 +210,7 @@ func genericBenchmarker(workerFunction func(), appendReadCount func() int, clean
 
 func writeToCoordinator(ch <-chan *bytes.Reader) {
 	for query := range ch {
-		if r, err := http.Post("http://localhost:7201/api/v1/prom/write", "", query); err != nil {
+		if r, err := common.PostEncodedSnappy(writeEndpoint, query); err != nil {
 			fmt.Println(err)
 		} else {
 			if r.StatusCode != 200 {
