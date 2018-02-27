@@ -209,12 +209,16 @@ func genericBenchmarker(itemsWritten <-chan int, workerFunction func(), appendRe
 	}()
 
 	fmt.Println("cleanip")
+	sumChan := make(chan int)
+	go func() {
+		sum := 0
+		for i := 0; i < workers; i++ {
+			sum += <-itemsWritten
+		}
+		sumChan <- sum
+	}()
 	cleanup()
-
-	sum := 0
-	for i := 0; i < workers; i++ {
-		sum += <-itemsWritten
-	}
+	<-sumChan
 
 	end := time.Now()
 	took := end.Sub(start)
@@ -225,9 +229,11 @@ func genericBenchmarker(itemsWritten <-chan int, workerFunction func(), appendRe
 	fmt.Printf("loaded %d items in %fsec with %d workers (mean values rate %f/sec); per worker %f/sec\n", itemsRead, took.Seconds(), workers, rate, perWorker)
 }
 
-func writeToCoordinator(ch chan *bytes.Reader, itemsWrittenCh chan int) {
+func writeToCoordinator(ch <-chan *bytes.Reader, itemsWrittenCh chan<- int) {
 	var itemsWritten int
 	for query := range ch {
+		fmt.Println("tochanAA")
+
 		if r, err := http.Post("http://localhost:7201/api/v1/prom/write", "", query); err != nil {
 			fmt.Println(err)
 		} else {
@@ -241,13 +247,15 @@ func writeToCoordinator(ch chan *bytes.Reader, itemsWrittenCh chan int) {
 		}
 		itemsWritten++
 	}
+	fmt.Println("tochan")
+
 	itemsWrittenCh <- itemsWritten
+	fmt.Println("finitop")
 }
 
-func writeToM3DB(session client.Session, ch chan *common.M3Metric, itemsWrittenCh chan int) {
+func writeToM3DB(session client.Session, ch <-chan *common.M3Metric, itemsWrittenCh chan<- int) {
 	var itemsWritten int
 	for query := range ch {
-		fmt.Println("chhh")
 		id := query.ID
 		if err := session.Write(namespace, id, query.Time, query.Value, xtime.Millisecond, nil); err != nil {
 			fmt.Println(err)
@@ -260,5 +268,4 @@ func writeToM3DB(session client.Session, ch chan *common.M3Metric, itemsWrittenC
 		itemsWritten++
 	}
 	itemsWrittenCh <- itemsWritten
-	fmt.Println("written")
 }
