@@ -1,5 +1,5 @@
 hash: 5025184e8304272800fb90463ad47dd45843dc9f74ebb55285b91f8bde012d4d
-updated: 2018-02-22T15:47:51.537350272-05:00
+updated: 2018-02-16T13:34:11.449517667-05:00
 imports:
 - name: github.com/alecthomas/template
   version: a0175ee3bccc567396460bf5acd36800cb10c49c
@@ -200,7 +200,7 @@ imports:
 - name: github.com/uber-go/atomic
   version: e682c1008ac17bf26d2e4b5ad6cdd08520ed0b22
 - name: github.com/uber-go/tally
-  version: 522328b48efad0c6034dba92bf39228694e9d31f
+  version: 6c4631652c6aab57c64f65c2e0aaec2e9aae3a64
   subpackages:
   - m3
   - m3/customtransports
