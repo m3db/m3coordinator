@@ -147,6 +147,15 @@ func id(lowerCaseTags map[string]string, name string) string {
 	return buffer.String()
 }
 
+func metricsToPromTS(m Metrics) *prompb.TimeSeries {
+	labels := metricsTagsToLabels(m.Tags)
+	samples := metricsPointsToSamples(m.Value, m.Time)
+	return &prompb.TimeSeries{
+		Labels:  labels,
+		Samples: samples,
+	}
+}
+
 func marshalTsdbToProm(dataChannel <-chan []byte, metricChannel chan<- *bytes.Reader, batchSize int) {
 	timeseries := make([]*prompb.TimeSeries, batchSize)
 	idx := 0
@@ -158,12 +167,7 @@ func marshalTsdbToProm(dataChannel <-chan []byte, metricChannel chan<- *bytes.Re
 		if err := json.Unmarshal(data, &m); err != nil {
 			panic(err)
 		}
-		labels := metricsTagsToLabels(m.Tags)
-		samples := metricsPointsToSamples(m.Value, m.Time)
-		timeseries[idx] = &prompb.TimeSeries{
-			Labels:  labels,
-			Samples: samples,
-		}
+		timeseries[idx] = metricsToPromTS(m)
 		idx++
 		if idx == batchSize {
 			metricChannel <- encodeWriteRequest(timeseries)
