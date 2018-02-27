@@ -35,7 +35,6 @@ func (h *PromWriteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Error(w, rErr.Error(), rErr.Code())
 		return
 	}
-
 	if err := h.write(r.Context(), req); err != nil {
 		logging.WithContext(r.Context()).Error("Write error", zap.Any("err", err))
 		Error(w, err, http.StatusInternalServerError)
@@ -58,6 +57,13 @@ func (h *PromWriteHandler) parseRequest(r *http.Request) (*prompb.WriteRequest, 
 }
 
 func (h *PromWriteHandler) write(ctx context.Context, r *prompb.WriteRequest) error {
+	labels, samples := 0, 0
+	for _, t := range r.Timeseries {
+		labels += len(t.Labels)
+		samples += len(t.Samples)
+	}
+	// fmt.Println(time.Now().Format(time.StampMicro), len(r.Timeseries), "labels", labels, r.Timeseries[0].Labels, "samples", samples, r.Timeseries[0].Samples)
+
 	for _, t := range r.Timeseries {
 		writeQuery := storage.PromWriteTSToM3(t)
 		if err := h.store.Write(ctx, writeQuery); err != nil {

@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -23,15 +25,17 @@ var (
 	dataFile      string
 	workers       int
 	batch         int
+	batchSize     int
 	namespace     string
 	address       string
 	benchmarkers  string
 	memprofile    bool
 	cpuprofile    bool
 
-	wg           sync.WaitGroup
-	inputDone    chan struct{}
-	itemsWritten chan int
+	coordinator bool
+
+	// inputDone    chan struct{}
+	// itemsWritten chan int
 )
 
 func init() {
@@ -39,21 +43,34 @@ func init() {
 	flag.StringVar(&dataFile, "data-file", "data.json", "input data for benchmark")
 	flag.IntVar(&workers, "workers", 1, "Number of parallel requests to make.")
 	flag.IntVar(&batch, "batch", 5000, "Batch Size")
+	flag.IntVar(&batchSize, "batchSize", 100, "Number of write requests per batch.")
 	flag.StringVar(&namespace, "namespace", "metrics", "M3DB namespace where to store result metrics")
 	flag.StringVar(&address, "address", "localhost:8888", "Address to expose benchmarker health and stats")
 	flag.StringVar(&benchmarkers, "benchmarkers", "localhost:8888", "Comma separated host:ports addresses of benchmarkers to coordinate")
 	flag.BoolVar(&memprofile, "memprofile", false, "Enable memory profile")
 	flag.BoolVar(&cpuprofile, "cpuprofile", false, "Enable cpu profile")
+	flag.BoolVar(&coordinator, "coordinator", false, "Benchmark through coordinator rather than m3db directly")
 	flag.Parse()
 }
 
 func main() {
+	if coordinator {
+		benchmarkCoordinator()
+	} else {
+		benchmarkM3DB()
+	}
+}
+
+func benchmarkM3DB() {
+	//Setup
 	metrics := make([]*common.M3Metric, 0, common.MetricsLen)
 	common.ConvertToM3(dataFile, workers, func(m *common.M3Metric) {
 		metrics = append(metrics, m)
 	})
+
 	ch := make(chan *common.M3Metric, workers)
-	inputDone = make(chan struct{})
+	inputDone := make(chan struct{})
+	wg := new(sync.WaitGroup)
 
 	var cfg config.Configuration
 	if err := xconfig.LoadFile(&cfg, m3dbClientCfg); err != nil {
@@ -73,6 +90,78 @@ func main() {
 		log.Fatalf("Unable to create m3db client session, got error %v\n", err)
 	}
 
+	itemsWritten := make(chan int)
+	workerFunction := func() {
+		wg.Add(1)
+		writeToM3DB(session, ch, itemsWritten)
+		wg.Done()
+	}
+
+	appendReadCount := func() int {
+		var items int
+		for _, query := range metrics {
+			ch <- query
+			items++
+		}
+		close(inputDone)
+		return items
+	}
+
+	cleanup := func() {
+		<-inputDone
+		close(ch)
+		wg.Wait()
+		if err := session.Close(); err != nil {
+			log.Fatalf("Unable to close m3db client session, got error %v\n", err)
+		}
+	}
+
+	genericBenchmarker(itemsWritten, workerFunction, appendReadCount, cleanup)
+}
+
+func benchmarkCoordinator() {
+	// Setup
+	metrics := make([]*bytes.Reader, 0, common.MetricsLen/batchSize)
+	common.ConvertToProm(dataFile, workers, batchSize, func(m *bytes.Reader) {
+		metrics = append(metrics, m)
+	})
+
+	ch := make(chan *bytes.Reader, workers)
+	itemsWritten := make(chan int)
+	wg := new(sync.WaitGroup)
+
+	workerFunction := func() {
+		fmt.Println("Workerfunctioning")
+		wg.Add(1)
+		writeToCoordinator(ch, itemsWritten)
+		fmt.Println("Wrote to coord")
+		wg.Done()
+	}
+
+	inputDone := make(chan struct{})
+	appendReadCount := func() int {
+		var items int
+		for _, query := range metrics {
+			ch <- query
+			items++
+		}
+		close(inputDone)
+		return items
+	}
+
+	cleanup := func() {
+		fmt.Println("predone")
+		<-inputDone
+		fmt.Println("done")
+		close(ch)
+		fmt.Println("closed")
+		wg.Wait()
+		fmt.Println("waited")
+	}
+	genericBenchmarker(itemsWritten, workerFunction, appendReadCount, cleanup)
+}
+
+func genericBenchmarker(itemsWritten <-chan int, workerFunction func(), appendReadCount func() int, cleanup func()) {
 	if cpuprofile {
 		p := profile.Start(profile.CPUProfile)
 		defer p.Stop()
@@ -83,30 +172,29 @@ func main() {
 		defer p.Stop()
 	}
 
-	itemsWritten = make(chan int)
+	// send over http
 	var waitForInit sync.WaitGroup
 	for i := 0; i < workers; i++ {
-		wg.Add(1)
 		waitForInit.Add(1)
 		go func() {
 			waitForInit.Done()
-			writeToM3DB(session, ch, itemsWritten)
+			workerFunction()
 		}()
 	}
 
 	fmt.Printf("waiting for workers to spin up...\n")
 	waitForInit.Wait()
-	fmt.Printf("done\n")
+	fmt.Println("done")
 
 	b := &benchmarker{address: address, benchmarkers: benchmarkers}
 	go b.serve()
 	fmt.Printf("waiting for other benchmarkers to spin up...\n")
 	b.waitForBenchmarkers()
-	fmt.Printf("done\n")
+	fmt.Println("done")
 
 	var (
 		start          = time.Now()
-		itemsRead      = addMetricsToChan(ch, metrics)
+		itemsRead      = appendReadCount()
 		endNanosAtomic int64
 	)
 	go func() {
@@ -120,10 +208,9 @@ func main() {
 		}
 	}()
 
-	<-inputDone
-	close(ch)
+	fmt.Println("cleanip")
+	cleanup()
 
-	wg.Wait()
 	sum := 0
 	for i := 0; i < workers; i++ {
 		sum += <-itemsWritten
@@ -133,29 +220,34 @@ func main() {
 	took := end.Sub(start)
 	atomic.StoreInt64(&endNanosAtomic, end.UnixNano())
 	rate := float64(itemsRead) / took.Seconds()
+	perWorker := rate / float64(workers)
 
-	fmt.Printf("loaded %d items in %fsec with %d workers (mean values rate %f/sec)\n", itemsRead, took.Seconds(), workers, rate)
-
-	if err := session.Close(); err != nil {
-		log.Fatalf("Unable to close m3db client session, got error %v\n", err)
-	}
-
-	select {}
+	fmt.Printf("loaded %d items in %fsec with %d workers (mean values rate %f/sec); per worker %f/sec\n", itemsRead, took.Seconds(), workers, rate, perWorker)
 }
 
-func addMetricsToChan(ch chan *common.M3Metric, wq []*common.M3Metric) int {
-	var items int
-	for _, query := range wq {
-		ch <- query
-		items++
+func writeToCoordinator(ch chan *bytes.Reader, itemsWrittenCh chan int) {
+	var itemsWritten int
+	for query := range ch {
+		if r, err := http.Post("http://localhost:7201/api/v1/prom/write", "", query); err != nil {
+			fmt.Println(err)
+		} else {
+			if r.StatusCode != 200 {
+				b := make([]byte, r.ContentLength)
+				r.Body.Read(b)
+				r.Body.Close()
+				fmt.Println(string(b))
+			}
+			stat.incWrites()
+		}
+		itemsWritten++
 	}
-	close(inputDone)
-	return items
+	itemsWrittenCh <- itemsWritten
 }
 
 func writeToM3DB(session client.Session, ch chan *common.M3Metric, itemsWrittenCh chan int) {
 	var itemsWritten int
 	for query := range ch {
+		fmt.Println("chhh")
 		id := query.ID
 		if err := session.Write(namespace, id, query.Time, query.Value, xtime.Millisecond, nil); err != nil {
 			fmt.Println(err)
@@ -167,6 +259,6 @@ func writeToM3DB(session client.Session, ch chan *common.M3Metric, itemsWrittenC
 		}
 		itemsWritten++
 	}
-	wg.Done()
 	itemsWrittenCh <- itemsWritten
+	fmt.Println("written")
 }

@@ -39,11 +39,11 @@ func (h *PromReadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	req, rErr := h.parseRequest(r)
+
 	if rErr != nil {
 		Error(w, rErr.Error(), rErr.Code())
 		return
 	}
-
 	result, err := h.read(r.Context(), w, req, params)
 	if err != nil {
 		logger.Error("unable to fetch data", zap.Any("error", err))
@@ -118,6 +118,7 @@ func (h *PromReadHandler) read(reqCtx context.Context, w http.ResponseWriter, r 
 		}
 
 		promRes := storage.FetchResultToPromResult(result.FetchResult)
+		// fmt.Println(promRes)
 		promResults = append(promResults, promRes)
 	}
 

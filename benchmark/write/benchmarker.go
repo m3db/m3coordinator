@@ -104,10 +104,10 @@ func (b *benchmarker) allAddresses() []string {
 	var all []string
 	for _, addr := range strings.Split(b.benchmarkers, ",") {
 		addr = strings.TrimSpace(addr)
-		if addr == "" {
-			continue
+		if addr != "" {
+			all = append(all, addr)
 		}
-		all = append(all, addr)
+		continue
 	}
 	return all
 }
@@ -151,4 +151,5 @@ func (b *benchmarker) waitForBenchmarkers() {
 	now := time.Now()
 	waitFor := now.Truncate(sync).Add(sync).Sub(now)
 	time.Sleep(waitFor)
+	fmt.Println("hi")
 }

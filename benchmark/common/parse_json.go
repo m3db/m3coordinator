@@ -11,11 +11,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
 	"github.com/m3db/m3coordinator/storage"
-)
 
-var (
-	wg sync.WaitGroup
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/snappy"
 )
 
 const (
@@ -40,6 +40,50 @@ type M3Metric struct {
 
 // ConvertToM3 parses the json file that is generated from InfluxDB's bulk_data_gen tool
 func ConvertToM3(fileName string, workers int, f func(*M3Metric)) {
+	metricChannel := make(chan *M3Metric, MetricsLen)
+	dataChannel := make(chan []byte, MetricsLen)
+	cleanup := func() {
+		close(metricChannel)
+	}
+	wg := new(sync.WaitGroup)
+	workFunction := func() {
+		for w := 0; w < workers; w++ {
+			wg.Add(1)
+			go unmarshalMetrics(dataChannel, metricChannel, wg)
+		}
+		go func() {
+			for metric := range metricChannel {
+				f(metric)
+			}
+		}()
+	}
+
+	convertToGeneric(fileName, workers, dataChannel, wg, workFunction, cleanup)
+}
+
+// ConvertToProm parses the json file that is generated from InfluxDB's bulk_data_gen tool into Prom format
+func ConvertToProm(fileName string, workers int, batchSize int, f func(*bytes.Reader)) {
+	metricChannel := make(chan *bytes.Reader, MetricsLen)
+	dataChannel := make(chan []byte, MetricsLen)
+	cleanup := func() {
+		close(metricChannel)
+	}
+	wg := new(sync.WaitGroup)
+	workFunction := func() {
+		for w := 0; w < workers; w++ {
+			wg.Add(1)
+			go marshalTsdbToProm(dataChannel, metricChannel, batchSize, wg)
+		}
+		go func() {
+			for metric := range metricChannel {
+				f(metric)
+			}
+		}()
+	}
+	convertToGeneric(fileName, workers, dataChannel, wg, workFunction, cleanup)
+}
+
+func convertToGeneric(fileName string, workers int, dataChannel chan<- []byte, wg *sync.WaitGroup, workFunction func(), cleanup func()) {
 	fd, err := os.OpenFile(fileName, os.O_RDONLY, 0)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to read json file, got error: %v", err)
@@ -49,19 +93,7 @@ func ConvertToM3(fileName string, workers int, f func(*M3Metric)) {
 	defer fd.Close()
 
 	scanner := bufio.NewScanner(fd)
-
-	dataChannel := make(chan []byte, MetricsLen)
-	metricChannel := make(chan *M3Metric, MetricsLen)
-	for w := 0; w < workers; w++ {
-		wg.Add(1)
-		go unmarshalMetrics(dataChannel, metricChannel)
-	}
-
-	go func() {
-		for metric := range metricChannel {
-			f(metric)
-		}
-	}()
+	workFunction()
 
 	for scanner.Scan() {
 		data := bytes.TrimSpace(scanner.Bytes())
@@ -72,13 +104,14 @@ func ConvertToM3(fileName string, workers int, f func(*M3Metric)) {
 
 	close(dataChannel)
 	wg.Wait()
-	close(metricChannel)
+	cleanup()
 	if err := scanner.Err(); err != nil {
 		panic(err)
 	}
 }
 
-func unmarshalMetrics(dataChannel chan []byte, metricChannel chan *M3Metric) {
+func unmarshalMetrics(dataChannel <-chan []byte, metricChannel chan<- *M3Metric, wg *sync.WaitGroup) {
+	defer wg.Done()
 	for data := range dataChannel {
 		if len(data) != 0 {
 			var m Metrics
@@ -89,7 +122,6 @@ func unmarshalMetrics(dataChannel chan []byte, metricChannel chan *M3Metric) {
 			metricChannel <- &M3Metric{ID: id(m.Tags, m.Name), Time: storage.TimestampToTime(m.Time), Value: m.Value}
 		}
 	}
-	wg.Done()
 }
 
 func id(lowerCaseTags map[string]string, name string) string {
@@ -111,4 +143,63 @@ func id(lowerCaseTags map[string]string, name string) string {
 	}
 
 	return buffer.String()
+}
+
+func marshalTsdbToProm(dataChannel <-chan []byte, metricChannel chan<- *bytes.Reader, batchSize int, wg *sync.WaitGroup) {
+	defer wg.Done()
+	timeseries := make([]*prompb.TimeSeries, batchSize)
+	idx := 0
+	for data := range dataChannel {
+		if len(data) != 0 {
+			var m Metrics
+			if err := json.Unmarshal(data, &m); err != nil {
+				panic(err)
+			}
+			labels := metricsTagsToLabels(m.Tags)
+			samples := metricsPointsToSamples(m.Value, m.Time)
+			timeseries[idx] = &prompb.TimeSeries{
+				Labels:  labels,
+				Samples: samples,
+			}
+			idx++
+			if idx == batchSize {
+				metricChannel <- encodeWriteRequest(timeseries)
+				idx = 0
+			}
+		}
+	}
+	if idx > 0 {
+		// Send the remaining series
+		metricChannel <- encodeWriteRequest(timeseries[:idx])
+	}
+}
+
+func encodeWriteRequest(ts []*prompb.TimeSeries) *bytes.Reader {
+	req := &prompb.WriteRequest{
+		Timeseries: ts,
+	}
+	data, _ := proto.Marshal(req)
+	compressed := snappy.Encode(nil, data)
+	b := bytes.NewReader(compressed)
+	return b
+}
+
+func metricsTagsToLabels(tags map[string]string) []*prompb.Label {
+	labels := make([]*prompb.Label, 0, len(tags))
+	for name, value := range tags {
+		labels = append(labels, &prompb.Label{
+			Name:  name,
+			Value: value,
+		})
+	}
+	return labels
+}
+
+func metricsPointsToSamples(value float64, timestamp int64) []*prompb.Sample {
+	return []*prompb.Sample{
+		&prompb.Sample{
+			Value:     value,
+			Timestamp: timestamp,
+		},
+	}
 }

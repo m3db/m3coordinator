@@ -43,6 +43,8 @@ func StartNewGrpcServer(server *grpc.Server, address string, waitForStart chan<-
 
 // Fetch reads from local storage
 func (s *grpcServer) Fetch(message *rpc.FetchMessage, stream rpc.Query_FetchServer) error {
+	// fmt.Println("Fetch received")
+
 	storeQuery, id, err := DecodeFetchMessage(message)
 	ctx := logging.NewContextWithID(stream.Context(), id)
 	logger := logging.WithContext(ctx)
@@ -75,6 +77,7 @@ func (s *grpcServer) Fetch(message *rpc.FetchMessage, stream rpc.Query_FetchServ
 
 // Write writes to local storage
 func (s *grpcServer) Write(stream rpc.Query_WriteServer) error {
+	// fmt.Println("Write received")
 	for {
 		message, err := stream.Recv()
 		ctx := stream.Context()
