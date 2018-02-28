@@ -72,7 +72,7 @@ func ConvertToProm(fileName string, workers int, batchSize int, f func(*bytes.Re
 		for w := 0; w < workers; w++ {
 			wg.Add(1)
 			go func() {
-				marshalTsdbToProm(dataChannel, metricChannel, batchSize)
+				marshalTSDBToProm(dataChannel, metricChannel, batchSize)
 				wg.Done()
 			}()
 		}
@@ -147,7 +147,7 @@ func id(lowerCaseTags map[string]string, name string) string {
 }
 
 func metricsToPromTS(m Metrics) *prompb.TimeSeries {
-	labels := metricsTagsToLabels(m.Tags)
+	labels := storage.TagsToPromLabels(m.Tags)
 	samples := metricsPointsToSamples(m.Value, m.Time)
 	return &prompb.TimeSeries{
 		Labels:  labels,
@@ -155,7 +155,7 @@ func metricsToPromTS(m Metrics) *prompb.TimeSeries {
 	}
 }
 
-func marshalTsdbToProm(dataChannel <-chan []byte, metricChannel chan<- *bytes.Reader, batchSize int) {
+func marshalTSDBToProm(dataChannel <-chan []byte, metricChannel chan<- *bytes.Reader, batchSize int) {
 	timeseries := make([]*prompb.TimeSeries, batchSize)
 	idx := 0
 	for data := range dataChannel {
@@ -187,17 +187,6 @@ func encodeWriteRequest(ts []*prompb.TimeSeries) *bytes.Reader {
 	compressed := snappy.Encode(nil, data)
 	b := bytes.NewReader(compressed)
 	return b
-}
-
-func metricsTagsToLabels(tags map[string]string) []*prompb.Label {
-	labels := make([]*prompb.Label, 0, len(tags))
-	for name, value := range tags {
-		labels = append(labels, &prompb.Label{
-			Name:  name,
-			Value: value,
-		})
-	}
-	return labels
 }
 
 func metricsPointsToSamples(value float64, timestamp int64) []*prompb.Sample {

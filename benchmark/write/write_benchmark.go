@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"flag"
-	"fmt"
 	"log"
 	"sync"
 	"sync/atomic"
@@ -51,10 +50,10 @@ func init() {
 
 func main() {
 	if coordinator {
-		log.Println("Benchmarking on m3coordinator...")
+		log.Println("Benchmarking writes on m3coordinator over http endpoint...")
 		benchmarkCoordinator()
 	} else {
-		log.Println("Benchmarking on m3db...")
+		log.Println("Benchmarking writes on m3db...")
 		benchmarkM3DB()
 	}
 }
@@ -156,7 +155,7 @@ func genericBenchmarker(workerFunction func(), appendReadCount func() int, clean
 		p := profile.Start(profile.CPUProfile)
 		defer p.Stop()
 		if memprofile {
-			fmt.Println("cannot have both cpu and mem profile active at once; defaulting to cpu profiling")
+			log.Println("cannot have both cpu and mem profile active at once; defaulting to cpu profiling")
 		}
 	} else if memprofile {
 		p := profile.Start(profile.MemProfile)
@@ -173,12 +172,12 @@ func genericBenchmarker(workerFunction func(), appendReadCount func() int, clean
 		}()
 	}
 
-	fmt.Println("waiting for workers to spin up...")
+	log.Println("waiting for workers to spin up...")
 	waitForInit.Wait()
 
 	b := &benchmarker{address: address, benchmarkers: benchmarkers}
 	go b.serve()
-	fmt.Println("waiting for other benchmarkers to spin up...")
+	log.Println("waiting for other benchmarkers to spin up...")
 	b.waitForBenchmarkers()
 
 	var (
@@ -186,6 +185,7 @@ func genericBenchmarker(workerFunction func(), appendReadCount func() int, clean
 		itemsRead      = appendReadCount()
 		endNanosAtomic int64
 	)
+	log.Println("Started benchmark at:", start.Format(time.StampMilli))
 	go func() {
 		for {
 			time.Sleep(time.Second)
@@ -200,24 +200,25 @@ func genericBenchmarker(workerFunction func(), appendReadCount func() int, clean
 	cleanup()
 
 	end := time.Now()
+	log.Println("Finished benchmark at:", start.Format(time.StampMilli))
 	took := end.Sub(start)
 	atomic.StoreInt64(&endNanosAtomic, end.UnixNano())
 	rate := float64(itemsRead) / took.Seconds()
 	perWorker := rate / float64(workers)
 
-	fmt.Printf("loaded %d items in %fsec with %d workers (mean values rate %f/sec); per worker %f/sec\n", itemsRead, took.Seconds(), workers, rate, perWorker)
+	log.Printf("loaded %d items in %fsec with %d workers (mean values rate %f/sec); per worker %f/sec\n", itemsRead, took.Seconds(), workers, rate, perWorker)
 }
 
 func writeToCoordinator(ch <-chan *bytes.Reader) {
 	for query := range ch {
 		if r, err := common.PostEncodedSnappy(writeEndpoint, query); err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		} else {
 			if r.StatusCode != 200 {
 				b := make([]byte, r.ContentLength)
 				r.Body.Read(b)
 				r.Body.Close()
-				fmt.Println(string(b))
+				log.Println(string(b))
 			}
 			stat.incWrites()
 		}
@@ -229,12 +230,12 @@ func writeToM3DB(session client.Session, ch <-chan *common.M3Metric) {
 	for query := range ch {
 		id := query.ID
 		if err := session.Write(namespace, id, query.Time, query.Value, xtime.Millisecond, nil); err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		} else {
 			stat.incWrites()
 		}
 		if itemsWritten > 0 && itemsWritten%10000 == 0 {
-			fmt.Println(itemsWritten)
+			log.Println(itemsWritten)
 		}
 		itemsWritten++
 	}

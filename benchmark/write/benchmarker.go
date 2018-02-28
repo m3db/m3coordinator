@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -145,7 +146,7 @@ func (b *benchmarker) waitForBenchmarkers() {
 		}()
 	}
 
-	fmt.Println("all ready, now synchronizing to nearest 10s...\n")
+	log.Println("all ready, now synchronizing to nearest 10s...")
 	sync := 5 * time.Second
 	now := time.Now()
 	waitFor := now.Truncate(sync).Add(sync).Sub(now)

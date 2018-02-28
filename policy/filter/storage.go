@@ -14,3 +14,8 @@ func LocalOnly(query storage.Query, store storage.Storage) bool {
 func AllowAll(_ storage.Query, _ storage.Storage) bool {
 	return true
 }
+
+// AllowNone filters all storages
+func AllowNone(_ storage.Query, _ storage.Storage) bool {
+	return false
+}

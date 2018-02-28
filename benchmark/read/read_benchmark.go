@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/golang/snappy"
 	"github.com/m3db/m3coordinator/benchmark/common"
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
 	"github.com/m3db/m3coordinator/services/m3coordinator/config"
@@ -16,6 +15,8 @@ import (
 	"github.com/m3db/m3db/client"
 	"github.com/m3db/m3db/encoding"
 	xconfig "github.com/m3db/m3x/config"
+
+	"github.com/golang/snappy"
 )
 
 var (
@@ -63,10 +64,10 @@ func main() {
 	// Split on coord vs m3db
 
 	if coordinator {
-		log.Println("Benchmarking on m3coordinator...")
+		log.Println("Benchmarking reads over http endpoint m3coordinator...")
 		benchmarkCoordinator(start, end)
 	} else {
-		log.Println("Benchmarking on m3db...")
+		log.Println("Benchmarking reads on m3db...")
 		benchmarkM3DB(start, end)
 	}
 }
@@ -155,14 +156,16 @@ func getUniqueIds() []string {
 
 func genericBenchmarker(fetch func(), count countFunc) {
 	start := time.Now()
+	log.Println("Started benchmark at:", start.Format(time.StampMilli))
 	fetch()
 	end := time.Now()
+	log.Println("Finished benchmark at:", start.Format(time.StampMilli))
 	took := end.Sub(start)
 	// Counting should be done after timer has stopped in case any transforms are required
 	results := count()
 	rate := float64(results) / took.Seconds()
 
-	log.Printf("returned %d timeseries in %fsec (mean values rate %f/sec)\n", results, took.Seconds(), rate)
+	log.Printf("Returned %d timeseries in %fsec (mean values rate %f/sec)\n", results, took.Seconds(), rate)
 }
 
 func generateMatchers() []*prompb.LabelMatcher {
