@@ -36,6 +36,10 @@ func (s *fanoutStorage) Fetch(ctx context.Context, query *storage.FetchQuery, op
 	return handleFetchResponses(requests)
 }
 
+func (s *fanoutStorage) FetchTags(ctx context.Context, query *storage.FetchQuery, options *storage.FetchOptions) (*storage.SearchResults, error) {
+	return nil, nil
+}
+
 func handleFetchResponses(requests []execution.Request) (*storage.FetchResult, error) {
 	seriesList := make([]*ts.Series, 0, len(requests))
 	result := &storage.FetchResult{SeriesList: seriesList, LocalOnly: true}

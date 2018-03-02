@@ -20,6 +20,10 @@ func (s *remoteStorage) Fetch(ctx context.Context, query *storage.FetchQuery, op
 	return s.client.Fetch(ctx, query, options)
 }
 
+func (s *remoteStorage) FetchTags(ctx context.Context, query *storage.FetchQuery, options *storage.FetchOptions) (*storage.SearchResults, error) {
+	return nil, nil
+}
+
 func (s *remoteStorage) Write(ctx context.Context, query *storage.WriteQuery) error {
 	return s.client.Write(ctx, query)
 }

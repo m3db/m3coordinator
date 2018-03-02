@@ -84,6 +84,11 @@ func (s *localStorage) Fetch(ctx context.Context, query *storage.FetchQuery, opt
 	}, nil
 }
 
+func (s *localStorage) FetchTags(ctx context.Context, query *storage.FetchQuery, options *storage.FetchOptions) (*storage.SearchResults, error) {
+	results, err := s.session.FetchTaggedIDs(query, options)
+	return nil, nil
+}
+
 func (s *localStorage) Write(ctx context.Context, query *storage.WriteQuery) error {
 	// Check if the query was interrupted.
 	select {
