@@ -97,6 +97,31 @@ func (m Matchers) ToTags() (Tags, error) {
 	return tags, nil
 }
 
+// just here to prove correctness
+func (t Tags) legacyID() string {
+	sep := ","
+	eq := "="
+
+	var b string
+	var keys []string
+
+	for k := range t {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		b += k
+		b += eq
+		b += t[k]
+		b += sep
+	}
+
+	h := fnv.New32a()
+	h.Write([]byte(b))
+	return fmt.Sprintf("%d", h.Sum32())
+}
+
 // ID returns a string representation of the tags
 func (t Tags) ID() string {
 	sep := byte(',')
