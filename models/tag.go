@@ -1,6 +1,7 @@
 package models
 
 import (
+	"bytes"
 	"fmt"
 	"hash/fnv"
 	"regexp"
@@ -98,25 +99,24 @@ func (m Matchers) ToTags() (Tags, error) {
 
 // ID returns a string representation of the tags
 func (t Tags) ID() string {
-	sep := ","
-	eq := "="
+	sep := byte(',')
+	eq := byte('=')
 
-	var b string
 	var keys []string
-
 	for k := range t {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-
+	var buf bytes.Buffer
 	for _, k := range keys {
-		b += k
-		b += eq
-		b += t[k]
-		b += sep
+		byteKey := []byte(k)
+		buf.Write(byteKey)
+		buf.WriteByte(eq)
+		buf.Write([]byte(t[k]))
+		buf.WriteByte(sep)
 	}
 
 	h := fnv.New32a()
-	h.Write([]byte(b))
+	h.Write(buf.Bytes())
 	return fmt.Sprintf("%d", h.Sum32())
 }

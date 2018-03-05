@@ -1,7 +1,9 @@
 package models
 
 import (
+	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -81,4 +83,16 @@ func TestMatcher(t *testing.T) {
 
 func TestMatchType(t *testing.T) {
 	require.Equal(t, MatchEqual.String(), "=")
+}
+
+func BenchmarkTagsID(b *testing.B) {
+	tags := Tags(make(map[string]string))
+	rand.Seed(0)
+	for i := 0; i < 100; i++ {
+		tag := time.Now().Format(time.RFC3339Nano) + string(rand.Int()) + "long_string_representing_long_tag_name"
+		tags[tag] = tag
+	}
+	for i := 0; i < b.N; i++ {
+		tags.ID()
+	}
 }
