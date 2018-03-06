@@ -15,6 +15,7 @@ import (
 	"github.com/m3db/m3db/client"
 	"github.com/m3db/m3db/encoding"
 	xconfig "github.com/m3db/m3x/config"
+	"github.com/m3db/m3x/ident"
 
 	"github.com/golang/snappy"
 )
@@ -127,7 +128,9 @@ func benchmarkM3DB(start, end time.Time) {
 	var rawResults encoding.SeriesIterators
 
 	fetch := func() {
-		rawResults, err = session.FetchAll(namespace, ids, start, end)
+		ns := ident.StringID(namespace)
+		it := ident.NewStringIDsSliceIterator(ids)
+		rawResults, err = session.FetchIDs(ns, it, start, end)
 		if err != nil {
 			log.Fatalf("Unable to fetch metrics from m3db, got error %v\n", err)
 		}

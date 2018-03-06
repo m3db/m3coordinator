@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/m3db/m3coordinator/models"
+
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/ts"
@@ -25,7 +27,6 @@ func setup() {
 }
 
 func newWriteQuery() *storage.WriteQuery {
-	tags := map[string]string{"foo": "bar", "biz": "baz"}
 	datapoints := ts.Datapoints{{
 		Timestamp: time.Now(),
 		Value:     1.0,
@@ -35,7 +36,7 @@ func newWriteQuery() *storage.WriteQuery {
 			Value:     2.0,
 		}}
 	return &storage.WriteQuery{
-		Tags:       tags,
+		Tags:       models.NewStringTags("tags"),
 		Unit:       xtime.Millisecond,
 		Datapoints: datapoints,
 	}

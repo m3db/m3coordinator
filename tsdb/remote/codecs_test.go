@@ -30,8 +30,8 @@ var (
 	mps1     = int32(120)
 	time1    = "2093-02-06T11:54:48+07:00"
 
-	tags0  = map[string]string{"a": "b", "c": "d"}
-	tags1  = map[string]string{"e": "f", "g": "h"}
+	tags0  = models.NewStringTags("abc")
+	tags1  = models.NewStringTags("def")
 	float0 = 100.0
 	float1 = 3.5
 	ann    = []byte("aasjgał")
@@ -60,7 +60,7 @@ func createRPCSeries(t *testing.T) ([]*rpc.Series, time.Time, time.Time) {
 			Name:          name0,
 			StartTime:     fromTime(t0),
 			Values:        valList0,
-			Tags:          tags0,
+			Tags:          tags0.ID().String(),
 			Specification: spec0,
 			MillisPerStep: mps0,
 		},
@@ -68,7 +68,7 @@ func createRPCSeries(t *testing.T) ([]*rpc.Series, time.Time, time.Time) {
 			Name:          name1,
 			StartTime:     fromTime(t1),
 			Values:        valList1,
-			Tags:          tags1,
+			Tags:          tags1.ID().String(),
 			Specification: spec1,
 			MillisPerStep: mps1,
 		},
@@ -188,7 +188,7 @@ func createStorageWriteQuery(t *testing.T) (*storage.WriteQuery, ts.Datapoints) 
 func TestEncodeWriteMessage(t *testing.T) {
 	write, points := createStorageWriteQuery(t)
 	encw := EncodeWriteMessage(write, id)
-	assert.Equal(t, tags0, encw.GetQuery().GetTags())
+	assert.Equal(t, tags0.ID().String(), encw.GetQuery().GetTags())
 	assert.Equal(t, ann, encw.GetQuery().GetAnnotation())
 	assert.Equal(t, int32(2), encw.GetQuery().GetUnit())
 	assert.Equal(t, id, encw.GetOptions().GetId())

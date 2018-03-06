@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/m3db/m3coordinator/models"
+
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
 	"github.com/m3db/m3coordinator/storage"
 
@@ -148,8 +150,13 @@ func id(lowerCaseTags map[string]string, name string) string {
 	return buffer.String()
 }
 
+func metricsTagsToPromLabels(tags map[string]string) []*prompb.Label {
+	t := models.NewGenericStringTags(tags)
+	return storage.TagsToPromLabels(t)
+}
+
 func metricsToPromTS(m Metrics) *prompb.TimeSeries {
-	labels := storage.TagsToPromLabels(m.Tags)
+	labels := metricsTagsToPromLabels(m.Tags)
 	samples := metricsPointsToSamples(m.Value, m.Time)
 	return &prompb.TimeSeries{
 		Labels:  labels,

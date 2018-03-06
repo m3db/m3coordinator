@@ -33,7 +33,7 @@ func EncodeFetchResult(sResult *storage.FetchResult) *rpc.FetchResult {
 			Name:          result.Name(),
 			Values:        vals,
 			StartTime:     fromTime(result.StartTime()),
-			Tags:          result.Tags,
+			Tags:          result.Tags.ID().String(),
 			Specification: result.Specification,
 			MillisPerStep: int32(result.MillisPerStep()),
 		}
@@ -58,7 +58,7 @@ func decodeTs(ctx context.Context, r *rpc.Series) *ts.Series {
 		values.SetValueAt(i, float64(v))
 	}
 
-	start, tags := toTime(r.GetStartTime()), models.Tags(r.GetTags())
+	start, tags := toTime(r.GetStartTime()), models.NewStringTags(r.GetTags())
 
 	series := ts.NewSeries(ctx, r.GetName(), start, values, tags)
 	series.Specification = r.GetSpecification()
@@ -149,7 +149,7 @@ func encodeWriteQuery(query *storage.WriteQuery) *rpc.WriteQuery {
 		Unit:       int32(query.Unit),
 		Annotation: query.Annotation,
 		Datapoints: encodeDatapoints(query.Datapoints),
-		Tags:       query.Tags,
+		Tags:       query.Tags.ID().String(),
 	}
 }
 
@@ -167,7 +167,7 @@ func decodeWriteQuery(query *rpc.WriteQuery) *storage.WriteQuery {
 		}
 	}
 	return &storage.WriteQuery{
-		Tags:       query.GetTags(),
+		Tags:       models.NewStringTags(query.GetTags()),
 		Datapoints: ts.Datapoints(points),
 		Unit:       xtime.Unit(query.GetUnit()),
 		Annotation: query.Annotation,

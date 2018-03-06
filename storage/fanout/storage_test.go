@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/m3db/m3coordinator/models"
+
 	"github.com/m3db/m3coordinator/policy/filter"
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/storage"
@@ -114,6 +116,7 @@ func TestFanoutWriteError(t *testing.T) {
 	datapoints := make(ts.Datapoints, 1)
 	datapoints[0] = &ts.Datapoint{Timestamp: time.Now(), Value: 1}
 	err := store.Write(context.TODO(), &storage.WriteQuery{
+		Tags:       models.NewStringTags("str"),
 		Datapoints: datapoints,
 	})
 	assert.Error(t, err)
@@ -124,6 +127,7 @@ func TestFanoutWriteSuccess(t *testing.T) {
 	datapoints := make(ts.Datapoints, 1)
 	datapoints[0] = &ts.Datapoint{Timestamp: time.Now(), Value: 1}
 	err := store.Write(context.TODO(), &storage.WriteQuery{
+		Tags:       models.NewStringTags("str"),
 		Datapoints: datapoints,
 	})
 	assert.NoError(t, err)

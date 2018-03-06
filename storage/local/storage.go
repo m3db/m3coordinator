@@ -76,7 +76,7 @@ func (s *localStorage) Fetch(ctx context.Context, query *storage.FetchQuery, opt
 		return nil, err
 	}
 
-	series := ts.NewSeries(ctx, tags.ID(), reqRange.Start, values, tags)
+	series := ts.NewSeries(ctx, tags.ID().String(), reqRange.Start, values, tags)
 	seriesList := make([]*ts.Series, 1)
 	seriesList[0] = series
 	return &storage.FetchResult{
@@ -101,7 +101,7 @@ func (s *localStorage) Write(ctx context.Context, query *storage.WriteQuery) err
 		store:      s,
 		annotation: query.Annotation,
 		unit:       query.Unit,
-		id:         id,
+		id:         id.String(),
 	}
 
 	requests := make([]execution.Request, len(query.Datapoints))

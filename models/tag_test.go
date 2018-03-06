@@ -86,37 +86,47 @@ func TestMatchType(t *testing.T) {
 }
 
 func BenchmarkTagsID(b *testing.B) {
-	tags := Tags(make(map[string]string))
+	t := tags(make(map[string]string))
 	rand.Seed(0)
 	for i := 0; i < 100; i++ {
 		tag := time.Now().Format(time.RFC3339Nano) + string(rand.Int()) + "long_string_representing_long_tag_name"
-		tags[tag] = tag
+		t[tag] = tag
 	}
+	for i := 0; i < b.N; i++ {
+		t.ID()
+	}
+}
+
+func BenchmarkGenericStringTags(b *testing.B) {
+	t := make([]*genericStringTag, 0)
+	rand.Seed(0)
+	for i := 0; i < 100; i++ {
+		tag := time.Now().Format(time.RFC3339Nano) + string(rand.Int()) + "long_string_representing_long_tag_name"
+		t = append(t, &genericStringTag{
+			value: tag,
+			key:   tag,
+		})
+	}
+	tags := genericStringTags{t}
 	for i := 0; i < b.N; i++ {
 		tags.ID()
 	}
 }
 
-func BenchmarkLegacyTagsID(b *testing.B) {
-	tags := Tags(make(map[string]string))
-	rand.Seed(0)
-	for i := 0; i < 100; i++ {
-		tag := time.Now().Format(time.RFC3339Nano) + string(rand.Int()) + "long_string_representing_long_tag_name"
-		tags[tag] = tag
-	}
-	for i := 0; i < b.N; i++ {
-		tags.legacyID()
-	}
-}
-
 func TestTagsIDCorrectToLegacy(t *testing.T) {
-	tags := Tags(make(map[string]string))
-	rand.Seed(0)
-	for i := 0; i < 100; i++ {
-		tag := time.Now().Format(time.RFC3339Nano) + string(rand.Int()) + "long_string_representing_long_tag_name"
-		tags[tag] = tag
+	key := "keyvalue_pair"
+	value := "some_test_value"
+
+	tags := &genericStringTags{
+		tags: []*genericStringTag{
+			&genericStringTag{
+				key:   key,
+				value: value,
+			},
+		},
 	}
-	legacy := tags.legacyID()
-	id := tags.ID()
-	require.Equal(t, legacy, id)
+
+	expectedID := "2755411844"
+	id := tags.ID().String()
+	require.Equal(t, expectedID, id)
 }
