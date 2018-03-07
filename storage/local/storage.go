@@ -129,7 +129,9 @@ func (w *writeRequest) Process(ctx context.Context) error {
 	)
 	if tags, ok := common.tags.(*models.M3Tags); !ok {
 		it = tags.GetIterator()
-		id = tags.ID()
+		id = tags.M3ID()
+	} else {
+		return errors.ErrNoClientAddresses
 	}
 	return store.session.WriteTagged(store.namespace, id, it, w.timestamp, w.value, common.unit, common.annotation)
 }
