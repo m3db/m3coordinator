@@ -83,31 +83,22 @@ func TestMatcher(t *testing.T) {
 
 func TestMatchType(t *testing.T) {
 	require.Equal(t, MatchEqual.String(), "=")
+	require.Equal(t, MatchNotEqual.String(), "!=")
+	require.Equal(t, MatchRegexp.String(), "=~")
+	require.Equal(t, MatchNotRegexp.String(), "!~")
 }
 
-func BenchmarkTagsID(b *testing.B) {
-	t := tags(make(map[string]string))
+func BenchmarkGenericTags(b *testing.B) {
+	t := make([]*genericTag, 0)
 	rand.Seed(0)
 	for i := 0; i < 100; i++ {
 		tag := time.Now().Format(time.RFC3339Nano) + string(rand.Int()) + "long_string_representing_long_tag_name"
-		t[tag] = tag
-	}
-	for i := 0; i < b.N; i++ {
-		t.ID()
-	}
-}
-
-func BenchmarkGenericStringTags(b *testing.B) {
-	t := make([]*genericStringTag, 0)
-	rand.Seed(0)
-	for i := 0; i < 100; i++ {
-		tag := time.Now().Format(time.RFC3339Nano) + string(rand.Int()) + "long_string_representing_long_tag_name"
-		t = append(t, &genericStringTag{
+		t = append(t, &genericTag{
 			value: tag,
 			key:   tag,
 		})
 	}
-	tags := genericStringTags{t}
+	tags := genericTags{tags: t}
 	for i := 0; i < b.N; i++ {
 		tags.ID()
 	}
@@ -117,9 +108,9 @@ func TestTagsIDCorrectToLegacy(t *testing.T) {
 	key := "keyvalue_pair"
 	value := "some_test_value"
 
-	tags := &genericStringTags{
-		tags: []*genericStringTag{
-			&genericStringTag{
+	tags := &genericTags{
+		tags: []*genericTag{
+			&genericTag{
 				key:   key,
 				value: value,
 			},

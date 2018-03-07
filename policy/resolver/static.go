@@ -16,24 +16,26 @@ type staticResolver struct {
 
 // NewStaticResolver creates a static policy resolver.
 func NewStaticResolver(sp policy.StoragePolicy) PolicyResolver {
-	return &staticResolver{sp: sp}
+	return &staticResolver{
+		sp: sp,
+	}
 }
 
 func (r *staticResolver) Resolve(
 	ctx context.Context,
 	tagMatchers models.Matchers,
 	startTime, endTime time.Time,
-) ([]tsdb.FetchRequest, error) {
-	ranges := tsdb.NewSingleRangeRequest("", startTime, endTime, r.sp).Ranges
-	requests := make([]tsdb.FetchRequest, 1)
+) ([]*tsdb.FetchRequest, error) {
+	ranges := tsdb.NewSingleRangeRequest(startTime, endTime, r.sp)
 	tags, err := tagMatchers.ToTags()
 	if err != nil {
 		return nil, err
 	}
-	requests[0] = tsdb.FetchRequest{
-		ID:     tags.ID().String(),
-		Ranges: ranges,
+	requests := []*tsdb.FetchRequest{
+		&tsdb.FetchRequest{
+			ID:     tags.ID(),
+			Ranges: ranges,
+		},
 	}
-
 	return requests, nil
 }

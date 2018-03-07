@@ -143,17 +143,11 @@ func benchmarkM3DB(start, end time.Time) {
 	genericBenchmarker(fetch, count)
 }
 
-type none struct{}
-
 func getUniqueIds() []string {
-	idMap := make(map[string]none)
+	ids := make([]string, 0)
 	common.ConvertToM3(dataFile, workers, func(m *common.M3Metric) {
-		idMap[m.ID] = none{}
+		ids = append(ids, m.ID)
 	})
-	ids := make([]string, 0, len(idMap))
-	for k := range idMap {
-		ids = append(ids, k)
-	}
 	return ids
 }
 

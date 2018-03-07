@@ -6,6 +6,9 @@ import (
 	"hash/fnv"
 	"regexp"
 	"sort"
+	"sync"
+
+	"github.com/m3db/m3x/ident"
 
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
 )
@@ -32,17 +35,12 @@ const (
 	MatchNotRegexp
 )
 
+var (
+	matchSymbols = [MatchNotRegexp + 1]string{"=", "!=", "=~", "!~"}
+)
+
 func (m MatchType) String() string {
-	typeToStr := map[MatchType]string{
-		MatchEqual:     "=",
-		MatchNotEqual:  "!=",
-		MatchRegexp:    "=~",
-		MatchNotRegexp: "!~",
-	}
-	if str, ok := typeToStr[m]; ok {
-		return str
-	}
-	panic("unknown match type")
+	return matchSymbols[m]
 }
 
 // Matcher models the matching of a label.
@@ -96,58 +94,27 @@ type Matchers []*Matcher
 // ToTags converts Matchers to Tags
 // NB (braskin): this only works for exact matches
 func (m Matchers) ToTags() (Tags, error) {
-	t := make(tags, len(m))
-	for _, v := range m {
+	t := make([]*genericTag, len(m))
+	for i, v := range m {
 		if v.Type != MatchEqual {
 			return nil, fmt.Errorf("illegal match type, got %v, but expecting: %v", v.Type, MatchEqual)
 		}
-		t[v.Name] = v.Value
+		t[i] = &genericTag{
+			key:   v.Name,
+			value: v.Value,
+		}
+	}
+	tags := &genericTags{
+		tags: t,
 	}
 
-	return t, nil
+	return tags, nil
 }
-
-type tags map[string]string
-
-var _ Tags = make(tags)
 
 type stringID string
 
 func (s stringID) String() string {
 	return string(s)
-}
-
-// TagsToPromLabels converts tags to prometheus labels
-func (t tags) ToPromLabels() []*prompb.Label {
-	labels := make([]*prompb.Label, 0, len(t))
-	for k, v := range t {
-		labels = append(labels, &prompb.Label{Name: k, Value: v})
-	}
-	return labels
-}
-
-// ID returns a string representation of the tags
-func (t tags) ID() CoordinatorID {
-	sep := byte(',')
-	eq := byte('=')
-
-	var keys []string
-	for k := range t {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	var buf bytes.Buffer
-	for _, k := range keys {
-		byteKey := []byte(k)
-		buf.Write(byteKey)
-		buf.WriteByte(eq)
-		buf.Write([]byte(t[k]))
-		buf.WriteByte(sep)
-	}
-
-	h := fnv.New32a()
-	h.Write(buf.Bytes())
-	return stringID(fmt.Sprintf("%d", h.Sum32()))
 }
 
 type stringTags struct {
@@ -174,84 +141,25 @@ func NewStringTags(tags string) Tags {
 
 type genericTags struct {
 	tags []*genericTag
+	once sync.Once
+	id   CoordinatorID
 }
-
-var _ Tags = &genericTags{}
 
 type genericTag struct {
-	key   []byte
-	value []byte
-}
-
-type ascendingByKey []*genericTag
-
-func (s ascendingByKey) Len() int           { return len(s) }
-func (s ascendingByKey) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
-func (s ascendingByKey) Less(i, j int) bool { return bytes.Compare(s[i].key, s[j].key) == -1 }
-
-func (gt *genericTags) ID() CoordinatorID {
-	sep := byte(',')
-	eq := byte('=')
-	tags := gt.tags
-	sort.Sort(ascendingByKey(tags))
-	var buf bytes.Buffer
-	for _, k := range tags {
-		buf.Write(k.key)
-		buf.WriteByte(eq)
-		buf.Write(k.value)
-		buf.WriteByte(sep)
-	}
-
-	h := fnv.New32a()
-	h.Write(buf.Bytes())
-	return stringID(fmt.Sprintf("%d", h.Sum32()))
-}
-
-// PromLabelsToM3Tags does stuff
-func PromLabelsToM3Tags(labels []*prompb.Label) Tags {
-	t := make([]*genericTag, len(labels))
-	for i, label := range labels {
-		t[i] = &genericTag{
-			key:   []byte(label.Name),
-			value: []byte(label.Value),
-		}
-	}
-	return &genericTags{
-		tags: t,
-	}
-}
-
-// TagsToPromLabels converts tags to prometheus labels
-func (gt *genericTags) ToPromLabels() []*prompb.Label {
-	labels := make([]*prompb.Label, 0, len(gt.tags))
-	for _, tag := range gt.tags {
-		labels = append(labels, &prompb.Label{
-			Name:  string(tag.key),
-			Value: string(tag.value),
-		})
-	}
-	return labels
-}
-
-type genericStringTags struct {
-	tags []*genericStringTag
-}
-
-type genericStringTag struct {
 	key   string
 	value string
 }
 
-var _ Tags = &genericStringTags{}
+var _ Tags = &genericTags{}
 
-type ascendingByKeyString []*genericStringTag
+type ascendingByKeyString []*genericTag
 
 func (s ascendingByKeyString) Len() int           { return len(s) }
 func (s ascendingByKeyString) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 func (s ascendingByKeyString) Less(i, j int) bool { return s[i].key < s[j].key }
 
 // TagsToPromLabels converts tags to prometheus labels
-func (gt *genericStringTags) ToPromLabels() []*prompb.Label {
+func (gt *genericTags) ToPromLabels() []*prompb.Label {
 	labels := make([]*prompb.Label, 0, len(gt.tags))
 	for _, tag := range gt.tags {
 		labels = append(labels, &prompb.Label{
@@ -262,7 +170,7 @@ func (gt *genericStringTags) ToPromLabels() []*prompb.Label {
 	return labels
 }
 
-func (gt *genericStringTags) ID() CoordinatorID {
+func (gt *genericTags) computeID() CoordinatorID {
 	sep := byte(',')
 	eq := byte('=')
 	tags := gt.tags
@@ -280,16 +188,91 @@ func (gt *genericStringTags) ID() CoordinatorID {
 	return stringID(fmt.Sprintf("%d", h.Sum32()))
 }
 
-// NewGenericStringTags returns a new insteance of Tags
+func (gt *genericTags) ID() CoordinatorID {
+	// Id is immutable, only compute once
+	gt.once.Do(func() {
+		gt.id = gt.computeID()
+	})
+	return gt.id
+}
+
+// NewGenericStringTags returns a new instance of Tags
 func NewGenericStringTags(tags map[string]string) Tags {
-	tagList := make([]*genericStringTag, 0)
+	tagList := make([]*genericTag, 0)
 	for k, v := range tags {
-		tagList = append(tagList, &genericStringTag{
+		tagList = append(tagList, &genericTag{
 			key:   k,
 			value: v,
 		})
 	}
-	return &genericStringTags{
+	return &genericTags{
 		tags: tagList,
+	}
+}
+
+// PromLabelsToGenericTags converts prometheus label list to generic tags
+func PromLabelsToGenericTags(labels []*prompb.Label) Tags {
+	t := make([]*genericTag, len(labels))
+	for i, label := range labels {
+		t[i] = &genericTag{
+			key:   label.Name,
+			value: label.Value,
+		}
+	}
+	return &genericTags{
+		tags: t,
+	}
+}
+
+type m3ID struct {
+	once sync.Once
+	id   string
+}
+
+func (id *m3ID) String() string {
+	return id.id
+}
+
+// M3Tags is a specific tags type that optimizes for m3db backend
+type M3Tags struct {
+	tags ident.TagIterator
+	id   *m3ID
+}
+
+var _ CoordinatorID = &m3ID{}
+var _ Tags = &M3Tags{}
+
+// ID is coord id
+func (t *M3Tags) ID() CoordinatorID {
+	return t.id
+}
+
+// GetIterator returns the tag iterator
+func (t *M3Tags) GetIterator() ident.TagIterator {
+	return t.tags
+}
+
+// ToPromLabels converts M3Tags to prometheus labels
+func (t *M3Tags) ToPromLabels() []*prompb.Label {
+	it := t.tags.Duplicate()
+	defer it.Close()
+	labels := make([]*prompb.Label, 0, it.Remaining())
+	for tag := it.Current(); it.Next(); {
+		labels = append(labels, &prompb.Label{
+			Name:  tag.Name.String(),
+			Value: tag.Value.String(),
+		})
+	}
+	return labels
+}
+
+// PromLabelsToM3Tags converts prometheus label list to M3Tags
+func PromLabelsToM3Tags(labels []*prompb.Label) *M3Tags {
+	t := make([]ident.Tag, len(labels))
+	for i, label := range labels {
+		t[i] = ident.StringTag(label.Name, label.Value)
+	}
+	return &M3Tags{
+		tags: ident.NewTagSliceIterator(t),
 	}
 }

@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/m3db/m3coordinator/models"
+
 	"github.com/m3db/m3coordinator/errors"
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/storage"
@@ -21,13 +23,17 @@ const (
 
 type localStorage struct {
 	session        client.Session
-	namespace      string
+	namespace      ident.ID
 	policyResolver resolver.PolicyResolver
 }
 
 // NewStorage creates a new local Storage instance.
 func NewStorage(session client.Session, namespace string, policyResolver resolver.PolicyResolver) storage.Storage {
-	return &localStorage{session: session, namespace: namespace, policyResolver: policyResolver}
+	return &localStorage{
+		session:        session,
+		namespace:      ident.StringID(namespace),
+		policyResolver: policyResolver,
+	}
 }
 
 func (s *localStorage) Fetch(ctx context.Context, query *storage.FetchQuery, options *storage.FetchOptions) (*storage.FetchResult, error) {
@@ -47,8 +53,8 @@ func (s *localStorage) Fetch(ctx context.Context, query *storage.FetchQuery, opt
 
 	req := fetchReqs[0]
 	reqRange := req.Ranges[0]
-	id := ident.StringID(req.ID)
-	namespace := ident.StringID(s.namespace)
+	id := ident.StringID(req.ID.String())
+	namespace := s.namespace
 	iter, err := s.session.Fetch(namespace, id, reqRange.Start, reqRange.End)
 	if err != nil {
 		return nil, err
@@ -96,12 +102,11 @@ func (s *localStorage) Write(ctx context.Context, query *storage.WriteQuery) err
 		return errors.ErrNilWriteQuery
 	}
 
-	id := query.Tags.ID()
 	common := &writeRequestCommon{
 		store:      s,
 		annotation: query.Annotation,
 		unit:       query.Unit,
-		id:         id.String(),
+		tags:       query.Tags,
 	}
 
 	requests := make([]execution.Request, len(query.Datapoints))
@@ -118,16 +123,22 @@ func (s *localStorage) Type() storage.Type {
 func (w *writeRequest) Process(ctx context.Context) error {
 	common := w.writeRequestCommon
 	store := common.store
-	id := ident.StringID(common.id)
-	namespace := ident.StringID(store.namespace)
-	return store.session.Write(namespace, id, w.timestamp, w.value, common.unit, common.annotation)
+	var (
+		it ident.TagIterator
+		id ident.ID
+	)
+	if tags, ok := common.tags.(*models.M3Tags); !ok {
+		it = tags.GetIterator()
+		id = tags.ID()
+	}
+	return store.session.WriteTagged(store.namespace, id, it, w.timestamp, w.value, common.unit, common.annotation)
 }
 
 type writeRequestCommon struct {
 	store      *localStorage
 	annotation []byte
 	unit       xtime.Unit
-	id         string
+	tags       models.Tags
 }
 
 type writeRequest struct {

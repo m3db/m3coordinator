@@ -18,5 +18,5 @@ type PolicyResolver interface {
 		ctx context.Context,
 		tagMatchers models.Matchers,
 		startTime, endTime time.Time,
-	) ([]tsdb.FetchRequest, error)
+	) ([]*tsdb.FetchRequest, error)
 }

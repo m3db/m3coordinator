@@ -67,7 +67,7 @@ func setupServer(t *testing.T) *httptest.Server {
 
 	mockResolver.EXPECT().Resolve(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Do(func(_, _, _, _ interface{}) {
 		time.Sleep(100 * time.Millisecond)
-	}).Return([]tsdb.FetchRequest{}, nil)
+	}).Return([]*tsdb.FetchRequest{}, nil)
 
 	storage := local.NewStorage(session, "metrics", mockResolver)
 	engine := executor.NewEngine(storage)
@@ -96,7 +96,6 @@ func TestPromReadParsingBad(t *testing.T) {
 	_, err := promRead.parseRequest(req)
 	require.NotNil(t, err, "unable to parse request")
 }
-
 func TestPromReadStorageWithFetchError(t *testing.T) {
 	logging.InitWithCores(nil)
 	ctrl := gomock.NewController(t)
