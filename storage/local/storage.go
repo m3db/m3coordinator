@@ -123,16 +123,13 @@ func (s *localStorage) Type() storage.Type {
 func (w *writeRequest) Process(ctx context.Context) error {
 	common := w.writeRequestCommon
 	store := common.store
-	var (
-		it ident.TagIterator
-		id ident.ID
-	)
-	if tags, ok := common.tags.(*models.M3Tags); !ok {
-		it = tags.GetIterator()
-		id = tags.M3ID()
-	} else {
-		return errors.ErrNoClientAddresses
+	tags, ok := common.tags.(*models.M3Tags)
+	if !ok {
+		id := ident.StringID(common.tags.ID().String())
+		return store.session.Write(store.namespace, id, w.timestamp, w.value, common.unit, common.annotation)
 	}
+	it := tags.GetIterator()
+	id := tags.M3ID()
 	return store.session.WriteTagged(store.namespace, id, it, w.timestamp, w.value, common.unit, common.annotation)
 }
 

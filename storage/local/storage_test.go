@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
 	"github.com/m3db/m3coordinator/models"
 
 	"github.com/m3db/m3coordinator/policy/resolver"
@@ -35,8 +36,15 @@ func newWriteQuery() *storage.WriteQuery {
 			Timestamp: time.Now().Add(-10 * time.Second),
 			Value:     2.0,
 		}}
+
+	labels := []*prompb.Label{
+		&prompb.Label{
+			Name:  "name",
+			Value: "value",
+		},
+	}
 	return &storage.WriteQuery{
-		Tags:       models.NewStringTags("tags"),
+		Tags:       models.PromLabelsToM3Tags(labels),
 		Unit:       xtime.Millisecond,
 		Datapoints: datapoints,
 	}
@@ -46,7 +54,7 @@ func setupLocalWrite(t *testing.T) storage.Storage {
 	setup()
 	ctrl := gomock.NewController(t)
 	session := client.NewMockSession(ctrl)
-	session.EXPECT().Write(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	session.EXPECT().WriteTagged(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 	store := NewStorage(session, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
 	return store
 }

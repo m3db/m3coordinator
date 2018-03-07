@@ -270,7 +270,7 @@ func (t *M3Tags) ToPromLabels() []*prompb.Label {
 	it := t.tags.Duplicate()
 	defer it.Close()
 	labels := make([]*prompb.Label, 0, it.Remaining())
-	for tag := it.Current(); it.Next(); {
+	for tag := it.Current(); it.Next(); tag = it.Current() {
 		labels = append(labels, &prompb.Label{
 			Name:  tag.Name.String(),
 			Value: tag.Value.String(),
@@ -287,9 +287,10 @@ func (t *M3Tags) beginComputation() {
 	sep := byte(',')
 	eq := byte('=')
 	it := t.tags.Duplicate()
+	defer it.Close()
 	var buf bytes.Buffer
-	for tag := it.Current(); it.Next(); {
-		buf.Write([]byte(tag.Name.String()))ß
+	for tag := it.Current(); it.Next(); tag = it.Current() {
+		buf.Write([]byte(tag.Name.String()))
 		buf.WriteByte(eq)
 		buf.Write([]byte(tag.Value.String()))
 		buf.WriteByte(sep)
@@ -306,13 +307,16 @@ func (t *M3Tags) beginComputation() {
 
 // PromLabelsToM3Tags converts prometheus label list to M3Tags
 func PromLabelsToM3Tags(labels []*prompb.Label) *M3Tags {
-	t := make([]ident.Tag, len(labels))
+	t := make([]ident.Tag, 0, len(labels))
 	sort.Sort(ascendingByKeyStringProm(labels))
-	for i, label := range labels {
-		t[i] = ident.StringTag(label.Name, label.Value)
+	for _, label := range labels {
+		t = append(t, ident.StringTag(label.Name, label.Value))
 	}
+	// Prime the iterator
+	it := ident.NewTagSliceIterator(t)
+	it.Next()
 	tags := &M3Tags{
-		tags:   ident.NewTagSliceIterator(t),
+		tags:   it,
 		idChan: make(chan *m3ID),
 	}
 	go func() {

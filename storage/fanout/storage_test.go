@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
 	"github.com/m3db/m3coordinator/models"
 
 	"github.com/m3db/m3coordinator/policy/filter"
@@ -69,13 +70,18 @@ func setupFanoutRead(t *testing.T, output bool, response ...*fetchResponse) stor
 	return store
 }
 
-func setupFanoutWrite(t *testing.T, output bool, errs ...error) storage.Storage {
+func setupFanoutWrite(t *testing.T, expectingTagged, output bool, errs ...error) storage.Storage {
 	setup()
 	ctrl := gomock.NewController(t)
 	session1 := client.NewMockSession(ctrl)
 	session2 := client.NewMockSession(ctrl)
-	session1.EXPECT().Write(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errs[0])
-	session2.EXPECT().Write(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errs[len(errs)-1])
+	if expectingTagged {
+		session1.EXPECT().WriteTagged(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errs[0])
+		session2.EXPECT().WriteTagged(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errs[len(errs)-1])
+	} else {
+		session1.EXPECT().Write(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errs[0])
+		session2.EXPECT().Write(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errs[len(errs)-1])
+	}
 	stores := []storage.Storage{
 		local.NewStorage(session1, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48))),
 		local.NewStorage(session2, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48))),
@@ -106,13 +112,13 @@ func TestFanoutReadSuccess(t *testing.T) {
 }
 
 func TestFanoutWriteEmpty(t *testing.T) {
-	store := setupFanoutWrite(t, false, fmt.Errorf("write error"))
+	store := setupFanoutWrite(t, false, false, fmt.Errorf("write error"))
 	err := store.Write(context.TODO(), nil)
 	assert.NoError(t, err)
 }
 
 func TestFanoutWriteError(t *testing.T) {
-	store := setupFanoutWrite(t, true, fmt.Errorf("write error"))
+	store := setupFanoutWrite(t, false, true, fmt.Errorf("write error"))
 	datapoints := make(ts.Datapoints, 1)
 	datapoints[0] = &ts.Datapoint{Timestamp: time.Now(), Value: 1}
 	err := store.Write(context.TODO(), &storage.WriteQuery{
@@ -122,12 +128,36 @@ func TestFanoutWriteError(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestFanoutWriteSuccess(t *testing.T) {
-	store := setupFanoutWrite(t, true, nil)
+func TestFanoutWriteErrorWithoutBacking(t *testing.T) {
+	store := setupFanoutWrite(t, false, true, nil)
 	datapoints := make(ts.Datapoints, 1)
 	datapoints[0] = &ts.Datapoint{Timestamp: time.Now(), Value: 1}
 	err := store.Write(context.TODO(), &storage.WriteQuery{
 		Tags:       models.NewStringTags("str"),
+		Datapoints: datapoints,
+	})
+	assert.NoError(t, err)
+}
+
+func TestFanoutWriteSuccess(t *testing.T) {
+	store := setupFanoutWrite(t, true, true, nil)
+	datapoints := make(ts.Datapoints, 1)
+	datapoints[0] = &ts.Datapoint{Timestamp: time.Now(), Value: 1}
+
+	labels := []*prompb.Label{
+		&prompb.Label{
+			Name:  "name",
+			Value: "value",
+		},
+		&prompb.Label{
+			Name:  "name2",
+			Value: "value2",
+		},
+	}
+	tags := models.PromLabelsToM3Tags(labels)
+
+	err := store.Write(context.TODO(), &storage.WriteQuery{
+		Tags:       tags,
 		Datapoints: datapoints,
 	})
 	assert.NoError(t, err)
