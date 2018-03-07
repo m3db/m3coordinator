@@ -25,7 +25,7 @@ import:
   version: 9f5d223c60793748f04a9d5b4b4eacddfc1f755d
 
 - package: github.com/m3db/m3x
-  version: 5f651a90bfc2460bc20cd9538083aa0227876ba4
+  version: 73f3a41ef5c250e122ef225893ce0ac5962456e7
 
 - package: github.com/m3db/m3db
   version: eb29e62b58f8c77b9a9d54919c377b7a43f1fc39

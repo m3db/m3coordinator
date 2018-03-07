@@ -23,6 +23,7 @@ import (
 	xtime "github.com/m3db/m3x/time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -68,24 +69,30 @@ func generateTag() ident.Tag {
 	}
 }
 
+func generateTagIters(ctrl *gomock.Controller) *index.MockTaggedIDsIter {
+	mockTagIter := ident.NewMockTagIterator(ctrl)
+	mockTagIter.EXPECT().Next().Return(true).MaxTimes(1)
+	mockTagIter.EXPECT().Next().Return(false)
+	mockTagIter.EXPECT().Current().Return(generateTag())
+	mockTagIter.EXPECT().Close()
+	mockTagIter.EXPECT().Remaining().Return(0)
+
+	mockTaggedIDsIter := index.NewMockTaggedIDsIter(ctrl)
+	mockTaggedIDsIter.EXPECT().Next().Return(true).MaxTimes(1)
+	mockTaggedIDsIter.EXPECT().Next().Return(false)
+	mockTaggedIDsIter.EXPECT().Current().Return(ident.StringID("test_namespace"), ident.StringID("test_id"), mockTagIter)
+
+	return mockTaggedIDsIter
+}
+
 func searchServer(t *testing.T) *httptest.Server {
 	logging.InitWithCores(nil)
 	ctrl := gomock.NewController(t)
 
-	mockReturnedTagIter := ident.NewMockTagIterator(ctrl)
-	mockReturnedTagIter.EXPECT().Next().Return(true).MaxTimes(1)
-	mockReturnedTagIter.EXPECT().Next().Return(false)
-	mockReturnedTagIter.EXPECT().Current().Return(generateTag())
-	mockReturnedTagIter.EXPECT().Close()
-	mockReturnedTagIter.EXPECT().Remaining().Return(0)
-
-	mockTagIter := index.NewMockTaggedIDsIter(ctrl)
-	mockTagIter.EXPECT().Next().Return(true).MaxTimes(1)
-	mockTagIter.EXPECT().Next().Return(false)
-	mockTagIter.EXPECT().Current().Return(ident.StringID("test_id"), ident.StringID("test_namespace"), mockReturnedTagIter)
+	mockTaggedIDsIter := generateTagIters(ctrl)
 
 	session := client.NewMockSession(ctrl)
-	session.EXPECT().FetchTaggedIDs(gomock.Any(), gomock.Any()).Return(generateQueryResults(t, mockTagIter), nil)
+	session.EXPECT().FetchTaggedIDs(gomock.Any(), gomock.Any()).Return(generateQueryResults(t, mockTaggedIDsIter), nil)
 
 	storage := local.NewStorage(session, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
 	search := &SearchHandler{store: storage}
@@ -98,13 +105,19 @@ func TestSearchResponse(t *testing.T) {
 	logging.InitWithCores(nil)
 	searchServer(t)
 	ctrl := gomock.NewController(t)
+	mockTaggedIDsIter := generateTagIters(ctrl)
+
 	session := client.NewMockSession(ctrl)
-	session.EXPECT().FetchTaggedIDs(gomock.Any(), gomock.Any()).Return(index.QueryResults{}, nil)
+	session.EXPECT().FetchTaggedIDs(gomock.Any(), gomock.Any()).Return(generateQueryResults(t, mockTaggedIDsIter), nil)
 
 	storage := local.NewStorage(session, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
 	searchHandler := &SearchHandler{store: storage}
-	_, err := searchHandler.search(context.TODO(), generateSearchReq(), newFetchOptions())
-	require.NotNil(t, err, "unable to read from storage")
+	results, err := searchHandler.search(context.TODO(), generateSearchReq(), newFetchOptions())
+	require.NoError(t, err)
+
+	assert.Equal(t, "test_id", results.Metrics[0].ID)
+	assert.Equal(t, "test_namespace", results.Metrics[0].Namespace)
+	assert.Equal(t, models.Tags{"foo": "bar"}, results.Metrics[0].Tags)
 }
 
 func TestSearchEndpoint(t *testing.T) {
