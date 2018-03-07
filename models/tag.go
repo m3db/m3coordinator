@@ -89,9 +89,6 @@ func (m *Matcher) Matches(s string) bool {
 	panic("labels.Matcher.Matches: invalid match type")
 }
 
-// foo=~"bar"
-// bizbar["tag1":"tag2"]
-
 // Matchers is of matchers
 type Matchers []*Matcher
 

@@ -55,7 +55,10 @@ func (h *SearchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *SearchHandler) parseRequest(r *http.Request) (*storage.FetchQuery, *ParseError) {
-	body, _ := ioutil.ReadAll(r.Body)
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, NewParseError(err, http.StatusBadRequest)
+	}
 
 	var fetchQuery storage.FetchQuery
 	if err := json.Unmarshal(body, &fetchQuery); err != nil {

@@ -32,11 +32,12 @@ func setup() {
 }
 
 func newSearchReq() *storage.FetchQuery {
-	matchers := models.Matchers{{
-		Type:  models.MatchEqual,
-		Name:  "foo",
-		Value: "bar",
-	},
+	matchers := models.Matchers{
+		{
+			Type:  models.MatchEqual,
+			Name:  "foo",
+			Value: "bar",
+		},
 		{
 			Type:  models.MatchEqual,
 			Name:  "biz",
