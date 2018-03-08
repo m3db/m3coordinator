@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/util/logging"
@@ -15,6 +16,8 @@ import (
 const (
 	// SearchURL is the url to search for metric ids
 	SearchURL = "/search"
+
+	defaultLimit = 1000
 )
 
 // SearchHandler represents a handler for the search endpoint
@@ -30,13 +33,14 @@ func NewSearchHandler(storage storage.Storage) http.Handler {
 func (h *SearchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logger := logging.WithContext(r.Context())
 
-	req, rErr := h.parseRequest(r)
+	query, opts, rErr := h.parseRequest(r)
 	if rErr != nil {
+		logger.Error("unable to parse request", zap.Any("error", rErr))
 		Error(w, rErr.Error(), rErr.Code())
 		return
 	}
 
-	results, err := h.search(r.Context(), req, newFetchOptions())
+	results, err := h.search(r.Context(), query, opts)
 	if err != nil {
 		logger.Error("unable to fetch data", zap.Any("error", err))
 		Error(w, err, http.StatusBadRequest)
@@ -54,26 +58,40 @@ func (h *SearchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonData)
 }
 
-func (h *SearchHandler) parseRequest(r *http.Request) (*storage.FetchQuery, *ParseError) {
+func (h *SearchHandler) parseRequest(r *http.Request) (*storage.FetchQuery, *storage.FetchOptions, *ParseError) {
+	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, NewParseError(err, http.StatusBadRequest)
+		return nil, nil, NewParseError(err, http.StatusBadRequest)
 	}
 
 	var fetchQuery storage.FetchQuery
 	if err := json.Unmarshal(body, &fetchQuery); err != nil {
-		return nil, NewParseError(err, http.StatusBadRequest)
+		return nil, nil, NewParseError(err, http.StatusBadRequest)
 	}
 
-	return &fetchQuery, nil
+	limitRaw := r.URL.Query().Get("limit")
+	var limit int
+	if limitRaw != "" {
+		limit, err = strconv.Atoi(limitRaw)
+		if err != nil {
+			return nil, nil, NewParseError(err, http.StatusBadRequest)
+		}
+	} else {
+		limit = defaultLimit
+	}
+
+	fetchOptions := newFetchOptions(limit)
+
+	return &fetchQuery, &fetchOptions, nil
 }
 
-func (h *SearchHandler) search(reqCtx context.Context, searchReq *storage.FetchQuery, searchOpts *storage.FetchOptions) (*storage.SearchResults, error) {
-	return h.store.FetchTags(reqCtx, searchReq, searchOpts)
+func (h *SearchHandler) search(ctx context.Context, query *storage.FetchQuery, opts *storage.FetchOptions) (*storage.SearchResults, error) {
+	return h.store.FetchTags(ctx, query, opts)
 }
 
-func newFetchOptions() *storage.FetchOptions {
-	return &storage.FetchOptions{
-		Limit: 100,
+func newFetchOptions(limit int) storage.FetchOptions {
+	return storage.FetchOptions{
+		Limit: limit,
 	}
 }

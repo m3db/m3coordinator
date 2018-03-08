@@ -32,8 +32,6 @@ var (
 	errRead      = errors.New("read error")
 	initialPort  = 17762
 	testMu       sync.Mutex
-
-	errNotImplemented = errors.New("not implemented")
 )
 
 func generateAddress() string {
@@ -86,7 +84,7 @@ func (s *mockStorage) Fetch(ctx context.Context, query *storage.FetchQuery, _ *s
 }
 
 func (s *mockStorage) FetchTags(ctx context.Context, query *storage.FetchQuery, _ *storage.FetchOptions) (*storage.SearchResults, error) {
-	return nil, errNotImplemented
+	return nil, nil
 }
 
 func (s *mockStorage) Write(ctx context.Context, query *storage.WriteQuery) error {
@@ -282,7 +280,7 @@ func (s *errStorage) Fetch(ctx context.Context, query *storage.FetchQuery, _ *st
 }
 
 func (s *errStorage) FetchTags(ctx context.Context, query *storage.FetchQuery, _ *storage.FetchOptions) (*storage.SearchResults, error) {
-	return nil, errNotImplemented
+	return nil, m3err.ErrNotImplemented
 }
 
 func (s *errStorage) Write(ctx context.Context, query *storage.WriteQuery) error {

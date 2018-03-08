@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -25,6 +26,11 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+)
+
+const (
+	testID        = "test_id"
+	testNamespace = "test_namespace"
 )
 
 func generateSearchReq() *storage.FetchQuery {
@@ -50,14 +56,12 @@ func generateSearchReq() *storage.FetchQuery {
 func generateSearchBody(t *testing.T) io.Reader {
 	req := generateSearchReq()
 	data, err := json.Marshal(req)
-	if err != nil {
-		t.Fatal("could not marshal json request")
-	}
+	require.NoError(t, err)
 
 	return bytes.NewReader(data)
 }
 
-func generateQueryResults(t *testing.T, tagsIter index.TaggedIDsIter) index.QueryResults {
+func generateQueryResults(tagsIter index.TaggedIDsIter) index.QueryResults {
 	return index.QueryResults{
 		Iter: tagsIter,
 	}
@@ -81,51 +85,52 @@ func generateTagIters(ctrl *gomock.Controller) *index.MockTaggedIDsIter {
 	mockTaggedIDsIter := index.NewMockTaggedIDsIter(ctrl)
 	mockTaggedIDsIter.EXPECT().Next().Return(true).MaxTimes(1)
 	mockTaggedIDsIter.EXPECT().Next().Return(false)
-	mockTaggedIDsIter.EXPECT().Current().Return(ident.StringID("test_namespace"), ident.StringID("test_id"), mockTagIter)
+	mockTaggedIDsIter.EXPECT().Current().Return(ident.StringID(testNamespace), ident.StringID(testID), mockTagIter)
 
 	return mockTaggedIDsIter
 }
 
-func searchServer(t *testing.T) *httptest.Server {
+func searchServer(t *testing.T) (*httptest.Server, *SearchHandler) {
 	logging.InitWithCores(nil)
 	ctrl := gomock.NewController(t)
 
 	mockTaggedIDsIter := generateTagIters(ctrl)
 
 	session := client.NewMockSession(ctrl)
-	session.EXPECT().FetchTaggedIDs(gomock.Any(), gomock.Any()).Return(generateQueryResults(t, mockTaggedIDsIter), nil)
+	session.EXPECT().FetchTaggedIDs(gomock.Any(), gomock.Any()).Return(generateQueryResults(mockTaggedIDsIter), nil)
 
 	storage := local.NewStorage(session, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
 	search := &SearchHandler{store: storage}
 
 	server := httptest.NewServer(search)
-	return server
+	return server, search
 }
 
 func TestSearchResponse(t *testing.T) {
-	logging.InitWithCores(nil)
-	searchServer(t)
+	server, searchHandler := searchServer(t)
+	defer server.Close()
+
 	ctrl := gomock.NewController(t)
 	mockTaggedIDsIter := generateTagIters(ctrl)
 
 	session := client.NewMockSession(ctrl)
-	session.EXPECT().FetchTaggedIDs(gomock.Any(), gomock.Any()).Return(generateQueryResults(t, mockTaggedIDsIter), nil)
+	session.EXPECT().FetchTaggedIDs(gomock.Any(), gomock.Any()).Return(generateQueryResults(mockTaggedIDsIter), nil)
 
-	storage := local.NewStorage(session, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
-	searchHandler := &SearchHandler{store: storage}
-	results, err := searchHandler.search(context.TODO(), generateSearchReq(), newFetchOptions())
+	opts := newFetchOptions(100)
+	results, err := searchHandler.search(context.TODO(), generateSearchReq(), &opts)
 	require.NoError(t, err)
 
-	assert.Equal(t, "test_id", results.Metrics[0].ID)
-	assert.Equal(t, "test_namespace", results.Metrics[0].Namespace)
+	assert.Equal(t, testID, results.Metrics[0].ID)
+	assert.Equal(t, testNamespace, results.Metrics[0].Namespace)
 	assert.Equal(t, models.Tags{"foo": "bar"}, results.Metrics[0].Tags)
 }
 
 func TestSearchEndpoint(t *testing.T) {
-	server := searchServer(t)
+	server, _ := searchServer(t)
 	defer server.Close()
 
-	req, _ := http.NewRequest("POST", server.URL, generateSearchBody(t))
+	urlWithLimit := fmt.Sprintf("%s%s", server.URL, "?limit=90")
+	req, _ := http.NewRequest("POST", urlWithLimit, generateSearchBody(t))
 	req.Header.Add("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(req)
 	require.NoError(t, err)

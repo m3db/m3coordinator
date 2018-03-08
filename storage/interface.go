@@ -55,7 +55,7 @@ func (q *FetchQuery) String() string {
 
 // FetchOptions represents the options for fetch query
 type FetchOptions struct {
-	Limit    int `json:"limit"`
+	Limit    int
 	KillChan chan struct{}
 }
 

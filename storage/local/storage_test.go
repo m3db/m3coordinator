@@ -2,10 +2,10 @@ package local
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
+	"github.com/m3db/m3coordinator/errors"
 	"github.com/m3db/m3coordinator/models"
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/storage"
@@ -19,10 +19,6 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-)
-
-var (
-	errNotImplemented = errors.New("not implemented")
 )
 
 func setup() {
@@ -94,7 +90,7 @@ func setupLocalSearch(t *testing.T) storage.Storage {
 	setup()
 	ctrl := gomock.NewController(t)
 	session := client.NewMockSession(ctrl)
-	session.EXPECT().FetchTaggedIDs(gomock.Any(), gomock.Any()).Return(index.QueryResults{}, errNotImplemented)
+	session.EXPECT().FetchTaggedIDs(gomock.Any(), gomock.Any()).Return(index.QueryResults{}, errors.ErrNotImplemented)
 	store := NewStorage(session, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
 	return store
 }

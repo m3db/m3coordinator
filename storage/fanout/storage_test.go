@@ -2,11 +2,11 @@ package fanout
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"testing"
 	"time"
 
+	"github.com/m3db/m3coordinator/errors"
 	"github.com/m3db/m3coordinator/policy/filter"
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/storage"
@@ -24,10 +24,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-)
-
-var (
-	errNotImplemented = errors.New("not implemented")
 )
 
 func filterFunc(output bool) filter.Storage {
@@ -64,8 +60,8 @@ func setupFanoutRead(t *testing.T, output bool, response ...*fetchResponse) stor
 	session2 := client.NewMockSession(ctrl)
 	session1.EXPECT().Fetch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(response[0].result, response[0].err)
 	session2.EXPECT().Fetch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(response[len(response)-1].result, response[len(response)-1].err)
-	session1.EXPECT().FetchTaggedIDs(gomock.Any(), gomock.Any()).Return(index.QueryResults{}, errNotImplemented)
-	session2.EXPECT().FetchTaggedIDs(gomock.Any(), gomock.Any()).Return(index.QueryResults{}, errNotImplemented)
+	session1.EXPECT().FetchTaggedIDs(gomock.Any(), gomock.Any()).Return(index.QueryResults{}, errors.ErrNotImplemented)
+	session2.EXPECT().FetchTaggedIDs(gomock.Any(), gomock.Any()).Return(index.QueryResults{}, errors.ErrNotImplemented)
 	stores := []storage.Storage{
 		local.NewStorage(session1, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48))),
 		local.NewStorage(session2, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48))),

@@ -2,14 +2,10 @@ package remote
 
 import (
 	"context"
-	"errors"
 
+	"github.com/m3db/m3coordinator/errors"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/tsdb/remote"
-)
-
-var (
-	errNotImplemented = errors.New("not implemented")
 )
 
 type remoteStorage struct {
@@ -27,7 +23,7 @@ func (s *remoteStorage) Fetch(ctx context.Context, query *storage.FetchQuery, op
 
 func (s *remoteStorage) FetchTags(ctx context.Context, query *storage.FetchQuery, options *storage.FetchOptions) (*storage.SearchResults, error) {
 	// todo (braskin): implement remote FetchTags
-	return nil, errNotImplemented
+	return nil, errors.ErrNotImplemented
 }
 
 func (s *remoteStorage) Write(ctx context.Context, query *storage.WriteQuery) error {

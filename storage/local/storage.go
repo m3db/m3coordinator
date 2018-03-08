@@ -106,7 +106,8 @@ func (s *localStorage) FetchTags(ctx context.Context, query *storage.FetchQuery,
 
 	var metrics models.Metrics
 	for iter.Next() {
-		metrics = append(metrics, storage.FromM3IdentToMetric(results.Iter.Current()))
+		m := storage.FromM3IdentToMetric(results.Iter.Current())
+		metrics = append(metrics, m)
 	}
 
 	return &storage.SearchResults{

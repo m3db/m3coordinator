@@ -56,13 +56,14 @@ func FetchQueryToM3Query(fetchQuery *FetchQuery) index.Query {
 
 // MatchersToFilters converts matchers to M3 filters
 func MatchersToFilters(matchers models.Matchers) []segment.Filter {
-	var filters []segment.Filter
+	var (
+		filters []segment.Filter
+		negate  bool
+		regexp  bool
+	)
 
 	for _, matcher := range matchers {
-		var (
-			negate bool
-			regexp bool
-		)
+
 		if matcher.Type == models.MatchNotEqual || matcher.Type == models.MatchNotRegexp {
 			negate = true
 		}
