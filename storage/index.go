@@ -12,7 +12,6 @@ import (
 func FromM3IdentToMetric(identNamespace, identID ident.ID, iterTags ident.TagIterator) *models.Metric {
 	namespace := identNamespace.String()
 	id := identID.String()
-
 	tags := FromIdentTagsToTags(iterTags)
 
 	return &models.Metric{
@@ -64,7 +63,6 @@ func MatchersToFilters(matchers models.Matchers) []segment.Filter {
 	)
 
 	for _, matcher := range matchers {
-
 		if matcher.Type == models.MatchNotEqual || matcher.Type == models.MatchNotRegexp {
 			negate = true
 		}

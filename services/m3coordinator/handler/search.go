@@ -33,12 +33,13 @@ func NewSearchHandler(storage storage.Storage) http.Handler {
 func (h *SearchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logger := logging.WithContext(r.Context())
 
-	query, opts, rErr := h.parseRequest(r)
+	query, rErr := h.parseBody(r)
 	if rErr != nil {
 		logger.Error("unable to parse request", zap.Any("error", rErr))
 		Error(w, rErr.Error(), rErr.Code())
 		return
 	}
+	opts := h.parseURLParams(r)
 
 	results, err := h.search(r.Context(), query, opts)
 	if err != nil {
@@ -58,32 +59,39 @@ func (h *SearchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonData)
 }
 
-func (h *SearchHandler) parseRequest(r *http.Request) (*storage.FetchQuery, *storage.FetchOptions, *ParseError) {
-	defer r.Body.Close()
+func (h *SearchHandler) parseBody(r *http.Request) (*storage.FetchQuery, *ParseError) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, nil, NewParseError(err, http.StatusBadRequest)
+		return nil, NewParseError(err, http.StatusBadRequest)
 	}
+	defer r.Body.Close()
 
 	var fetchQuery storage.FetchQuery
 	if err := json.Unmarshal(body, &fetchQuery); err != nil {
-		return nil, nil, NewParseError(err, http.StatusBadRequest)
+		return nil, NewParseError(err, http.StatusBadRequest)
 	}
 
+	return &fetchQuery, nil
+}
+
+func (h *SearchHandler) parseURLParams(r *http.Request) *storage.FetchOptions {
+	var (
+		limit int
+		err   error
+	)
+
 	limitRaw := r.URL.Query().Get("limit")
-	var limit int
 	if limitRaw != "" {
 		limit, err = strconv.Atoi(limitRaw)
 		if err != nil {
-			return nil, nil, NewParseError(err, http.StatusBadRequest)
+			limit = defaultLimit
 		}
 	} else {
 		limit = defaultLimit
 	}
 
 	fetchOptions := newFetchOptions(limit)
-
-	return &fetchQuery, &fetchOptions, nil
+	return &fetchOptions
 }
 
 func (h *SearchHandler) search(ctx context.Context, query *storage.FetchQuery, opts *storage.FetchOptions) (*storage.SearchResults, error) {

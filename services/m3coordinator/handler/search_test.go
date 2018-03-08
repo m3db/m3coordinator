@@ -90,7 +90,7 @@ func generateTagIters(ctrl *gomock.Controller) *index.MockTaggedIDsIter {
 	return mockTaggedIDsIter
 }
 
-func searchServer(t *testing.T) (*httptest.Server, *SearchHandler) {
+func searchServer(t *testing.T) *SearchHandler {
 	logging.InitWithCores(nil)
 	ctrl := gomock.NewController(t)
 
@@ -102,19 +102,11 @@ func searchServer(t *testing.T) (*httptest.Server, *SearchHandler) {
 	storage := local.NewStorage(session, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
 	search := &SearchHandler{store: storage}
 
-	server := httptest.NewServer(search)
-	return server, search
+	return search
 }
 
 func TestSearchResponse(t *testing.T) {
-	server, searchHandler := searchServer(t)
-	defer server.Close()
-
-	ctrl := gomock.NewController(t)
-	mockTaggedIDsIter := generateTagIters(ctrl)
-
-	session := client.NewMockSession(ctrl)
-	session.EXPECT().FetchTaggedIDs(gomock.Any(), gomock.Any()).Return(generateQueryResults(mockTaggedIDsIter), nil)
+	searchHandler := searchServer(t)
 
 	opts := newFetchOptions(100)
 	results, err := searchHandler.search(context.TODO(), generateSearchReq(), &opts)
@@ -126,7 +118,8 @@ func TestSearchResponse(t *testing.T) {
 }
 
 func TestSearchEndpoint(t *testing.T) {
-	server, _ := searchServer(t)
+	searchHandler := searchServer(t)
+	server := httptest.NewServer(searchHandler)
 	defer server.Close()
 
 	urlWithLimit := fmt.Sprintf("%s%s", server.URL, "?limit=90")
