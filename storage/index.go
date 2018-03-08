@@ -13,7 +13,6 @@ func FromM3IdentToMetric(identNamespace, identID ident.ID, iterTags ident.TagIte
 	namespace := identNamespace.String()
 	id := identID.String()
 
-	defer iterTags.Close()
 	tags := FromIdentTagsToTags(iterTags)
 
 	return &models.Metric{
@@ -25,6 +24,8 @@ func FromM3IdentToMetric(identNamespace, identID ident.ID, iterTags ident.TagIte
 
 // FromIdentTagsToTags converts ident tags to coordinator tags
 func FromIdentTagsToTags(iterTags ident.TagIterator) models.Tags {
+	defer iterTags.Close()
+
 	tags := make(models.Tags, iterTags.Remaining())
 	for iterTags.Next() {
 		identTag := iterTags.Current()
