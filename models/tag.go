@@ -9,9 +9,9 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/m3db/m3x/ident"
-
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
+
+	"github.com/m3db/m3x/ident"
 )
 
 // Tags represents a set of metric tags
@@ -24,6 +24,16 @@ type Tags interface {
 type CoordinatorID interface {
 	fmt.Stringer
 }
+
+// Metric is the individual metric that gets returned from the search endpoint
+type Metric struct {
+	Namespace string
+	ID        string
+	Tags      Tags
+}
+
+// Metrics is a list of individual metrics
+type Metrics []*Metric
 
 // MatchType is an enum for label matching types.
 type MatchType int
@@ -49,9 +59,9 @@ func (m MatchType) String() string {
 
 // Matcher models the matching of a label.
 type Matcher struct {
-	Type  MatchType
-	Name  string
-	Value string
+	Type  MatchType `json:"type"`
+	Name  string    `json:"name"`
+	Value string    `json:"value"`
 
 	re *regexp.Regexp
 }
@@ -232,17 +242,17 @@ func PromLabelsToGenericTags(labels []*prompb.Label) Tags {
 }
 
 type m3ID struct {
-	strID   string
-	identID ident.ID
+	id ident.ID
 }
 
 func (id *m3ID) String() string {
-	return id.strID
+	return id.id.String()
 }
 
 // M3Tags is a specific tags type that optimizes for m3db backend
 type M3Tags struct {
-	tags   ident.TagIterator
+	tags ident.Tags
+	//ident.TagIterator
 	once   sync.Once
 	id     *m3ID
 	idChan chan *m3ID
@@ -264,20 +274,21 @@ func (t *M3Tags) M3ID() ident.ID {
 	t.once.Do(func() {
 		t.id = t.computeID()
 	})
-	return t.id.identID
+	return t.id.id
 }
 
 // GetIterator returns the tag iterator
 func (t *M3Tags) GetIterator() ident.TagIterator {
-	return t.tags
+	return ident.NewTagSliceIterator(t.tags)
 }
 
 // ToPromLabels converts M3Tags to prometheus labels
 func (t *M3Tags) ToPromLabels() []*prompb.Label {
-	it := t.tags.Duplicate()
-	defer it.Close()
-	labels := make([]*prompb.Label, 0, it.Remaining())
-	for tag := it.Current(); it.Next(); tag = it.Current() {
+	tags := t.tags
+	// Safe to close original iterator once this is called, since beginComputation already has a valid duplicate
+	labels := make([]*prompb.Label, 0, len(tags))
+
+	for _, tag := range tags {
 		labels = append(labels, &prompb.Label{
 			Name:  tag.Name.String(),
 			Value: tag.Value.String(),
@@ -293,10 +304,9 @@ func (t *M3Tags) computeID() *m3ID {
 func (t *M3Tags) beginComputation() {
 	sep := byte(',')
 	eq := byte('=')
-	it := t.tags.Duplicate()
-	defer it.Close()
 	var buf bytes.Buffer
-	for tag := it.Current(); it.Next(); tag = it.Current() {
+
+	for _, tag := range t.tags {
 		buf.Write([]byte(tag.Name.String()))
 		buf.WriteByte(eq)
 		buf.Write([]byte(tag.Value.String()))
@@ -307,9 +317,25 @@ func (t *M3Tags) beginComputation() {
 	h.Write(buf.Bytes())
 	id := fmt.Sprintf("%d", h.Sum32())
 	t.idChan <- &m3ID{
-		strID:   id,
-		identID: ident.StringID(id),
+		id: ident.StringID(id),
 	}
+}
+
+// TagIteratorToM3Tags wraps a TagIterator into an M3Tags
+func TagIteratorToM3Tags(it ident.TagIterator) *M3Tags {
+	t := make([]ident.Tag, 0, it.Remaining())
+	for it.Next() {
+		t = append(t, it.Current())
+	}
+	it.Close()
+	tags := &M3Tags{
+		tags:   t,
+		idChan: make(chan *m3ID),
+	}
+	go func() {
+		tags.beginComputation()
+	}()
+	return tags
 }
 
 // PromLabelsToM3Tags converts prometheus label list to M3Tags
@@ -319,11 +345,8 @@ func PromLabelsToM3Tags(labels []*prompb.Label) *M3Tags {
 	for _, label := range labels {
 		t = append(t, ident.StringTag(label.Name, label.Value))
 	}
-	// Prime the iterator
-	it := ident.NewTagSliceIterator(t)
-	it.Next()
 	tags := &M3Tags{
-		tags:   it,
+		tags:   t,
 		idChan: make(chan *m3ID),
 	}
 	go func() {

@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/stretchr/testify/require"
@@ -134,4 +135,16 @@ func TestTagsIDCorrectToLegacy(t *testing.T) {
 	expectedID := "2755411844"
 	id := tags.ID().String()
 	require.Equal(t, expectedID, id)
+}
+
+func TestStuff(t *testing.T) {
+	labels := []*prompb.Label{
+		&prompb.Label{
+			Name:  "foo",
+			Value: "bar",
+		},
+	}
+	m3Tags := PromLabelsToM3Tags(labels)
+	assert.Equal(t, m3Tags.ID().String(), "1055292145")
+	assert.Equal(t, m3Tags.M3ID().String(), "1055292145")
 }

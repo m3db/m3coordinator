@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/m3db/m3coordinator/errors"
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
 	"github.com/m3db/m3coordinator/models"
-
 	"github.com/m3db/m3coordinator/policy/filter"
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/storage"
@@ -18,6 +18,7 @@ import (
 
 	"github.com/m3db/m3db/client"
 	"github.com/m3db/m3db/encoding"
+	"github.com/m3db/m3db/storage/index"
 	"github.com/m3db/m3metrics/policy"
 	"github.com/m3db/m3x/ident"
 	xtime "github.com/m3db/m3x/time"
@@ -61,6 +62,8 @@ func setupFanoutRead(t *testing.T, output bool, response ...*fetchResponse) stor
 	session2 := client.NewMockSession(ctrl)
 	session1.EXPECT().Fetch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(response[0].result, response[0].err)
 	session2.EXPECT().Fetch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(response[len(response)-1].result, response[len(response)-1].err)
+	session1.EXPECT().FetchTaggedIDs(gomock.Any(), gomock.Any()).Return(index.QueryResults{}, errors.ErrNotImplemented)
+	session2.EXPECT().FetchTaggedIDs(gomock.Any(), gomock.Any()).Return(index.QueryResults{}, errors.ErrNotImplemented)
 	stores := []storage.Storage{
 		local.NewStorage(session1, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48))),
 		local.NewStorage(session2, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48))),
@@ -70,18 +73,13 @@ func setupFanoutRead(t *testing.T, output bool, response ...*fetchResponse) stor
 	return store
 }
 
-func setupFanoutWrite(t *testing.T, expectingTagged, output bool, errs ...error) storage.Storage {
+func setupFanoutWrite(t *testing.T, output bool, errs ...error) storage.Storage {
 	setup()
 	ctrl := gomock.NewController(t)
 	session1 := client.NewMockSession(ctrl)
 	session2 := client.NewMockSession(ctrl)
-	if expectingTagged {
-		session1.EXPECT().WriteTagged(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errs[0])
-		session2.EXPECT().WriteTagged(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errs[len(errs)-1])
-	} else {
-		session1.EXPECT().Write(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errs[0])
-		session2.EXPECT().Write(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errs[len(errs)-1])
-	}
+	session1.EXPECT().Write(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errs[0])
+	session2.EXPECT().Write(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errs[len(errs)-1])
 	stores := []storage.Storage{
 		local.NewStorage(session1, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48))),
 		local.NewStorage(session2, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48))),
@@ -111,14 +109,28 @@ func TestFanoutReadSuccess(t *testing.T) {
 	assert.NotNil(t, res)
 }
 
+func TestFanoutSearchEmpty(t *testing.T) {
+	store := setupFanoutRead(t, false)
+	res, err := store.FetchTags(context.TODO(), nil, nil)
+	assert.NoError(t, err, "No error")
+	require.NotNil(t, res, "Non empty result")
+	assert.Len(t, res.Metrics, 0, "No series")
+}
+
+func TestFanoutSearchError(t *testing.T) {
+	store := setupFanoutRead(t, true)
+	_, err := store.FetchTags(context.TODO(), &storage.FetchQuery{}, &storage.FetchOptions{})
+	assert.Error(t, err)
+}
+
 func TestFanoutWriteEmpty(t *testing.T) {
-	store := setupFanoutWrite(t, false, false, fmt.Errorf("write error"))
+	store := setupFanoutWrite(t, false, fmt.Errorf("write error"))
 	err := store.Write(context.TODO(), nil)
 	assert.NoError(t, err)
 }
 
 func TestFanoutWriteError(t *testing.T) {
-	store := setupFanoutWrite(t, false, true, fmt.Errorf("write error"))
+	store := setupFanoutWrite(t, true, fmt.Errorf("write error"))
 	datapoints := make(ts.Datapoints, 1)
 	datapoints[0] = &ts.Datapoint{Timestamp: time.Now(), Value: 1}
 	err := store.Write(context.TODO(), &storage.WriteQuery{
@@ -129,7 +141,7 @@ func TestFanoutWriteError(t *testing.T) {
 }
 
 func TestFanoutWriteErrorWithoutBacking(t *testing.T) {
-	store := setupFanoutWrite(t, false, true, nil)
+	store := setupFanoutWrite(t, true, nil)
 	datapoints := make(ts.Datapoints, 1)
 	datapoints[0] = &ts.Datapoint{Timestamp: time.Now(), Value: 1}
 	err := store.Write(context.TODO(), &storage.WriteQuery{
@@ -139,8 +151,9 @@ func TestFanoutWriteErrorWithoutBacking(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// Test currently disabled while writeTagged is not implemented
 func TestFanoutWriteSuccess(t *testing.T) {
-	store := setupFanoutWrite(t, true, true, nil)
+	store := setupFanoutWrite(t, true, nil)
 	datapoints := make(ts.Datapoints, 1)
 	datapoints[0] = &ts.Datapoint{Timestamp: time.Now(), Value: 1}
 
