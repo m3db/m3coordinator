@@ -128,9 +128,9 @@ func (w *writeRequest) Process(ctx context.Context) error {
 		id := ident.StringID(common.tags.ID().String())
 		return store.session.Write(store.namespace, id, w.timestamp, w.value, common.unit, common.annotation)
 	}
-	it := tags.GetIterator()
+	// it := tags.GetIterator()
 	id := tags.M3ID()
-	return store.session.WriteTagged(store.namespace, id, it, w.timestamp, w.value, common.unit, common.annotation)
+	return store.session.Write(store.namespace, id, w.timestamp, w.value, common.unit, common.annotation)
 }
 
 type writeRequestCommon struct {

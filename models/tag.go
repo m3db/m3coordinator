@@ -2,6 +2,7 @@ package models
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"hash/fnv"
 	"regexp"
@@ -37,6 +38,9 @@ const (
 
 var (
 	matchSymbols = [MatchNotRegexp + 1]string{"=", "!=", "=~", "!~"}
+
+	// ErrInvalidMatcher is returned when an invalid matcher is constructed.
+	ErrInvalidMatcher = errors.New("invalid matcher type")
 )
 
 func (m MatchType) String() string {
@@ -54,6 +58,9 @@ type Matcher struct {
 
 // NewMatcher returns a matcher object.
 func NewMatcher(t MatchType, n, v string) (*Matcher, error) {
+	if t > MatchNotRegexp || t < MatchEqual {
+		return nil, ErrInvalidMatcher
+	}
 	m := &Matcher{
 		Type:  t,
 		Name:  n,

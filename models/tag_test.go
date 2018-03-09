@@ -5,15 +5,20 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/stretchr/testify/require"
 )
 
-func mustNewMatcher(t *testing.T, mType MatchType, value string) *Matcher {
+func buildNewMatcher(t *testing.T, mType MatchType, value string) *Matcher {
 	m, err := NewMatcher(mType, "", value)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	return m
+}
+
+func TestInvalidMatcher(t *testing.T) {
+	_, err := NewMatcher(MatchType(5), "", "value")
+	require.Equal(t, ErrInvalidMatcher, err)
 }
 
 func TestMatcher(t *testing.T) {
@@ -23,62 +28,66 @@ func TestMatcher(t *testing.T) {
 		match   bool
 	}{
 		{
-			matcher: mustNewMatcher(t, MatchEqual, "bar"),
+			matcher: buildNewMatcher(t, MatchEqual, "bar"),
 			value:   "bar",
 			match:   true,
 		},
 		{
-			matcher: mustNewMatcher(t, MatchEqual, "bar"),
+			matcher: buildNewMatcher(t, MatchEqual, "bar"),
 			value:   "foo-bar",
 			match:   false,
 		},
 		{
-			matcher: mustNewMatcher(t, MatchNotEqual, "bar"),
+			matcher: buildNewMatcher(t, MatchNotEqual, "bar"),
 			value:   "bar",
 			match:   false,
 		},
 		{
-			matcher: mustNewMatcher(t, MatchNotEqual, "bar"),
+			matcher: buildNewMatcher(t, MatchNotEqual, "bar"),
 			value:   "foo-bar",
 			match:   true,
 		},
 		{
-			matcher: mustNewMatcher(t, MatchRegexp, "bar"),
+			matcher: buildNewMatcher(t, MatchRegexp, "bar"),
 			value:   "bar",
 			match:   true,
 		},
 		{
-			matcher: mustNewMatcher(t, MatchRegexp, "bar"),
+			matcher: buildNewMatcher(t, MatchRegexp, "bar"),
 			value:   "foo-bar",
 			match:   false,
 		},
 		{
-			matcher: mustNewMatcher(t, MatchRegexp, ".*bar"),
+			matcher: buildNewMatcher(t, MatchRegexp, ".*bar"),
 			value:   "foo-bar",
 			match:   true,
 		},
 		{
-			matcher: mustNewMatcher(t, MatchNotRegexp, "bar"),
+			matcher: buildNewMatcher(t, MatchNotRegexp, "bar"),
 			value:   "bar",
 			match:   false,
 		},
 		{
-			matcher: mustNewMatcher(t, MatchNotRegexp, "bar"),
+			matcher: buildNewMatcher(t, MatchNotRegexp, "bar"),
 			value:   "foo-bar",
 			match:   true,
 		},
 		{
-			matcher: mustNewMatcher(t, MatchNotRegexp, ".*bar"),
+			matcher: buildNewMatcher(t, MatchNotRegexp, ".*bar"),
 			value:   "foo-bar",
 			match:   false,
 		},
 	}
 
 	for _, test := range tests {
-		if test.matcher.Matches(test.value) != test.match {
-			t.Fatalf("Unexpected match result for matcher %v and value %q; want %v, got %v", test.matcher, test.value, test.match, !test.match)
-		}
+		require.Equal(t, test.match, test.matcher.Matches(test.value), "matcher %v, value %q; want %v, got %v", test.matcher, test.value, test.match, !test.match)
 	}
+}
+
+func TestStringMatcher(t *testing.T) {
+	matcher, err := NewMatcher(MatchType(1), "n", "v")
+	require.NoError(t, err)
+	assert.Equal(t, matcher.String(), "n!=\"v\"")
 }
 
 func TestMatchType(t *testing.T) {
@@ -86,6 +95,11 @@ func TestMatchType(t *testing.T) {
 	require.Equal(t, MatchNotEqual.String(), "!=")
 	require.Equal(t, MatchRegexp.String(), "=~")
 	require.Equal(t, MatchNotRegexp.String(), "!~")
+	defer func() {
+		r := recover()
+		require.NotNil(t, r)
+	}()
+	_ = MatchType(100).String()
 }
 
 func BenchmarkGenericTags(b *testing.B) {

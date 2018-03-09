@@ -16,6 +16,7 @@ const (
 )
 
 // PromWriteTSToM3 converts a prometheus write query to an M3 one
+// todo benchmark
 func PromWriteTSToM3(timeseries *prompb.TimeSeries) *WriteQuery {
 	tags := PromLabelsToM3Tags(timeseries.Labels)
 	datapoints := PromSamplesToM3Datapoints(timeseries.Samples)
