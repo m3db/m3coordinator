@@ -1,10 +1,15 @@
 
 syntax = "proto3";
-package prometheus;
+package admin;
 
-option go_package = "admin";
+import "github.com/m3db/m3cluster/generated/proto/placementpb/placement.proto";
 
-message TestJuchan {
-  int32 some_thing = 1;
-  int32 other_thing = 2;
+message PlacementInitRequest {
+  repeated placementpb.Instance instances = 1;
+  int32 num_shards = 2;
+  int32 replication_factor = 3;
+}
+
+message PlacementGetResponse {
+  placementpb.Placement placement = 1;
 }

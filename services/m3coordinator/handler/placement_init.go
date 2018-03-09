@@ -7,7 +7,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	m3clusterClient "github.com/m3db/m3cluster/client"
 	"github.com/m3db/m3cluster/placement"
-	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
+	"github.com/m3db/m3coordinator/generated/proto/admin"
 	"github.com/m3db/m3coordinator/util/logging"
 	"go.uber.org/zap"
 )
@@ -51,7 +51,7 @@ func (h *PlacementInitHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	resp := &prompb.PlacementGetResponse{
+	resp := &admin.PlacementGetResponse{
 		Placement: placementProto,
 	}
 
@@ -60,13 +60,13 @@ func (h *PlacementInitHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func (h *PlacementInitHandler) parseRequest(r *http.Request) (*prompb.PlacementInitRequest, *ParseError) {
+func (h *PlacementInitHandler) parseRequest(r *http.Request) (*admin.PlacementInitRequest, *ParseError) {
 	reqBuf, err := ParsePromRequest(r)
 	if err != nil {
 		return nil, err
 	}
 
-	var req prompb.PlacementInitRequest
+	var req admin.PlacementInitRequest
 	if err := proto.Unmarshal(reqBuf, &req); err != nil {
 		return nil, NewParseError(err, http.StatusBadRequest)
 	}
@@ -74,7 +74,7 @@ func (h *PlacementInitHandler) parseRequest(r *http.Request) (*prompb.PlacementI
 	return &req, nil
 }
 
-func (h *PlacementInitHandler) placementInit(ctx context.Context, r *prompb.PlacementInitRequest) (placement.Placement, error) {
+func (h *PlacementInitHandler) placementInit(ctx context.Context, r *admin.PlacementInitRequest) (placement.Placement, error) {
 	ps, err := GetPlacementServices(h.clusterClient)
 	if err != nil {
 		return nil, err

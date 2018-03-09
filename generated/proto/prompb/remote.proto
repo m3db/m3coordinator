@@ -1,0 +1,28 @@
+
+syntax = "proto3";
+package prompb;
+
+import "types.proto";
+
+message WriteRequest {
+  repeated prompb.TimeSeries timeseries = 1;
+}
+
+message ReadRequest {
+  repeated Query queries = 1;
+}
+
+message ReadResponse {
+  // In same order as the request's queries.
+  repeated QueryResult results = 1;
+}
+
+message Query {
+  int64 start_timestamp_ms = 1;
+  int64 end_timestamp_ms = 2;
+  repeated prompb.LabelMatcher matchers = 3;
+}
+
+message QueryResult {
+  repeated prompb.TimeSeries timeseries = 1;
+}
