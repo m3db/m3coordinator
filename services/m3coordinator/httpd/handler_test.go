@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/m3db/m3cluster/client/etcd"
 	"github.com/m3db/m3coordinator/executor"
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/services/m3coordinator/handler"
@@ -18,13 +19,26 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var (
+	etcdCfg = etcd.NewOptions().
+		SetZone("test_zone").
+		SetEnv("test").
+		SetService("m3db_test").
+		SetClusters([]etcd.Cluster{etcd.NewCluster()})
+)
+
 func TestPromReadGet(t *testing.T) {
 	logging.InitWithCores(nil)
+
 	req, _ := http.NewRequest("GET", handler.PromReadURL, nil)
 	res := httptest.NewRecorder()
 	storage := local.NewStorage(nil, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
-	h, err := NewHandler(storage, executor.NewEngine(storage))
-	require.Nil(t, err, "unable to setup handler")
+
+	clusterClient, err := etcd.NewConfigServiceClient(etcdCfg)
+	require.NoError(t, err)
+
+	h, err := NewHandler(storage, executor.NewEngine(storage), clusterClient)
+	require.NoError(t, err, "unable to setup handler")
 	h.RegisterRoutes()
 	h.Router.ServeHTTP(res, req)
 	require.Equal(t, res.Code, http.StatusMethodNotAllowed, "GET method not defined")
@@ -32,11 +46,16 @@ func TestPromReadGet(t *testing.T) {
 
 func TestPromReadPost(t *testing.T) {
 	logging.InitWithCores(nil)
+
 	req, _ := http.NewRequest("POST", handler.PromReadURL, nil)
 	res := httptest.NewRecorder()
 	storage := local.NewStorage(nil, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
-	h, err := NewHandler(storage, executor.NewEngine(storage))
-	require.Nil(t, err, "unable to setup handler")
+
+	clusterClient, err := etcd.NewConfigServiceClient(etcdCfg)
+	require.NoError(t, err)
+
+	h, err := NewHandler(storage, executor.NewEngine(storage), clusterClient)
+	require.NoError(t, err, "unable to setup handler")
 	h.RegisterRoutes()
 	h.Router.ServeHTTP(res, req)
 	require.Equal(t, res.Code, http.StatusBadRequest, "Empty request")
