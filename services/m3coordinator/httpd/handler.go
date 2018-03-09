@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	m3clusterClient "github.com/m3db/m3cluster/client"
 	"github.com/m3db/m3coordinator/executor"
 	"github.com/m3db/m3coordinator/services/m3coordinator/handler"
 	"github.com/m3db/m3coordinator/storage"
@@ -22,14 +23,15 @@ const (
 
 // Handler represents an HTTP handler.
 type Handler struct {
-	Router    *mux.Router
-	CLFLogger *log.Logger
-	storage   storage.Storage
-	engine    *executor.Engine
+	Router        *mux.Router
+	CLFLogger     *log.Logger
+	storage       storage.Storage
+	engine        *executor.Engine
+	clusterClient m3clusterClient.Client
 }
 
 // NewHandler returns a new instance of handler with routes.
-func NewHandler(storage storage.Storage, engine *executor.Engine) (*Handler, error) {
+func NewHandler(storage storage.Storage, engine *executor.Engine, clusterClient m3clusterClient.Client) (*Handler, error) {
 	r := mux.NewRouter()
 	logger, err := zap.NewProduction()
 	if err != nil {
@@ -38,10 +40,11 @@ func NewHandler(storage storage.Storage, engine *executor.Engine) (*Handler, err
 
 	defer logger.Sync() // flushes buffer, if any
 	h := &Handler{
-		CLFLogger: log.New(os.Stderr, "[httpd] ", 0),
-		Router:    r,
-		storage:   storage,
-		engine:    engine,
+		CLFLogger:     log.New(os.Stderr, "[httpd] ", 0),
+		Router:        r,
+		storage:       storage,
+		engine:        engine,
+		clusterClient: clusterClient,
 	}
 	return h, nil
 }
@@ -52,6 +55,11 @@ func (h *Handler) RegisterRoutes() {
 	h.Router.HandleFunc(handler.PromReadURL, logged(handler.NewPromReadHandler(h.engine)).ServeHTTP).Methods("POST")
 	h.Router.HandleFunc(handler.PromWriteURL, logged(handler.NewPromWriteHandler(h.storage)).ServeHTTP).Methods("POST")
 	h.Router.HandleFunc(handler.SearchURL, logged(handler.NewSearchHandler(h.storage)).ServeHTTP).Methods("POST")
+
+	if h.clusterClient == nil {
+		h.Router.HandleFunc(handler.PlacementInitURL, logged(handler.NewPlacementInitHandler(h.clusterClient)).ServeHTTP).Methods("POST")
+	}
+
 	h.registerProfileEndpoints()
 }
 

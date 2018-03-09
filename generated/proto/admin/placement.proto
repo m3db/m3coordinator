@@ -1,0 +1,10 @@
+
+syntax = "proto3";
+package prometheus;
+
+option go_package = "admin";
+
+message TestJuchan {
+  int32 some_thing = 1;
+  int32 other_thing = 2;
+}

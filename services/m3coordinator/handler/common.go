@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/snappy"
+	"go.uber.org/zap"
 )
 
 const (
@@ -67,4 +69,24 @@ func ParseRequestParams(r *http.Request) (*RequestParams, error) {
 	}
 
 	return &params, nil
+}
+
+// WriteMessageResponse writes a protobuf message to the ResponseWriter
+func WriteMessageResponse(w http.ResponseWriter, message proto.Message, logger *zap.Logger) error {
+	data, err := proto.Marshal(message)
+	if err != nil {
+		logger.Error("unable to marshal read results to protobuf", zap.Any("error", err))
+		return err
+	}
+
+	w.Header().Set("Content-Type", "application/x-protobuf")
+	w.Header().Set("Content-Encoding", "snappy")
+
+	compressed := snappy.Encode(nil, data)
+	if _, err := w.Write(compressed); err != nil {
+		logger.Error("unable to encode read results to snappy", zap.Any("err", err))
+		return err
+	}
+
+	return nil
 }

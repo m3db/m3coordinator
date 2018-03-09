@@ -11,7 +11,6 @@ import (
 	"github.com/m3db/m3coordinator/util/logging"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/golang/snappy"
 	"go.uber.org/zap"
 )
 
@@ -57,21 +56,8 @@ func (h *PromReadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Results: result,
 	}
 
-	data, err := proto.Marshal(resp)
-	if err != nil {
-		logger.Error("unable to marshal read results to protobuf", zap.Any("error", err))
+	if err := WriteMessageResponse(w, resp, logger); err != nil {
 		Error(w, err, http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/x-protobuf")
-	w.Header().Set("Content-Encoding", "snappy")
-
-	compressed := snappy.Encode(nil, data)
-	if _, err := w.Write(compressed); err != nil {
-		logger.Error("unable to encode read results to snappy", zap.Any("err", err))
-		Error(w, err, http.StatusInternalServerError)
-		return
 	}
 }
 
