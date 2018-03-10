@@ -1,5 +1,5 @@
-hash: 5df3d076fc0b0cbde32574cf11b97a44939c5f962fc22484af886af1b598403a
-updated: 2018-03-07T08:11:04.138421218-05:00
+hash: 4abf5684d59b5d5123fbc52379d0f117180fde3124e61d8f42d59137c46388e0
+updated: 2018-03-10T16:09:52.92466-05:00
 imports:
 - name: github.com/alecthomas/template
   version: a0175ee3bccc567396460bf5acd36800cb10c49c
@@ -161,7 +161,7 @@ imports:
 - name: github.com/RoaringBitmap/roaring
   version: 4bbba8874933b985c9160558fddea525dde73e63
 - name: github.com/shirou/gopsutil
-  version: c432be29ccce470088d07eea25b3ea7e68a8afbb
+  version: 5776ff9c7c5d063d574ef53d740f75c68b448e53
   subpackages:
   - cpu
   - host
@@ -252,7 +252,7 @@ imports:
   - unicode/bidi
   - unicode/norm
 - name: google.golang.org/genproto
-  version: df60624c1e9b9d2973e889c7a1cff73155da81c4
+  version: 09f6ed296fc66555a25fe4ce95173148778dfa85
   subpackages:
   - googleapis/api/annotations
   - googleapis/rpc/status
