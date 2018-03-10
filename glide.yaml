@@ -49,6 +49,6 @@ import:
   subpackages:
   - errgroup
 - package: golang.org/x/net
-  version: master
+  version: d0aafc73d5cdc42264b0af071c261abac580695e
   subpackages:
   - http2
