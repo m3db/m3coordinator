@@ -26,14 +26,17 @@ type grpcClient struct {
 }
 
 // NewGrpcClient creates grpc client
-func NewGrpcClient(addresses []string) (Client, error) {
+func NewGrpcClient(addresses []string, additionalDialOpts ...grpc.DialOption) (Client, error) {
 	if len(addresses) == 0 {
 		return nil, errors.ErrNoClientAddresses
 	}
 	resolver := newStaticResolver(addresses)
 	balancer := grpc.RoundRobin(resolver)
-	dialOption := grpc.WithBalancer(balancer)
-	cc, err := grpc.Dial("", grpc.WithInsecure(), dialOption)
+	dialOptions := []grpc.DialOption{grpc.WithBalancer(balancer)}
+	dialOptions = append(dialOptions, grpc.WithInsecure())
+	dialOptions = append(dialOptions, additionalDialOpts...)
+
+	cc, err := grpc.Dial("", dialOptions...)
 	if err != nil {
 		return nil, err
 	}

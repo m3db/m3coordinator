@@ -1,5 +1,5 @@
 hash: 4abf5684d59b5d5123fbc52379d0f117180fde3124e61d8f42d59137c46388e0
-updated: 2018-03-10T16:09:52.92466-05:00
+updated: 2018-03-11T03:07:17.000334-04:00
 imports:
 - name: github.com/alecthomas/template
   version: a0175ee3bccc567396460bf5acd36800cb10c49c
@@ -35,7 +35,7 @@ imports:
   subpackages:
   - oleutil
 - name: github.com/gogo/protobuf
-  version: d5bc08a2c4c572e9bcff820aa125fe38ac3a3a42
+  version: 100ba4e885062801d56799d78530b73b178a78f3
   subpackages:
   - gogoproto
   - proto
