@@ -32,8 +32,7 @@ func NewGrpcClient(addresses []string, additionalDialOpts ...grpc.DialOption) (C
 	}
 	resolver := newStaticResolver(addresses)
 	balancer := grpc.RoundRobin(resolver)
-	dialOptions := []grpc.DialOption{grpc.WithBalancer(balancer)}
-	dialOptions = append(dialOptions, grpc.WithInsecure())
+	dialOptions := []grpc.DialOption{grpc.WithBalancer(balancer), grpc.WithInsecure()}
 	dialOptions = append(dialOptions, additionalDialOpts...)
 
 	cc, err := grpc.Dial("", dialOptions...)
