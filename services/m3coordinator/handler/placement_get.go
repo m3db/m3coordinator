@@ -13,7 +13,10 @@ import (
 
 const (
 	// PlacementGetURL is the url for the placement get handler.
-	PlacementGetURL = "/api/v1/admin/placement/get"
+	PlacementGetURL = "/placement/get"
+
+	// PlacementGetURL2 is the url for the placement get handler.
+	PlacementGetURL2 = "/placement"
 )
 
 // PlacementGetHandler represents a handler for placement get endpoint.

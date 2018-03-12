@@ -58,7 +58,8 @@ func (h *Handler) RegisterRoutes() {
 
 	if h.clusterClient != nil {
 		h.Router.HandleFunc(handler.PlacementInitURL, logged(handler.NewPlacementInitHandler(h.clusterClient)).ServeHTTP).Methods("POST")
-		h.Router.HandleFunc(handler.PlacementGetURL, logged(handler.NewPlacementGetHandler(h.clusterClient)).ServeHTTP).Methods("POST")
+		h.Router.HandleFunc(handler.PlacementGetURL, logged(handler.NewPlacementGetHandler(h.clusterClient)).ServeHTTP).Methods("GET")
+		h.Router.HandleFunc(handler.PlacementGetURL2, logged(handler.NewPlacementGetHandler(h.clusterClient)).ServeHTTP).Methods("GET")
 	}
 
 	h.registerProfileEndpoints()

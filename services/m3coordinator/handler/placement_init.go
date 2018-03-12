@@ -2,9 +2,10 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
+	"io/ioutil"
 	"net/http"
 
-	"github.com/golang/protobuf/proto"
 	m3clusterClient "github.com/m3db/m3cluster/client"
 	"github.com/m3db/m3cluster/placement"
 	"github.com/m3db/m3coordinator/generated/proto/admin"
@@ -14,7 +15,7 @@ import (
 
 const (
 	// PlacementInitURL is the url for the placement init handler.
-	PlacementInitURL = "/api/v1/admin/placement/init"
+	PlacementInitURL = "/placement/init"
 )
 
 // PlacementInitHandler represents a handler for placement init endpoint.
@@ -59,17 +60,18 @@ func (h *PlacementInitHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *PlacementInitHandler) parseRequest(r *http.Request) (*admin.PlacementInitRequest, *ParseError) {
-	reqBuf, err := ParsePromRequest(r)
+	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, err
+		return nil, NewParseError(err, http.StatusBadRequest)
 	}
+	defer r.Body.Close()
 
-	var req admin.PlacementInitRequest
-	if err := proto.Unmarshal(reqBuf, &req); err != nil {
+	var initReq admin.PlacementInitRequest
+	if err := json.Unmarshal(body, &initReq); err != nil {
 		return nil, NewParseError(err, http.StatusBadRequest)
 	}
 
-	return &req, nil
+	return &initReq, nil
 }
 
 func (h *PlacementInitHandler) placementInit(ctx context.Context, r *admin.PlacementInitRequest) (placement.Placement, error) {
