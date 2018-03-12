@@ -12,4 +12,5 @@ message PlacementInitRequest {
 
 message PlacementGetResponse {
   placementpb.Placement placement = 1;
+  int32 version = 2;
 }
