@@ -56,8 +56,9 @@ func (h *Handler) RegisterRoutes() {
 	h.Router.HandleFunc(handler.PromWriteURL, logged(handler.NewPromWriteHandler(h.storage)).ServeHTTP).Methods("POST")
 	h.Router.HandleFunc(handler.SearchURL, logged(handler.NewSearchHandler(h.storage)).ServeHTTP).Methods("POST")
 
-	if h.clusterClient == nil {
+	if h.clusterClient != nil {
 		h.Router.HandleFunc(handler.PlacementInitURL, logged(handler.NewPlacementInitHandler(h.clusterClient)).ServeHTTP).Methods("POST")
+		h.Router.HandleFunc(handler.PlacementGetURL, logged(handler.NewPlacementGetHandler(h.clusterClient)).ServeHTTP).Methods("POST")
 	}
 
 	h.registerProfileEndpoints()

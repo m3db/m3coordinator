@@ -36,6 +36,7 @@ import:
   version: 17e4ddf89f2b0c8fbb16b6d5b71a871b793d2a00
   subpackages:
   - policy
+
 - package: github.com/m3db/m3ninx
   version: b2628ee8f986f6df48d3f7589d85a6f390f174a2
 
