@@ -55,9 +55,7 @@ func (h *PlacementInitHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		Placement: placementProto,
 	}
 
-	if err := WriteMessageResponse(w, resp, logger); err != nil {
-		Error(w, err, http.StatusInternalServerError)
-	}
+	WriteJSONResponse(w, resp, logger)
 }
 
 func (h *PlacementInitHandler) parseRequest(r *http.Request) (*admin.PlacementInitRequest, *ParseError) {

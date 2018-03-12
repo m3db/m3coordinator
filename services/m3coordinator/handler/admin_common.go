@@ -12,7 +12,7 @@ const (
 	DefaultServiceName = "m3db"
 
 	// DefaultServiceEnvironment is the default service ID environment
-	DefaultServiceEnvironment = "production"
+	DefaultServiceEnvironment = "default_env"
 
 	// DefaultServiceZone is the default service ID zone
 	DefaultServiceZone = "embedded"

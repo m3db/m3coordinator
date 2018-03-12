@@ -49,9 +49,7 @@ func (h *PlacementGetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		Version:   int32(version),
 	}
 
-	if err := WriteMessageResponse(w, resp, logger); err != nil {
-		Error(w, err, http.StatusInternalServerError)
-	}
+	WriteJSONResponse(w, resp, logger)
 }
 
 func (h *PlacementGetHandler) placementGet(ctx context.Context) (placement.Placement, int, error) {
