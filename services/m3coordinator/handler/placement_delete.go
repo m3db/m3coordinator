@@ -34,7 +34,6 @@ func (h *PlacementDeleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	if err := h.placementDelete(ctx); err != nil {
 		logger.Error("unable to delete placement", zap.Any("error", err))
 		Error(w, err, http.StatusInternalServerError)
-		return
 	}
 }
 
@@ -44,9 +43,5 @@ func (h *PlacementDeleteHandler) placementDelete(ctx context.Context) error {
 		return err
 	}
 
-	if err := ps.Delete(); err != nil {
-		return err
-	}
-
-	return nil
+	return ps.Delete()
 }
