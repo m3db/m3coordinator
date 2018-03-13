@@ -8,8 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/m3db/m3coordinator/models/m3tag"
+
 	m3err "github.com/m3db/m3coordinator/errors"
-	"github.com/m3db/m3coordinator/models"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/ts"
 	"github.com/m3db/m3coordinator/util/logging"
@@ -26,7 +27,7 @@ const (
 
 var (
 	startTime, _ = time.Parse(time.RFC3339, "2000-02-06T11:54:48+07:00")
-	tags         = models.NewStringTags("tags")
+	tags         = generateTags("abc", "def")
 	values       = []float64{1.0, 2.0, 3.0, 4.0}
 	errWrite     = errors.New("write error")
 	errRead      = errors.New("read error")
@@ -51,7 +52,7 @@ func makeValues(ctx context.Context) ts.Values {
 }
 
 func makeSeries(ctx context.Context) *ts.Series {
-	return ts.NewSeries(ctx, name, startTime, makeValues(ctx), tags)
+	return ts.NewSeries(ctx, name, startTime, makeValues(ctx), m3tag.RPCToM3Tags(tags))
 }
 
 type mockStorage struct {
@@ -102,7 +103,7 @@ func checkMultipleRemoteFetch(t *testing.T, res *storage.FetchResult, numResults
 	for _, s := range res.SeriesList {
 		assert.Equal(t, name, s.Name())
 		assert.True(t, startTime.Equal(s.StartTime()))
-		assert.Equal(t, tags, s.Tags)
+		assert.Equal(t, m3tag.RPCToM3Tags(tags).ID().String(), s.Tags.ID().String())
 		assert.Equal(t, name, s.Specification)
 		assert.Equal(t, len(values), s.Len())
 	}

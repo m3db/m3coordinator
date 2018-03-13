@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/m3db/m3coordinator/models/m3tag"
+
 	"github.com/m3db/m3coordinator/models"
 	"github.com/m3db/m3coordinator/tsdb"
 
@@ -27,7 +29,7 @@ func (r *staticResolver) Resolve(
 	startTime, endTime time.Time,
 ) ([]*tsdb.FetchRequest, error) {
 	ranges := tsdb.NewSingleRangeRequest(startTime, endTime, r.sp)
-	tags, err := tagMatchers.ToTags()
+	tags, err := m3tag.MatchersToM3Tags(tagMatchers)
 	if err != nil {
 		return nil, err
 	}

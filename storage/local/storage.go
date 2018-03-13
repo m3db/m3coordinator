@@ -6,6 +6,7 @@ import (
 
 	"github.com/m3db/m3coordinator/errors"
 	"github.com/m3db/m3coordinator/models"
+	"github.com/m3db/m3coordinator/models/m3tag"
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/ts"
@@ -75,7 +76,7 @@ func (s *localStorage) Fetch(ctx context.Context, query *storage.FetchQuery, opt
 	}
 
 	// TODO: Get the correct metric name
-	tags, err := query.TagMatchers.ToTags()
+	tags, err := m3tag.MatchersToM3Tags(query.TagMatchers)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +152,7 @@ func (s *localStorage) Type() storage.Type {
 func (w *writeRequest) Process(ctx context.Context) error {
 	common := w.writeRequestCommon
 	store := common.store
-	tags, ok := common.tags.(*models.M3Tags)
+	tags, ok := common.tags.(*m3tag.M3Tags)
 	if !ok {
 		id := ident.StringID(common.tags.ID().String())
 		return store.session.Write(store.namespace, id, w.timestamp, w.value, common.unit, common.annotation)

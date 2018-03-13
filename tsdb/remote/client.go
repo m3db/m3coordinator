@@ -92,7 +92,10 @@ func (c *grpcClient) Write(ctx context.Context, query *storage.WriteQuery) error
 	}
 
 	id := logging.ReadContextID(ctx)
-	rpcQuery := EncodeWriteMessage(query, id)
+	rpcQuery, err := EncodeWriteMessage(query, id)
+	if err != nil {
+		return err
+	}
 	err = writeClient.Send(rpcQuery)
 
 	if err != nil && err != io.EOF {

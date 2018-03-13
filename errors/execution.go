@@ -31,6 +31,12 @@ var (
 
 	// ErrUnimplementedBackend is an error when the selected backend is not implemented
 	ErrUnimplementedBackend = errors.New("chosen backend implementation is not implemented")
+
+	// ErrUnknownTagType is an error when the given tag type does not exist
+	ErrUnknownTagType = errors.New("unknown tag conversion type")
+
+	// ErrBadTagFormat is an error when the given tag type does not match expected
+	ErrBadTagFormat = errors.New("bad tag format")
 )
 
 // ErrMaxConcurrentQueriesLimitExceeded is an error when the query cannot be run

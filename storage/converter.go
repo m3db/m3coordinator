@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/m3db/m3coordinator/errors"
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
 	"github.com/m3db/m3coordinator/models"
+	"github.com/m3db/m3coordinator/models/m3tag"
 	"github.com/m3db/m3coordinator/ts"
 
 	xtime "github.com/m3db/m3x/time"
@@ -31,7 +33,7 @@ func PromWriteTSToM3(timeseries *prompb.TimeSeries) *WriteQuery {
 
 // PromLabelsToM3Tags converts Prometheus labels to M3 tags
 func PromLabelsToM3Tags(labels []*prompb.Label) models.Tags {
-	return models.PromLabelsToM3Tags(labels)
+	return m3tag.PromLabelsToM3Tags(labels)
 }
 
 // PromSamplesToM3Datapoints converts Prometheus samples to M3 datapoints
@@ -112,29 +114,42 @@ func TimeToTimestamp(timestamp time.Time) int64 {
 }
 
 // FetchResultToPromResult converts fetch results from M3 to Prometheus result
-func FetchResultToPromResult(result *FetchResult) *prompb.QueryResult {
+func FetchResultToPromResult(result *FetchResult) (*prompb.QueryResult, error) {
 	timeseries := make([]*prompb.TimeSeries, 0)
 
 	for _, series := range result.SeriesList {
-		promTs := SeriesToPromTS(series)
+		promTs, err := SeriesToPromTS(series)
+		if err != nil {
+			return nil, err
+		}
 		timeseries = append(timeseries, promTs)
 	}
 
 	return &prompb.QueryResult{
 		Timeseries: timeseries,
-	}
+	}, nil
 }
 
 // SeriesToPromTS converts a series to prometheus timeseries
-func SeriesToPromTS(series *ts.Series) *prompb.TimeSeries {
-	labels := TagsToPromLabels(series.Tags)
+func SeriesToPromTS(series *ts.Series) (*prompb.TimeSeries, error) {
+	labels, err := TagsToPromLabels(series.Tags)
+	if err != nil {
+		return nil, err
+	}
 	samples := SeriesToPromSamples(series)
-	return &prompb.TimeSeries{Labels: labels, Samples: samples}
+	return &prompb.TimeSeries{Labels: labels, Samples: samples}, nil
 }
 
 // TagsToPromLabels converts tags to prometheus labels
-func TagsToPromLabels(tags models.Tags) []*prompb.Label {
-	return tags.ToPromLabels()
+func TagsToPromLabels(tags models.Tags) ([]*prompb.Label, error) {
+	formatTags, err := tags.ToFormat(models.FormatProm)
+	if err != nil {
+		return nil, err
+	}
+	if promTags, ok := formatTags.([]*prompb.Label); ok {
+		return promTags, nil
+	}
+	return nil, errors.ErrBadTagFormat
 }
 
 // SeriesToPromSamples series datapoints to prometheus samples

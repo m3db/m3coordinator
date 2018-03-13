@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/m3db/m3coordinator/models/m3tag"
+
 	"github.com/m3db/m3coordinator/errors"
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
 	"github.com/m3db/m3coordinator/models"
@@ -134,7 +136,7 @@ func TestFanoutWriteError(t *testing.T) {
 	datapoints := make(ts.Datapoints, 1)
 	datapoints[0] = &ts.Datapoint{Timestamp: time.Now(), Value: 1}
 	err := store.Write(context.TODO(), &storage.WriteQuery{
-		Tags:       models.NewStringTags("str"),
+		Tags:       generateTags(),
 		Datapoints: datapoints,
 	})
 	assert.Error(t, err)
@@ -145,18 +147,13 @@ func TestFanoutWriteErrorWithoutBacking(t *testing.T) {
 	datapoints := make(ts.Datapoints, 1)
 	datapoints[0] = &ts.Datapoint{Timestamp: time.Now(), Value: 1}
 	err := store.Write(context.TODO(), &storage.WriteQuery{
-		Tags:       models.NewStringTags("str"),
+		Tags:       generateTags(),
 		Datapoints: datapoints,
 	})
 	assert.NoError(t, err)
 }
 
-// Test currently disabled while writeTagged is not implemented
-func TestFanoutWriteSuccess(t *testing.T) {
-	store := setupFanoutWrite(t, true, nil)
-	datapoints := make(ts.Datapoints, 1)
-	datapoints[0] = &ts.Datapoint{Timestamp: time.Now(), Value: 1}
-
+func generateTags() models.Tags {
 	labels := []*prompb.Label{
 		&prompb.Label{
 			Name:  "name",
@@ -167,10 +164,16 @@ func TestFanoutWriteSuccess(t *testing.T) {
 			Value: "value2",
 		},
 	}
-	tags := models.PromLabelsToM3Tags(labels)
+	return m3tag.PromLabelsToM3Tags(labels)
+}
+
+func TestFanoutWriteSuccess(t *testing.T) {
+	store := setupFanoutWrite(t, true, nil)
+	datapoints := make(ts.Datapoints, 1)
+	datapoints[0] = &ts.Datapoint{Timestamp: time.Now(), Value: 1}
 
 	err := store.Write(context.TODO(), &storage.WriteQuery{
-		Tags:       tags,
+		Tags:       generateTags(),
 		Datapoints: datapoints,
 	})
 	assert.NoError(t, err)

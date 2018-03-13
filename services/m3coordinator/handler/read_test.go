@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/m3db/m3coordinator/models/m3tag"
+
 	"github.com/m3db/m3coordinator/executor"
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
 	"github.com/m3db/m3coordinator/mocks"
@@ -116,7 +118,7 @@ func TestQueryMatchMustBeEqual(t *testing.T) {
 	matchers, err := storage.PromMatchersToM3(req.Queries[0].Matchers)
 	require.NoError(t, err)
 
-	_, err = matchers.ToTags()
+	_, err = m3tag.MatchersToM3Tags(matchers)
 	assert.NoError(t, err)
 }
 

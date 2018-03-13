@@ -119,7 +119,10 @@ func (h *PromReadHandler) read(reqCtx context.Context, w http.ResponseWriter, r 
 			return nil, result.Err
 		}
 
-		promRes := storage.FetchResultToPromResult(result.FetchResult)
+		promRes, err := storage.FetchResultToPromResult(result.FetchResult)
+		if err != nil {
+			return nil, err
+		}
 		promResults = append(promResults, promRes)
 	}
 

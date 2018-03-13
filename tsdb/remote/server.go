@@ -60,8 +60,12 @@ func (s *grpcServer) Fetch(message *rpc.FetchMessage, stream rpc.Query_FetchServ
 			logger.Error("unable to fetch local query", zap.Any("error", err))
 			return err
 		}
-		err = stream.Send(EncodeFetchResult(result))
-
+		fetchResult, err := EncodeFetchResult(result)
+		if err != nil {
+			logger.Error("unable to encode fetch result", zap.Any("error", err))
+			return err
+		}
+		err = stream.Send(fetchResult)
 		if err != nil {
 			logger.Error("unable to send fetch result", zap.Any("error", err))
 			return err

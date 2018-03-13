@@ -1,11 +1,8 @@
 package models
 
 import (
-	"math/rand"
 	"testing"
-	"time"
 
-	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/stretchr/testify/require"
@@ -101,50 +98,4 @@ func TestMatchType(t *testing.T) {
 		require.NotNil(t, r)
 	}()
 	_ = MatchType(100).String()
-}
-
-func BenchmarkGenericTags(b *testing.B) {
-	t := make([]*genericTag, 0)
-	rand.Seed(0)
-	for i := 0; i < 100; i++ {
-		tag := time.Now().Format(time.RFC3339Nano) + string(rand.Int()) + "long_string_representing_long_tag_name"
-		t = append(t, &genericTag{
-			value: tag,
-			key:   tag,
-		})
-	}
-	tags := genericTags{tags: t}
-	for i := 0; i < b.N; i++ {
-		tags.ID()
-	}
-}
-
-func TestTagsIDCorrectToLegacy(t *testing.T) {
-	key := "keyvalue_pair"
-	value := "some_test_value"
-
-	tags := &genericTags{
-		tags: []*genericTag{
-			&genericTag{
-				key:   key,
-				value: value,
-			},
-		},
-	}
-
-	expectedID := "2755411844"
-	id := tags.ID().String()
-	require.Equal(t, expectedID, id)
-}
-
-func TestStuff(t *testing.T) {
-	labels := []*prompb.Label{
-		&prompb.Label{
-			Name:  "foo",
-			Value: "bar",
-		},
-	}
-	m3Tags := PromLabelsToM3Tags(labels)
-	assert.Equal(t, m3Tags.ID().String(), "1055292145")
-	assert.Equal(t, m3Tags.M3ID().String(), "1055292145")
 }

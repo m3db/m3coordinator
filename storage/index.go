@@ -2,6 +2,7 @@ package storage
 
 import (
 	"github.com/m3db/m3coordinator/models"
+	"github.com/m3db/m3coordinator/models/m3tag"
 
 	"github.com/m3db/m3db/storage/index"
 	"github.com/m3db/m3ninx/index/segment"
@@ -23,7 +24,7 @@ func FromM3IdentToMetric(identNamespace, identID ident.ID, iterTags ident.TagIte
 
 // FromIdentTagsToTags converts ident tags to coordinator tags
 func FromIdentTagsToTags(iterTags ident.TagIterator) models.Tags {
-	return models.TagIteratorToM3Tags(iterTags)
+	return m3tag.TagIteratorToM3Tags(iterTags)
 }
 
 // FetchOptionsToM3Options converts a set of coordinator options to M3 options

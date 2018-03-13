@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/m3db/m3coordinator/models"
+	"github.com/m3db/m3coordinator/models/m3tag"
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/storage/local"
@@ -117,7 +118,7 @@ func TestSearchResponse(t *testing.T) {
 	assert.Equal(t, testNamespace, results.Metrics[0].Namespace)
 	tags := results.Metrics[0].Tags
 	assert.Equal(t, tags.ID().String(), "1055292145")
-	m3tags, ok := tags.(*models.M3Tags)
+	m3tags, ok := tags.(*m3tag.M3Tags)
 	require.True(t, ok)
 	it := m3tags.GetIterator()
 	assert.True(t, it.Next())

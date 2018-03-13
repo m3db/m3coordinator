@@ -8,6 +8,7 @@ import (
 	"github.com/m3db/m3coordinator/errors"
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
 	"github.com/m3db/m3coordinator/models"
+	"github.com/m3db/m3coordinator/models/m3tag"
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/ts"
@@ -65,7 +66,7 @@ func newWriteQuery() *storage.WriteQuery {
 		},
 	}
 	return &storage.WriteQuery{
-		Tags:       models.PromLabelsToM3Tags(labels),
+		Tags:       m3tag.PromLabelsToM3Tags(labels),
 		Unit:       xtime.Millisecond,
 		Datapoints: datapoints,
 	}
