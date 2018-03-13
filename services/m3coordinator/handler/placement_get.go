@@ -15,8 +15,8 @@ const (
 	// PlacementGetURL is the url for the placement get handler.
 	PlacementGetURL = "/placement/get"
 
-	// PlacementGetURL2 is the url for the placement get handler.
-	PlacementGetURL2 = "/placement"
+	// PlacementGetHTTPMethodURL is another url for the placement get handler.
+	PlacementGetHTTPMethodURL = "/placement"
 )
 
 // PlacementGetHandler represents a handler for placement get endpoint.
