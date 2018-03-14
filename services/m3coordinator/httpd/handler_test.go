@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/m3db/m3cluster/client/etcd"
 	"github.com/m3db/m3coordinator/executor"
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/services/m3coordinator/handler"
@@ -19,14 +18,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var (
-	etcdCfg = etcd.NewOptions().
-		SetZone("test_zone").
-		SetEnv("test").
-		SetService("m3db_test").
-		SetClusters([]etcd.Cluster{etcd.NewCluster()})
-)
-
 func TestPromReadGet(t *testing.T) {
 	logging.InitWithCores(nil)
 
@@ -34,10 +25,7 @@ func TestPromReadGet(t *testing.T) {
 	res := httptest.NewRecorder()
 	storage := local.NewStorage(nil, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
 
-	clusterClient, err := etcd.NewConfigServiceClient(etcdCfg)
-	require.NoError(t, err)
-
-	h, err := NewHandler(storage, executor.NewEngine(storage), clusterClient)
+	h, err := NewHandler(storage, executor.NewEngine(storage), nil)
 	require.NoError(t, err, "unable to setup handler")
 	h.RegisterRoutes()
 	h.Router.ServeHTTP(res, req)
@@ -51,10 +39,7 @@ func TestPromReadPost(t *testing.T) {
 	res := httptest.NewRecorder()
 	storage := local.NewStorage(nil, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
 
-	clusterClient, err := etcd.NewConfigServiceClient(etcdCfg)
-	require.NoError(t, err)
-
-	h, err := NewHandler(storage, executor.NewEngine(storage), clusterClient)
+	h, err := NewHandler(storage, executor.NewEngine(storage), nil)
 	require.NoError(t, err, "unable to setup handler")
 	h.RegisterRoutes()
 	h.Router.ServeHTTP(res, req)

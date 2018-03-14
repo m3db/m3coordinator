@@ -1,11 +1,13 @@
 
 syntax = "proto3";
-package prompb;
+package prometheus;
+
+option go_package = "prompb";
 
 import "types.proto";
 
 message WriteRequest {
-  repeated prompb.TimeSeries timeseries = 1;
+  repeated prometheus.TimeSeries timeseries = 1;
 }
 
 message ReadRequest {
@@ -20,9 +22,9 @@ message ReadResponse {
 message Query {
   int64 start_timestamp_ms = 1;
   int64 end_timestamp_ms = 2;
-  repeated prompb.LabelMatcher matchers = 3;
+  repeated prometheus.LabelMatcher matchers = 3;
 }
 
 message QueryResult {
-  repeated prompb.TimeSeries timeseries = 1;
+  repeated prometheus.TimeSeries timeseries = 1;
 }

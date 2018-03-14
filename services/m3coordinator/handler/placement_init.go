@@ -6,10 +6,12 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	m3clusterClient "github.com/m3db/m3cluster/client"
-	"github.com/m3db/m3cluster/placement"
 	"github.com/m3db/m3coordinator/generated/proto/admin"
 	"github.com/m3db/m3coordinator/util/logging"
+
+	m3clusterClient "github.com/m3db/m3cluster/client"
+	"github.com/m3db/m3cluster/placement"
+
 	"go.uber.org/zap"
 )
 
@@ -75,7 +77,7 @@ func (h *PlacementInitHandler) parseRequest(r *http.Request) (*admin.PlacementIn
 }
 
 func (h *PlacementInitHandler) placementInit(ctx context.Context, r *admin.PlacementInitRequest) (placement.Placement, error) {
-	ps, err := GetPlacementServices(h.clusterClient)
+	ps, err := GetPlacementService(h.clusterClient)
 	if err != nil {
 		return nil, err
 	}

@@ -4,8 +4,10 @@ import (
 	"context"
 	"net/http"
 
-	m3clusterClient "github.com/m3db/m3cluster/client"
 	"github.com/m3db/m3coordinator/util/logging"
+
+	m3clusterClient "github.com/m3db/m3cluster/client"
+
 	"go.uber.org/zap"
 )
 
@@ -13,7 +15,7 @@ const (
 	// PlacementDeleteURL is the url for the placement delete handler (with the POST method).
 	PlacementDeleteURL = "/placement/delete"
 
-	// PlacementDeleteHTTPMethodURL is another url for the placement delete handler (with the DELETE method).
+	// PlacementDeleteHTTPMethodURL is the url for the placement delete handler (with the DELETE method).
 	PlacementDeleteHTTPMethodURL = "/placement"
 )
 
@@ -38,7 +40,7 @@ func (h *PlacementDeleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *PlacementDeleteHandler) placementDelete(ctx context.Context) error {
-	ps, err := GetPlacementServices(h.clusterClient)
+	ps, err := GetPlacementService(h.clusterClient)
 	if err != nil {
 		return err
 	}

@@ -4,10 +4,12 @@ import (
 	"context"
 	"net/http"
 
-	m3clusterClient "github.com/m3db/m3cluster/client"
-	"github.com/m3db/m3cluster/placement"
 	"github.com/m3db/m3coordinator/generated/proto/admin"
 	"github.com/m3db/m3coordinator/util/logging"
+
+	m3clusterClient "github.com/m3db/m3cluster/client"
+	"github.com/m3db/m3cluster/placement"
+
 	"go.uber.org/zap"
 )
 
@@ -56,7 +58,7 @@ func (h *PlacementGetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *PlacementGetHandler) placementGet(ctx context.Context) (placement.Placement, int, error) {
-	ps, err := GetPlacementServices(h.clusterClient)
+	ps, err := GetPlacementService(h.clusterClient)
 	if err != nil {
 		return nil, 0, err
 	}

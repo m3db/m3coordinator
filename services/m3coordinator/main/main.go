@@ -10,23 +10,21 @@ import (
 	"syscall"
 	"time"
 
-	m3clusterClient "github.com/m3db/m3cluster/client"
-	"github.com/m3db/m3cluster/client/etcd"
-	"github.com/m3db/m3db/client"
-
 	"github.com/m3db/m3coordinator/executor"
 	"github.com/m3db/m3coordinator/policy/filter"
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/services/m3coordinator/config"
 	"github.com/m3db/m3coordinator/services/m3coordinator/httpd"
 	"github.com/m3db/m3coordinator/storage"
-
 	"github.com/m3db/m3coordinator/storage/fanout"
 	"github.com/m3db/m3coordinator/storage/local"
 	"github.com/m3db/m3coordinator/storage/remote"
 	tsdbRemote "github.com/m3db/m3coordinator/tsdb/remote"
 	"github.com/m3db/m3coordinator/util/logging"
 
+	m3clusterClient "github.com/m3db/m3cluster/client"
+	"github.com/m3db/m3cluster/client/etcd"
+	"github.com/m3db/m3db/client"
 	"github.com/m3db/m3metrics/policy"
 	xconfig "github.com/m3db/m3x/config"
 	xtime "github.com/m3db/m3x/time"

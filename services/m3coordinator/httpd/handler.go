@@ -7,11 +7,12 @@ import (
 	"os"
 	"time"
 
-	m3clusterClient "github.com/m3db/m3cluster/client"
 	"github.com/m3db/m3coordinator/executor"
 	"github.com/m3db/m3coordinator/services/m3coordinator/handler"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/util/logging"
+
+	m3clusterClient "github.com/m3db/m3cluster/client"
 
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"

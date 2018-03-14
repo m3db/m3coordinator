@@ -23,8 +23,8 @@ type AdminHandler struct {
 	clusterClient m3clusterClient.Client
 }
 
-// GetPlacementServices gets a placement service from an m3cluster client
-func GetPlacementServices(clusterClient m3clusterClient.Client) (placement.Service, error) {
+// GetPlacementService gets a placement service from an m3cluster client
+func GetPlacementService(clusterClient m3clusterClient.Client) (placement.Service, error) {
 	cs, err := clusterClient.Services(services.NewOptions())
 	if err != nil {
 		return nil, err
