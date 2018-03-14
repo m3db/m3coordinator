@@ -82,7 +82,10 @@ func (h *PlacementInitHandler) placementInit(ctx context.Context, r *admin.Place
 		return nil, err
 	}
 
-	instances := ConvertInstancesProto(r.Instances)
+	instances, err := ConvertInstancesProto(r.Instances)
+	if err != nil {
+		return nil, err
+	}
 
 	placement, err := ps.BuildInitialPlacement(instances, int(r.NumShards), int(r.ReplicationFactor))
 	if err != nil {

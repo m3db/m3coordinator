@@ -5,6 +5,7 @@ import (
 	"github.com/m3db/m3cluster/generated/proto/placementpb"
 	"github.com/m3db/m3cluster/placement"
 	"github.com/m3db/m3cluster/services"
+	"github.com/m3db/m3cluster/shard"
 )
 
 const (
@@ -43,22 +44,29 @@ func GetPlacementService(clusterClient m3clusterClient.Client) (placement.Servic
 	return ps, nil
 }
 
-// ConvertInstancesProto converts a protobuf Instances to a placement.Instances
-func ConvertInstancesProto(instancesProto []*placementpb.Instance) []placement.Instance {
+// ConvertInstancesProto converts a slice of protobuf `Instance`s to `placement.Instance`s
+func ConvertInstancesProto(instancesProto []*placementpb.Instance) ([]placement.Instance, error) {
 	res := make([]placement.Instance, 0, len(instancesProto))
 
 	for _, instanceProto := range instancesProto {
+		shards, err := shard.NewShardsFromProto(instanceProto.Shards)
+		if err != nil {
+			return nil, err
+		}
+
 		instance := placement.NewInstance().
 			SetEndpoint(instanceProto.Endpoint).
 			SetHostname(instanceProto.Hostname).
 			SetID(instanceProto.Id).
 			SetPort(instanceProto.Port).
 			SetRack(instanceProto.Rack).
+			SetShards(shards).
+			SetShardSetID(instanceProto.ShardSetId).
 			SetWeight(instanceProto.Weight).
 			SetZone(instanceProto.Zone)
 
 		res = append(res, instance)
 	}
 
-	return res
+	return res, nil
 }
