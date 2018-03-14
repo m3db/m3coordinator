@@ -8,9 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/m3db/m3coordinator/models/m3tag"
-
 	m3err "github.com/m3db/m3coordinator/errors"
+	"github.com/m3db/m3coordinator/models/m3tag"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/ts"
 	"github.com/m3db/m3coordinator/util/logging"
@@ -27,7 +26,7 @@ const (
 
 var (
 	startTime, _ = time.Parse(time.RFC3339, "2000-02-06T11:54:48+07:00")
-	tags         = generateTags("abc", "def")
+	tags         = generateTags("foo", "bar")
 	values       = []float64{1.0, 2.0, 3.0, 4.0}
 	errWrite     = errors.New("write error")
 	errRead      = errors.New("read error")

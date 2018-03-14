@@ -6,11 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/m3db/m3coordinator/models/m3tag"
-
 	"github.com/m3db/m3coordinator/errors"
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
 	"github.com/m3db/m3coordinator/models"
+	"github.com/m3db/m3coordinator/models/m3tag"
 	"github.com/m3db/m3coordinator/policy/filter"
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/storage"
@@ -155,11 +154,11 @@ func TestFanoutWriteErrorWithoutBacking(t *testing.T) {
 
 func generateTags() models.Tags {
 	labels := []*prompb.Label{
-		&prompb.Label{
+		{
 			Name:  "name",
 			Value: "value",
 		},
-		&prompb.Label{
+		{
 			Name:  "name2",
 			Value: "value2",
 		},

@@ -158,6 +158,7 @@ func metricsTagsToPromLabels(tags map[string]string) []*prompb.Label {
 			Value: v,
 		})
 	}
+
 	return labels
 }
 

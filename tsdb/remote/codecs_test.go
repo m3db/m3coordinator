@@ -5,10 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/m3db/m3coordinator/models/m3tag"
-
 	"github.com/m3db/m3coordinator/generated/proto/m3coordinator"
 	"github.com/m3db/m3coordinator/models"
+	"github.com/m3db/m3coordinator/models/m3tag"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/ts"
 
@@ -32,8 +31,8 @@ var (
 	mps1     = int32(120)
 	time1    = "2093-02-06T11:54:48+07:00"
 
-	tags0  = generateTags("abc", "def")
-	tags1  = generateTags("ghi", "jkl")
+	tags0  = generateTags("foo", "bar")
+	tags1  = generateTags("biz", "baz")
 	float0 = 100.0
 	float1 = 3.5
 	ann    = []byte("aasjgał")
@@ -42,7 +41,7 @@ var (
 
 func generateTags(name, value string) *rpc.Tags {
 	tags := []*rpc.Tag{
-		&rpc.Tag{
+		{
 			Name:  name,
 			Value: value,
 		},
@@ -68,7 +67,7 @@ func TestTimeConversions(t *testing.T) {
 func createRPCSeries(t *testing.T) ([]*rpc.Series, time.Time, time.Time) {
 	t0, t1 := parseTimes(t)
 	return []*rpc.Series{
-		&rpc.Series{
+		{
 			Name:          name0,
 			StartTime:     fromTime(t0),
 			Values:        valList0,
@@ -76,7 +75,7 @@ func createRPCSeries(t *testing.T) ([]*rpc.Series, time.Time, time.Time) {
 			Specification: spec0,
 			MillisPerStep: mps0,
 		},
-		&rpc.Series{
+		{
 			Name:          name1,
 			StartTime:     fromTime(t1),
 			Values:        valList1,
@@ -99,8 +98,8 @@ func TestDecodeFetchResult(t *testing.T) {
 	assert.True(t, t1.Equal(tsSeries[1].StartTime()))
 	assert.Equal(t, spec0, tsSeries[0].Specification)
 	assert.Equal(t, spec1, tsSeries[1].Specification)
-	// assert.Equal(t, models.Tags(tags0), tsSeries[0].Tags)
-	// assert.Equal(t, models.Tags(tags1), tsSeries[1].Tags)
+	assert.Equal(t, m3tag.RPCToM3Tags(tags0).ID().String(), tsSeries[0].Tags.ID().String())
+	assert.Equal(t, m3tag.RPCToM3Tags(tags1).ID().String(), tsSeries[1].Tags.ID().String())
 
 	assert.Equal(t, len(valList0), tsSeries[0].Len())
 	assert.Equal(t, len(valList1), tsSeries[1].Len())
@@ -115,8 +114,7 @@ func TestDecodeFetchResult(t *testing.T) {
 	// Encode again
 
 	fetchResult := &storage.FetchResult{SeriesList: tsSeries}
-	revert, err := EncodeFetchResult(fetchResult)
-	require.NoError(t, err)
+	revert := EncodeFetchResult(fetchResult)
 	assert.Equal(t, rpcSeries, revert.GetSeries())
 }
 
@@ -200,8 +198,7 @@ func createStorageWriteQuery(t *testing.T) (*storage.WriteQuery, ts.Datapoints) 
 
 func TestEncodeWriteMessage(t *testing.T) {
 	write, points := createStorageWriteQuery(t)
-	encw, err := EncodeWriteMessage(write, id)
-	require.NoError(t, err)
+	encw := EncodeWriteMessage(write, id)
 	assert.Equal(t, tags0, encw.GetQuery().GetTags())
 	assert.Equal(t, ann, encw.GetQuery().GetAnnotation())
 	assert.Equal(t, int32(2), encw.GetQuery().GetUnit())
@@ -227,14 +224,12 @@ func writeQueriesAreEqual(t *testing.T, this, other *storage.WriteQuery) {
 
 func TestEncodeDecodeWriteQuery(t *testing.T) {
 	write, _ := createStorageWriteQuery(t)
-	encw, err := EncodeWriteMessage(write, id)
-	require.NoError(t, err)
+	encw := EncodeWriteMessage(write, id)
 	rev, decodeID := DecodeWriteMessage(encw)
 	writeQueriesAreEqual(t, write, rev)
 	require.Equal(t, id, decodeID)
 
 	// Encode again
-	reencw, err := EncodeWriteMessage(rev, decodeID)
-	require.NoError(t, err)
+	reencw := EncodeWriteMessage(rev, decodeID)
 	assert.Equal(t, encw, reencw)
 }

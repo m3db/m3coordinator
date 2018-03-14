@@ -4,11 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/m3db/m3coordinator/models/m3tag"
-
-	"github.com/m3db/m3coordinator/errors"
 	"github.com/m3db/m3coordinator/generated/proto/m3coordinator"
 	"github.com/m3db/m3coordinator/models"
+	"github.com/m3db/m3coordinator/models/m3tag"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/ts"
 
@@ -24,22 +22,17 @@ func toTime(t int64) time.Time {
 }
 
 // EncodeFetchResult encodes fetch result to rpc result
-func EncodeFetchResult(sResult *storage.FetchResult) (*rpc.FetchResult, error) {
+func EncodeFetchResult(sResult *storage.FetchResult) *rpc.FetchResult {
 	series := make([]*rpc.Series, len(sResult.SeriesList))
 	for i, result := range sResult.SeriesList {
 		vLen := result.Len()
 		vals := make([]float32, vLen)
+
 		for j := 0; j < vLen; j++ {
 			vals[j] = float32(result.ValueAt(j))
 		}
-		formatted, err := result.Tags.ToFormat(models.FormatRPC)
-		if err != nil {
-			return nil, err
-		}
-		rpcTags, ok := formatted.(*rpc.Tags)
-		if !ok {
-			return nil, errors.ErrBadTagFormat
-		}
+
+		rpcTags := models.TagsToRPCTags(result.Tags)
 		series[i] = &rpc.Series{
 			Name:          result.Name(),
 			Values:        vals,
@@ -49,7 +42,7 @@ func EncodeFetchResult(sResult *storage.FetchResult) (*rpc.FetchResult, error) {
 			MillisPerStep: int32(result.MillisPerStep()),
 		}
 	}
-	return &rpc.FetchResult{Series: series}, nil
+	return &rpc.FetchResult{Series: series}
 }
 
 // DecodeFetchResult decodes fetch results from a GRPC-compatible type.
@@ -148,32 +141,22 @@ func decodeTagMatchers(rpcMatchers []*rpc.Matcher) (models.Matchers, error) {
 }
 
 // EncodeWriteMessage encodes write query and write options into rpc WriteMessage
-func EncodeWriteMessage(query *storage.WriteQuery, queryID string) (*rpc.WriteMessage, error) {
-	q, err := encodeWriteQuery(query)
-	if err != nil {
-		return nil, err
-	}
+func EncodeWriteMessage(query *storage.WriteQuery, queryID string) *rpc.WriteMessage {
 	return &rpc.WriteMessage{
-		Query:   q,
+		Query:   encodeWriteQuery(query),
 		Options: encodeWriteOptions(queryID),
-	}, nil
+	}
 }
 
-func encodeWriteQuery(query *storage.WriteQuery) (*rpc.WriteQuery, error) {
-	formatted, err := query.Tags.ToFormat(models.FormatRPC)
-	if err != nil {
-		return nil, err
-	}
-	rpcTags, ok := formatted.(*rpc.Tags)
-	if !ok {
-		return nil, errors.ErrBadTagFormat
-	}
+func encodeWriteQuery(query *storage.WriteQuery) *rpc.WriteQuery {
+	rpcTags := models.TagsToRPCTags(query.Tags)
+
 	return &rpc.WriteQuery{
 		Unit:       int32(query.Unit),
 		Annotation: query.Annotation,
 		Datapoints: encodeDatapoints(query.Datapoints),
 		Tags:       rpcTags,
-	}, nil
+	}
 }
 
 // DecodeWriteMessage decodes rpc write message to write query and write options
@@ -189,6 +172,7 @@ func decodeWriteQuery(query *rpc.WriteQuery) *storage.WriteQuery {
 			Value:     float64(point.GetValue()),
 		}
 	}
+
 	return &storage.WriteQuery{
 		Tags:       m3tag.RPCToM3Tags(query.GetTags()),
 		Datapoints: ts.Datapoints(points),
@@ -205,6 +189,7 @@ func encodeDatapoints(tsPoints ts.Datapoints) []*rpc.Datapoint {
 			Value:     float32(point.Value),
 		}
 	}
+
 	return datapoints
 }
 

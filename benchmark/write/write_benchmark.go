@@ -229,15 +229,19 @@ func writeToCoordinator(ch <-chan *bytes.Reader) {
 func writeToM3DB(session client.Session, ch <-chan *common.M3Metric) {
 	var itemsWritten int
 	for query := range ch {
-		id := query.ID
-		if err := session.Write(ident.StringID(namespace), ident.StringID(id), query.Time, query.Value, xtime.Millisecond, nil); err != nil {
+		id := ident.StringID(query.ID)
+		ns := ident.StringID(namespace)
+
+		if err := session.Write(ns, id, query.Time, query.Value, xtime.Millisecond, nil); err != nil {
 			log.Println(err)
 		} else {
 			stat.incWrites()
 		}
+
 		if itemsWritten > 0 && itemsWritten%10000 == 0 {
 			log.Println(itemsWritten)
 		}
+
 		itemsWritten++
 	}
 }

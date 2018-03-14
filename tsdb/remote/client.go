@@ -64,6 +64,7 @@ func (c *grpcClient) Fetch(ctx context.Context, query *storage.FetchQuery, optio
 			return nil, errors.ErrQueryInterrupted
 		default:
 		}
+
 		result, err := fetchClient.Recv()
 		if err == io.EOF {
 			break
@@ -71,6 +72,7 @@ func (c *grpcClient) Fetch(ctx context.Context, query *storage.FetchQuery, optio
 		if err != nil {
 			return nil, err
 		}
+
 		rpcSeries := result.GetSeries()
 		tsSeries = append(tsSeries, DecodeFetchResult(ctx, rpcSeries)...)
 	}
@@ -92,12 +94,9 @@ func (c *grpcClient) Write(ctx context.Context, query *storage.WriteQuery) error
 	}
 
 	id := logging.ReadContextID(ctx)
-	rpcQuery, err := EncodeWriteMessage(query, id)
-	if err != nil {
-		return err
-	}
-	err = writeClient.Send(rpcQuery)
+	rpcQuery := EncodeWriteMessage(query, id)
 
+	err = writeClient.Send(rpcQuery)
 	if err != nil && err != io.EOF {
 		return err
 	}
@@ -106,6 +105,7 @@ func (c *grpcClient) Write(ctx context.Context, query *storage.WriteQuery) error
 	if err == io.EOF {
 		return nil
 	}
+
 	return err
 }
 

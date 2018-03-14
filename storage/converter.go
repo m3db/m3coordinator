@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/m3db/m3coordinator/errors"
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
 	"github.com/m3db/m3coordinator/models"
 	"github.com/m3db/m3coordinator/models/m3tag"
@@ -18,9 +17,9 @@ const (
 )
 
 // PromWriteTSToM3 converts a prometheus write query to an M3 one
-// todo benchmark
+// TODO (arnikola): benchmark
 func PromWriteTSToM3(timeseries *prompb.TimeSeries) *WriteQuery {
-	tags := PromLabelsToM3Tags(timeseries.Labels)
+	tags := m3tag.PromLabelsToM3Tags(timeseries.Labels)
 	datapoints := PromSamplesToM3Datapoints(timeseries.Samples)
 
 	return &WriteQuery{
@@ -29,11 +28,6 @@ func PromWriteTSToM3(timeseries *prompb.TimeSeries) *WriteQuery {
 		Unit:       xTimeUnit,
 		Annotation: nil,
 	}
-}
-
-// PromLabelsToM3Tags converts Prometheus labels to M3 tags
-func PromLabelsToM3Tags(labels []*prompb.Label) models.Tags {
-	return m3tag.PromLabelsToM3Tags(labels)
 }
 
 // PromSamplesToM3Datapoints converts Prometheus samples to M3 datapoints
@@ -132,24 +126,9 @@ func FetchResultToPromResult(result *FetchResult) (*prompb.QueryResult, error) {
 
 // SeriesToPromTS converts a series to prometheus timeseries
 func SeriesToPromTS(series *ts.Series) (*prompb.TimeSeries, error) {
-	labels, err := TagsToPromLabels(series.Tags)
-	if err != nil {
-		return nil, err
-	}
+	labels := models.TagsToPromLabels(series.Tags)
 	samples := SeriesToPromSamples(series)
 	return &prompb.TimeSeries{Labels: labels, Samples: samples}, nil
-}
-
-// TagsToPromLabels converts tags to prometheus labels
-func TagsToPromLabels(tags models.Tags) ([]*prompb.Label, error) {
-	formatTags, err := tags.ToFormat(models.FormatProm)
-	if err != nil {
-		return nil, err
-	}
-	if promTags, ok := formatTags.([]*prompb.Label); ok {
-		return promTags, nil
-	}
-	return nil, errors.ErrBadTagFormat
 }
 
 // SeriesToPromSamples series datapoints to prometheus samples

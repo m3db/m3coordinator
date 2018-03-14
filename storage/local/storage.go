@@ -23,7 +23,7 @@ const (
 
 type localStorage struct {
 	session        client.Session
-	namespace      ident.ID
+	namespace      string
 	policyResolver resolver.PolicyResolver
 }
 
@@ -31,7 +31,7 @@ type localStorage struct {
 func NewStorage(session client.Session, namespace string, policyResolver resolver.PolicyResolver) storage.Storage {
 	return &localStorage{
 		session:        session,
-		namespace:      ident.StringID(namespace),
+		namespace:      namespace,
 		policyResolver: policyResolver,
 	}
 }
@@ -54,11 +54,17 @@ func (s *localStorage) Fetch(ctx context.Context, query *storage.FetchQuery, opt
 	req := fetchReqs[0]
 	reqRange := req.Ranges[0]
 	id := ident.StringID(req.ID.String())
-	namespace := s.namespace
+	namespace := ident.StringID(s.namespace)
+	defer func() {
+		id.Finalize()
+		namespace.Finalize()
+	}()
+
 	iter, err := s.session.Fetch(namespace, id, reqRange.Start, reqRange.End)
 	if err != nil {
 		return nil, err
 	}
+
 	defer iter.Close()
 
 	result := make([]ts.Datapoint, 0, initRawFetchAllocSize)
@@ -152,14 +158,23 @@ func (s *localStorage) Type() storage.Type {
 func (w *writeRequest) Process(ctx context.Context) error {
 	common := w.writeRequestCommon
 	store := common.store
-	tags, ok := common.tags.(*m3tag.M3Tags)
-	if !ok {
-		id := ident.StringID(common.tags.ID().String())
-		return store.session.Write(store.namespace, id, w.timestamp, w.value, common.unit, common.annotation)
-	}
-	// it := tags.GetIterator()
-	id := tags.M3ID()
-	return store.session.Write(store.namespace, id, w.timestamp, w.value, common.unit, common.annotation)
+
+	id := ident.StringID(common.tags.ID().String())
+	namespace := ident.StringID(store.namespace)
+	defer func() {
+		id.Finalize()
+		namespace.Finalize()
+	}()
+
+	// TODO (arnikola) get tag iterator from tags and use session.WriteTagged when it is implemented
+	// tags, ok := common.tags.(*m3tag.M3Tags)
+	// if !ok {
+	// 	return store.session.Write(namespace, id, w.timestamp, w.value, common.unit, common.annotation)
+	// }
+	// it := tags.TagIterator()
+	// defer it.Close()
+	// return store.session.WriteTagged(namespace, id, it, w.timestamp, w.value, common.unit, common.annotation)
+	return store.session.Write(namespace, id, w.timestamp, w.value, common.unit, common.annotation)
 }
 
 type writeRequestCommon struct {

@@ -130,6 +130,11 @@ func benchmarkM3DB(start, end time.Time) {
 	fetch := func() {
 		ns := ident.StringID(namespace)
 		it := ident.NewStringIDsSliceIterator(ids)
+		defer func() {
+			ns.Finalize()
+			it.Close()
+		}()
+
 		rawResults, err = session.FetchIDs(ns, it, start, end)
 		if err != nil {
 			log.Fatalf("Unable to fetch metrics from m3db, got error %v\n", err)
@@ -145,9 +150,11 @@ func benchmarkM3DB(start, end time.Time) {
 
 func getUniqueIds() []string {
 	ids := make([]string, 0)
+
 	common.ConvertToM3(dataFile, workers, func(m *common.M3Metric) {
 		ids = append(ids, m.ID)
 	})
+
 	return ids
 }
 

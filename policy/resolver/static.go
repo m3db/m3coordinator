@@ -4,9 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/m3db/m3coordinator/models/m3tag"
-
 	"github.com/m3db/m3coordinator/models"
+	"github.com/m3db/m3coordinator/models/m3tag"
 	"github.com/m3db/m3coordinator/tsdb"
 
 	"github.com/m3db/m3metrics/policy"
