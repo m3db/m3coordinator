@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
+	"github.com/m3db/m3coordinator/models"
 	"github.com/m3db/m3coordinator/storage"
 
 	"github.com/golang/protobuf/proto"
@@ -148,9 +149,9 @@ func id(lowerCaseTags map[string]string, name string) string {
 	return buffer.String()
 }
 
-func metricsTagsToPromLabels(tags map[string]string) []*prompb.Label {
+func metricsTagsToPromLabels(tags map[string]string) models.PrometheusLabels {
 	// quick and dirty conversion to prom labels
-	labels := make([]*prompb.Label, 0, len(tags))
+	labels := make(models.PrometheusLabels, 0, len(tags))
 
 	for k, v := range tags {
 		labels = append(labels, &prompb.Label{

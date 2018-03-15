@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
+	"github.com/m3db/m3coordinator/models"
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/storage/local"
 	"github.com/m3db/m3coordinator/util/logging"
@@ -26,7 +27,7 @@ import (
 func generatePromWriteRequest() *prompb.WriteRequest {
 	req := &prompb.WriteRequest{
 		Timeseries: []*prompb.TimeSeries{{
-			Labels: []*prompb.Label{
+			Labels: models.PrometheusLabels{
 				{Name: "foo", Value: "bar"},
 				{Name: "biz", Value: "baz"},
 			},
@@ -36,7 +37,7 @@ func generatePromWriteRequest() *prompb.WriteRequest {
 			},
 		},
 			{
-				Labels: []*prompb.Label{
+				Labels: models.PrometheusLabels{
 					{Name: "foo", Value: "qux"},
 					{Name: "bar", Value: "baz"},
 				},

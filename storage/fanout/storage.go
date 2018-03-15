@@ -3,8 +3,6 @@ package fanout
 import (
 	"context"
 
-	"github.com/m3db/m3coordinator/models/m3tag"
-
 	"github.com/m3db/m3coordinator/errors"
 	"github.com/m3db/m3coordinator/models"
 	"github.com/m3db/m3coordinator/policy/filter"
@@ -86,10 +84,8 @@ func (s *fanoutStorage) Write(ctx context.Context, query *storage.WriteQuery) er
 	}
 
 	if query != nil && query.Tags != nil {
-		if m3tags, ok := query.Tags.(*m3tag.M3Tags); ok {
-			// Close internal tag iterators
-			defer m3tags.Finalize()
-		}
+		// Close internal tag iterators
+		defer query.Tags.Finalize()
 	}
 
 	return execution.ExecuteParallel(ctx, requests)

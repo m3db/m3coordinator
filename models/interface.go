@@ -18,6 +18,7 @@ type Tags interface {
 	ID() CoordinatorID
 	Len() int
 	ValueAt(i int) *Tag
+	Finalize()
 }
 
 // CoordinatorID wraps a way to get IDs out of internal types
@@ -26,8 +27,8 @@ type CoordinatorID interface {
 }
 
 // TagsToPromLabels converts a list of tags to prometheus labels
-func TagsToPromLabels(t Tags) []*prompb.Label {
-	labels := make([]*prompb.Label, 0, t.Len())
+func TagsToPromLabels(t Tags) PrometheusLabels {
+	labels := make(PrometheusLabels, 0, t.Len())
 
 	for i := 0; i < t.Len(); i++ {
 		tag := t.ValueAt(i)
@@ -56,3 +57,10 @@ func TagsToRPCTags(t Tags) *rpc.Tags {
 		Tags: tags,
 	}
 }
+
+// PrometheusLabels is a list of prometheus labels
+type PrometheusLabels []*prompb.Label
+
+func (s PrometheusLabels) Len() int           { return len(s) }
+func (s PrometheusLabels) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s PrometheusLabels) Less(i, j int) bool { return s[i].GetName() < s[j].GetName() }

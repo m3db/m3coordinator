@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/m3db/m3coordinator/generated/proto/m3coordinator"
-	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
 	"github.com/m3db/m3coordinator/models"
 
 	"github.com/m3db/m3x/ident"
@@ -61,13 +60,7 @@ func (t *M3Tags) TagIterator() ident.TagIterator {
 
 // Finalize releases the internal ident.Tags to their object pool
 func (t *M3Tags) Finalize() {
-	fmt.Println("*********************************** ", len(t.tags))
-
 	for _, tag := range t.tags {
-		fmt.Println("*************************** name ", tag.Name)
-		fmt.Println("*************************** value ", tag.Value)
-		fmt.Println("*************************** name ", tag.Name.String())
-		fmt.Println("*************************** value ", tag.Value.String())
 		tag.Finalize()
 	}
 }
@@ -100,12 +93,12 @@ func (t *M3Tags) computeID() *stringID {
 
 // TagIteratorToM3Tags wraps a TagIterator into an M3Tags
 func TagIteratorToM3Tags(it ident.TagIterator) *M3Tags {
+	defer it.Close()
 	t := make([]ident.Tag, 0, it.Remaining())
 
 	for it.Next() {
 		t = append(t, it.Current())
 	}
-	it.Close()
 
 	return createM3Tags(t)
 }
@@ -123,16 +116,10 @@ func RPCToM3Tags(rpcTags *rpc.Tags) *M3Tags {
 	return createM3Tags(t)
 }
 
-type ascendingByKeyStringProm []*prompb.Label
-
-func (s ascendingByKeyStringProm) Len() int           { return len(s) }
-func (s ascendingByKeyStringProm) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
-func (s ascendingByKeyStringProm) Less(i, j int) bool { return s[i].GetName() < s[j].GetName() }
-
 // PromLabelsToM3Tags converts prometheus label list to M3Tags
-func PromLabelsToM3Tags(labels []*prompb.Label) *M3Tags {
+func PromLabelsToM3Tags(labels models.PrometheusLabels) *M3Tags {
 	t := make([]ident.Tag, 0, len(labels))
-	sort.Sort(ascendingByKeyStringProm(labels))
+	sort.Sort(labels)
 
 	for _, label := range labels {
 		t = append(t, ident.StringTag(label.Name, label.Value))
@@ -141,17 +128,11 @@ func PromLabelsToM3Tags(labels []*prompb.Label) *M3Tags {
 	return createM3Tags(t)
 }
 
-type ascendingByKeyMatcher models.Matchers
-
-func (s ascendingByKeyMatcher) Len() int           { return len(s) }
-func (s ascendingByKeyMatcher) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
-func (s ascendingByKeyMatcher) Less(i, j int) bool { return s[i].Name < s[j].Name }
-
 // MatchersToM3Tags converts Matchers to Tags
 // NB (braskin): this only works for exact matches
 func MatchersToM3Tags(m models.Matchers) (*M3Tags, error) {
 	t := make([]ident.Tag, 0, len(m))
-	sort.Sort(ascendingByKeyMatcher(m))
+	sort.Sort(m)
 
 	for _, matcher := range m {
 		if matcher.Type != models.MatchEqual {

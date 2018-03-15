@@ -88,3 +88,7 @@ func (m *Matcher) Matches(s string) bool {
 
 // Matchers is of matchers
 type Matchers []*Matcher
+
+func (s Matchers) Len() int           { return len(s) }
+func (s Matchers) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s Matchers) Less(i, j int) bool { return s[i].Name < s[j].Name }

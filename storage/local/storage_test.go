@@ -59,7 +59,7 @@ func newWriteQuery() *storage.WriteQuery {
 			Value:     2.0,
 		}}
 
-	labels := []*prompb.Label{
+	labels := models.PrometheusLabels{
 		&prompb.Label{
 			Name:  "name",
 			Value: "value",

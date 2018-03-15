@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/m3db/m3coordinator/errors"
-	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
 	"github.com/m3db/m3coordinator/models"
 	"github.com/m3db/m3coordinator/models/m3tag"
 	"github.com/m3db/m3coordinator/policy/filter"
@@ -153,7 +152,7 @@ func TestFanoutWriteErrorWithoutBacking(t *testing.T) {
 }
 
 func generateTags() models.Tags {
-	labels := []*prompb.Label{
+	labels := models.PrometheusLabels{
 		{
 			Name:  "name",
 			Value: "value",
