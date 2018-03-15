@@ -14,10 +14,10 @@ import (
 )
 
 const (
-	// PlacementGetURL is the url for the placement get handler.
+	// PlacementGetURL is the url for the placement get handler (with the GET method).
 	PlacementGetURL = "/placement/get"
 
-	// PlacementGetHTTPMethodURL is another url for the placement get handler.
+	// PlacementGetHTTPMethodURL is the url for the placement get handler (with the GET method).
 	PlacementGetHTTPMethodURL = "/placement"
 )
 

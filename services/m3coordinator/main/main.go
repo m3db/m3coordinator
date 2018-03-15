@@ -80,7 +80,6 @@ func main() {
 	var clusterClient m3clusterClient.Client
 	if m3dbClientOpts.EnvironmentConfig.Service != nil {
 		clusterSvcClientOpts := m3dbClientOpts.EnvironmentConfig.Service.NewOptions()
-
 		clusterClient, err = etcd.NewConfigServiceClient(clusterSvcClientOpts)
 		if err != nil {
 			logger.Fatal("unable to create etcd client", zap.Any("error", err))
