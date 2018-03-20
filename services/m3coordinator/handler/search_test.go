@@ -117,7 +117,7 @@ func TestSearchResponse(t *testing.T) {
 	assert.Equal(t, testID, results.Metrics[0].ID)
 	assert.Equal(t, testNamespace, results.Metrics[0].Namespace)
 	tags := results.Metrics[0].Tags
-	assert.Equal(t, tags.ID().String(), "1055292145")
+	assert.Equal(t, tags.ID().String(), "foo=bar,")
 	m3tags, ok := tags.(*m3tag.M3Tags)
 	require.True(t, ok)
 	it := m3tags.TagIterator()

@@ -3,13 +3,14 @@ package m3tag
 import (
 	"bytes"
 	"fmt"
-	"hash/fnv"
 	"sort"
 	"sync"
 
 	"github.com/m3db/m3coordinator/generated/proto/m3coordinator"
 	"github.com/m3db/m3coordinator/models"
+	"github.com/m3db/m3coordinator/services/m3coordinator/options"
 
+	"github.com/m3db/m3x/context"
 	"github.com/m3db/m3x/ident"
 )
 
@@ -58,13 +59,6 @@ func (t *M3Tags) TagIterator() ident.TagIterator {
 	return ident.NewTagSliceIterator(t.tags)
 }
 
-// Finalize releases the internal ident.Tags to their object pool
-func (t *M3Tags) Finalize() {
-	for _, tag := range t.tags {
-		tag.Finalize()
-	}
-}
-
 // TODO (arnikola): change id computation to use this when merged: https://github.com/m3db/m3db/pull/479
 const (
 	sep = byte(',')
@@ -76,16 +70,14 @@ func (t *M3Tags) computeID() *stringID {
 		var buf bytes.Buffer
 
 		for _, tag := range t.tags {
-			buf.Write([]byte(tag.Name.String()))
+			buf.WriteString(tag.Name.String())
 			buf.WriteByte(eq)
-			buf.Write([]byte(tag.Value.String()))
+			buf.WriteString(tag.Value.String())
 			buf.WriteByte(sep)
 		}
 
-		h := fnv.New32a()
-		h.Write(buf.Bytes())
 		t.id = &stringID{
-			id: fmt.Sprintf("%d", h.Sum32()),
+			id: buf.String(),
 		}
 	})
 	return t.id
@@ -117,12 +109,13 @@ func RPCToM3Tags(rpcTags *rpc.Tags) *M3Tags {
 }
 
 // PromLabelsToM3Tags converts prometheus label list to M3Tags
-func PromLabelsToM3Tags(labels models.PrometheusLabels) *M3Tags {
+func PromLabelsToM3Tags(ctx context.Context, opts options.Options, labels models.PrometheusLabels) *M3Tags {
 	t := make([]ident.Tag, 0, len(labels))
 	sort.Sort(labels)
 
 	for _, label := range labels {
-		t = append(t, ident.StringTag(label.Name, label.Value))
+		tag := opts.IdentifierPool().GetStringTag(ctx, label.Name, label.Value)
+		t = append(t, tag)
 	}
 
 	return createM3Tags(t)

@@ -9,6 +9,7 @@ import (
 
 	"github.com/m3db/m3coordinator/executor"
 	"github.com/m3db/m3coordinator/services/m3coordinator/handler"
+	"github.com/m3db/m3coordinator/services/m3coordinator/options"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/util/logging"
 
@@ -47,10 +48,10 @@ func NewHandler(storage storage.Storage, engine *executor.Engine) (*Handler, err
 }
 
 // RegisterRoutes registers all http routes.
-func (h *Handler) RegisterRoutes() {
+func (h *Handler) RegisterRoutes(opts options.Options) {
 	logged := withResponseTimeLogging
 	h.Router.HandleFunc(handler.PromReadURL, logged(handler.NewPromReadHandler(h.engine)).ServeHTTP).Methods("POST")
-	h.Router.HandleFunc(handler.PromWriteURL, logged(handler.NewPromWriteHandler(h.storage)).ServeHTTP).Methods("POST")
+	h.Router.HandleFunc(handler.PromWriteURL, logged(handler.NewPromWriteHandler(opts, h.storage)).ServeHTTP).Methods("POST")
 	h.Router.HandleFunc(handler.SearchURL, logged(handler.NewSearchHandler(h.storage)).ServeHTTP).Methods("POST")
 	h.registerProfileEndpoints()
 }

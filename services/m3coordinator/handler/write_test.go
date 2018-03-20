@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/m3db/m3coordinator/services/m3coordinator/options"
+
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
 	"github.com/m3db/m3coordinator/models"
 	"github.com/m3db/m3coordinator/policy/resolver"
@@ -90,6 +92,6 @@ func TestPromWrite(t *testing.T) {
 	r, err := promWrite.parseRequest(req)
 	require.Nil(t, err, "unable to parse request")
 
-	writeErr := promWrite.write(context.TODO(), r)
+	writeErr := promWrite.write(context.TODO(), options.NewOptions(), r)
 	require.NoError(t, writeErr)
 }

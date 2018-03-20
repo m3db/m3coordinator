@@ -83,11 +83,6 @@ func (s *fanoutStorage) Write(ctx context.Context, query *storage.WriteQuery) er
 		requests[idx] = newWriteRequest(store, query)
 	}
 
-	if query != nil && query.Tags != nil {
-		// Close internal tag iterators
-		defer query.Tags.Finalize()
-	}
-
 	return execution.ExecuteParallel(ctx, requests)
 }
 

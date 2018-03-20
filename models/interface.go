@@ -18,7 +18,6 @@ type Tags interface {
 	ID() CoordinatorID
 	Len() int
 	ValueAt(i int) *Tag
-	Finalize()
 }
 
 // CoordinatorID wraps a way to get IDs out of internal types

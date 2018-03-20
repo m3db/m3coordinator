@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/m3db/m3coordinator/services/m3coordinator/options"
+
 	"github.com/m3db/m3coordinator/errors"
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
 	"github.com/m3db/m3coordinator/models"
@@ -17,6 +19,7 @@ import (
 	"github.com/m3db/m3db/client"
 	"github.com/m3db/m3db/storage/index"
 	"github.com/m3db/m3metrics/policy"
+	xcontext "github.com/m3db/m3x/context"
 	xtime "github.com/m3db/m3x/time"
 
 	"github.com/golang/mock/gomock"
@@ -49,14 +52,13 @@ func newSearchReq() *storage.FetchQuery {
 	}
 }
 
-func newWriteQuery() *storage.WriteQuery {
+func newWriteQuery(ctx xcontext.Context, opts options.Options) *storage.WriteQuery {
 	datapoints := ts.Datapoints{{
 		Timestamp: time.Now(),
 		Value:     1.0,
 	},
 		{
 			Timestamp: time.Now().Add(-10 * time.Second),
-			Value:     2.0,
 		}}
 
 	labels := models.PrometheusLabels{
@@ -66,7 +68,7 @@ func newWriteQuery() *storage.WriteQuery {
 		},
 	}
 	return &storage.WriteQuery{
-		Tags:       m3tag.PromLabelsToM3Tags(labels),
+		Tags:       m3tag.PromLabelsToM3Tags(ctx, opts, labels),
 		Unit:       xtime.Millisecond,
 		Datapoints: datapoints,
 	}
@@ -89,7 +91,10 @@ func TestLocalWriteEmpty(t *testing.T) {
 
 func TestLocalWriteSuccess(t *testing.T) {
 	store := setupLocalWrite(t)
-	writeQuery := newWriteQuery()
+	opts := options.NewOptions()
+	ctx := opts.ContextPool().Get()
+	defer ctx.Close()
+	writeQuery := newWriteQuery(ctx, opts)
 	err := store.Write(context.TODO(), writeQuery)
 	assert.NoError(t, err)
 }

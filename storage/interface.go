@@ -8,6 +8,7 @@ import (
 	"github.com/m3db/m3coordinator/models"
 	"github.com/m3db/m3coordinator/ts"
 
+	xcontext "github.com/m3db/m3x/context"
 	xtime "github.com/m3db/m3x/time"
 )
 
@@ -55,8 +56,9 @@ func (q *FetchQuery) String() string {
 
 // FetchOptions represents the options for fetch query
 type FetchOptions struct {
-	Limit    int
-	KillChan chan struct{}
+	Limit     int
+	KillChan  chan struct{}
+	M3Context xcontext.Context
 }
 
 // Querier handles queries against a storage.

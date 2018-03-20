@@ -203,6 +203,7 @@ func encodeWriteRequest(ts []*prompb.TimeSeries) *bytes.Reader {
 	data, _ := proto.Marshal(req)
 	compressed := snappy.Encode(nil, data)
 	b := bytes.NewReader(compressed)
+
 	return b
 }
 

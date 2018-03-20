@@ -11,6 +11,7 @@ import (
 	"github.com/m3db/m3coordinator/models/m3tag"
 	"github.com/m3db/m3coordinator/policy/filter"
 	"github.com/m3db/m3coordinator/policy/resolver"
+	"github.com/m3db/m3coordinator/services/m3coordinator/options"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/storage/local"
 	"github.com/m3db/m3coordinator/ts"
@@ -20,6 +21,7 @@ import (
 	"github.com/m3db/m3db/encoding"
 	"github.com/m3db/m3db/storage/index"
 	"github.com/m3db/m3metrics/policy"
+	xcontext "github.com/m3db/m3x/context"
 	"github.com/m3db/m3x/ident"
 	xtime "github.com/m3db/m3x/time"
 
@@ -133,8 +135,11 @@ func TestFanoutWriteError(t *testing.T) {
 	store := setupFanoutWrite(t, true, fmt.Errorf("write error"))
 	datapoints := make(ts.Datapoints, 1)
 	datapoints[0] = &ts.Datapoint{Timestamp: time.Now(), Value: 1}
+	opts := options.NewOptions()
+	ctx := opts.ContextPool().Get()
+	defer ctx.Close()
 	err := store.Write(context.TODO(), &storage.WriteQuery{
-		Tags:       generateTags(),
+		Tags:       generateTags(ctx, opts),
 		Datapoints: datapoints,
 	})
 	assert.Error(t, err)
@@ -144,14 +149,17 @@ func TestFanoutWriteErrorWithoutBacking(t *testing.T) {
 	store := setupFanoutWrite(t, true, nil)
 	datapoints := make(ts.Datapoints, 1)
 	datapoints[0] = &ts.Datapoint{Timestamp: time.Now(), Value: 1}
+	opts := options.NewOptions()
+	ctx := opts.ContextPool().Get()
+	defer ctx.Close()
 	err := store.Write(context.TODO(), &storage.WriteQuery{
-		Tags:       generateTags(),
+		Tags:       generateTags(ctx, opts),
 		Datapoints: datapoints,
 	})
 	assert.NoError(t, err)
 }
 
-func generateTags() models.Tags {
+func generateTags(ctx xcontext.Context, opts options.Options) models.Tags {
 	labels := models.PrometheusLabels{
 		{
 			Name:  "name",
@@ -162,16 +170,18 @@ func generateTags() models.Tags {
 			Value: "value2",
 		},
 	}
-	return m3tag.PromLabelsToM3Tags(labels)
+	return m3tag.PromLabelsToM3Tags(ctx, opts, labels)
 }
 
 func TestFanoutWriteSuccess(t *testing.T) {
 	store := setupFanoutWrite(t, true, nil)
 	datapoints := make(ts.Datapoints, 1)
 	datapoints[0] = &ts.Datapoint{Timestamp: time.Now(), Value: 1}
-
+	opts := options.NewOptions()
+	ctx := opts.ContextPool().Get()
+	defer ctx.Close()
 	err := store.Write(context.TODO(), &storage.WriteQuery{
-		Tags:       generateTags(),
+		Tags:       generateTags(ctx, opts),
 		Datapoints: datapoints,
 	})
 	assert.NoError(t, err)
