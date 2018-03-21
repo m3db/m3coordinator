@@ -29,7 +29,7 @@ func setup() {
 	defer logger.Sync()
 }
 
-func newFetchhReq() *storage.FetchQuery {
+func newFetchReq() *storage.FetchQuery {
 	matchers := models.Matchers{
 		{
 			Type:  models.MatchEqual,
@@ -109,7 +109,7 @@ func setupLocalRead(t *testing.T) storage.Storage {
 
 func TestLocalRead(t *testing.T) {
 	store := setupLocalRead(t)
-	searchReq := newFetchhReq()
+	searchReq := newFetchReq()
 	results, err := store.Fetch(context.TODO(), searchReq, &storage.FetchOptions{Limit: 100})
 	assert.NoError(t, err)
 	assert.Equal(t, models.Tags{"foo": "bar", "biz": "baz"}, results.SeriesList[0].Tags)
@@ -126,7 +126,7 @@ func setupLocalSearch(t *testing.T) storage.Storage {
 
 func TestLocalSearchExpectedFail(t *testing.T) {
 	store := setupLocalSearch(t)
-	searchReq := newFetchhReq()
+	searchReq := newFetchReq()
 	_, err := store.FetchTags(context.TODO(), searchReq, &storage.FetchOptions{Limit: 100})
 	assert.Error(t, err)
 }
