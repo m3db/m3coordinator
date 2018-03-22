@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/m3db/m3coordinator/models"
+	"github.com/m3db/m3coordinator/models/m3tag"
 	"github.com/m3db/m3coordinator/tsdb"
 
 	"github.com/m3db/m3metrics/policy"
@@ -16,24 +17,26 @@ type staticResolver struct {
 
 // NewStaticResolver creates a static policy resolver.
 func NewStaticResolver(sp policy.StoragePolicy) PolicyResolver {
-	return &staticResolver{sp: sp}
+	return &staticResolver{
+		sp: sp,
+	}
 }
 
 func (r *staticResolver) Resolve(
 	ctx context.Context,
 	tagMatchers models.Matchers,
 	startTime, endTime time.Time,
-) ([]tsdb.FetchRequest, error) {
-	ranges := tsdb.NewSingleRangeRequest("", startTime, endTime, r.sp).Ranges
-	requests := make([]tsdb.FetchRequest, 1)
-	tags, err := tagMatchers.ToTags()
+) ([]*tsdb.FetchRequest, error) {
+	ranges := tsdb.NewSingleRangeRequest(startTime, endTime, r.sp)
+	tags, err := m3tag.MatchersToM3Tags(tagMatchers)
 	if err != nil {
 		return nil, err
 	}
-	requests[0] = tsdb.FetchRequest{
-		ID:     tags.ID(),
-		Ranges: ranges,
+	requests := []*tsdb.FetchRequest{
+		&tsdb.FetchRequest{
+			ID:     tags.ID(),
+			Ranges: ranges,
+		},
 	}
-
 	return requests, nil
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/m3db/m3coordinator/generated/proto/m3coordinator"
 	"github.com/m3db/m3coordinator/models"
+	"github.com/m3db/m3coordinator/models/m3tag"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/ts"
 
@@ -26,14 +27,17 @@ func EncodeFetchResult(sResult *storage.FetchResult) *rpc.FetchResult {
 	for i, result := range sResult.SeriesList {
 		vLen := result.Len()
 		vals := make([]float32, vLen)
+
 		for j := 0; j < vLen; j++ {
 			vals[j] = float32(result.ValueAt(j))
 		}
+
+		rpcTags := models.TagsToRPCTags(result.Tags)
 		series[i] = &rpc.Series{
 			Name:          result.Name(),
 			Values:        vals,
 			StartTime:     fromTime(result.StartTime()),
-			Tags:          result.Tags,
+			Tags:          rpcTags,
 			Specification: result.Specification,
 			MillisPerStep: int32(result.MillisPerStep()),
 		}
@@ -57,8 +61,8 @@ func decodeTs(ctx context.Context, r *rpc.Series) *ts.Series {
 	for i, v := range rValues {
 		values.SetValueAt(i, float64(v))
 	}
-
-	start, tags := toTime(r.GetStartTime()), models.Tags(r.GetTags())
+	tags := m3tag.RPCToM3Tags(r.GetTags())
+	start := toTime(r.GetStartTime())
 
 	series := ts.NewSeries(ctx, r.GetName(), start, values, tags)
 	series.Specification = r.GetSpecification()
@@ -145,11 +149,13 @@ func EncodeWriteMessage(query *storage.WriteQuery, queryID string) *rpc.WriteMes
 }
 
 func encodeWriteQuery(query *storage.WriteQuery) *rpc.WriteQuery {
+	rpcTags := models.TagsToRPCTags(query.Tags)
+
 	return &rpc.WriteQuery{
 		Unit:       int32(query.Unit),
 		Annotation: query.Annotation,
 		Datapoints: encodeDatapoints(query.Datapoints),
-		Tags:       query.Tags,
+		Tags:       rpcTags,
 	}
 }
 
@@ -166,8 +172,9 @@ func decodeWriteQuery(query *rpc.WriteQuery) *storage.WriteQuery {
 			Value:     float64(point.GetValue()),
 		}
 	}
+
 	return &storage.WriteQuery{
-		Tags:       query.GetTags(),
+		Tags:       m3tag.RPCToM3Tags(query.GetTags()),
 		Datapoints: ts.Datapoints(points),
 		Unit:       xtime.Unit(query.GetUnit()),
 		Annotation: query.Annotation,
@@ -182,6 +189,7 @@ func encodeDatapoints(tsPoints ts.Datapoints) []*rpc.Datapoint {
 			Value:     float32(point.Value),
 		}
 	}
+
 	return datapoints
 }
 

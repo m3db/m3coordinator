@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
+	"github.com/m3db/m3coordinator/services/m3coordinator/options"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/util/execution"
 	"github.com/m3db/m3coordinator/util/logging"
@@ -20,13 +21,15 @@ const (
 
 // PromWriteHandler represents a handler for prometheus write endpoint.
 type PromWriteHandler struct {
-	store storage.Storage
+	store   storage.Storage
+	options options.Options
 }
 
 // NewPromWriteHandler returns a new instance of handler.
-func NewPromWriteHandler(store storage.Storage) http.Handler {
+func NewPromWriteHandler(opts options.Options, store storage.Storage) http.Handler {
 	return &PromWriteHandler{
-		store: store,
+		store:   store,
+		options: opts,
 	}
 }
 
@@ -36,7 +39,7 @@ func (h *PromWriteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Error(w, rErr.Error(), rErr.Code())
 		return
 	}
-	if err := h.write(r.Context(), req); err != nil {
+	if err := h.write(r.Context(), h.options, req); err != nil {
 		logging.WithContext(r.Context()).Error("Write error", zap.Any("err", err))
 		Error(w, err, http.StatusInternalServerError)
 		return
@@ -57,10 +60,14 @@ func (h *PromWriteHandler) parseRequest(r *http.Request) (*prompb.WriteRequest, 
 	return &req, nil
 }
 
-func (h *PromWriteHandler) write(ctx context.Context, r *prompb.WriteRequest) error {
+func (h *PromWriteHandler) write(ctx context.Context, opts options.Options, r *prompb.WriteRequest) error {
 	requests := make([]execution.Request, len(r.Timeseries))
+	xCtx := opts.ContextPool().Get()
+	defer xCtx.Close()
+
 	for idx, t := range r.Timeseries {
-		requests[idx] = newLocalWriteRequest(storage.PromWriteTSToM3(t), h.store)
+		ts := storage.PromWriteTSToM3(xCtx, opts, t)
+		requests[idx] = newLocalWriteRequest(ts, h.store)
 	}
 	return execution.ExecuteParallel(ctx, requests)
 }

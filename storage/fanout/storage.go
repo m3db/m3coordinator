@@ -63,7 +63,6 @@ func handleFetchResponses(requests []execution.Request) (*storage.FetchResult, e
 func (s *fanoutStorage) FetchTags(ctx context.Context, query *storage.FetchQuery, options *storage.FetchOptions) (*storage.SearchResults, error) {
 	var metrics models.Metrics
 
-	result := &storage.SearchResults{Metrics: metrics}
 	stores := filterStores(s.stores, s.fetchFilter, query)
 	for _, store := range stores {
 		results, err := store.FetchTags(ctx, query, options)
@@ -72,6 +71,7 @@ func (s *fanoutStorage) FetchTags(ctx context.Context, query *storage.FetchQuery
 		}
 		metrics = append(metrics, results.Metrics...)
 	}
+	result := &storage.SearchResults{Metrics: metrics}
 
 	return result, nil
 }

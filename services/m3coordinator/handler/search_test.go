@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/m3db/m3coordinator/models"
+	"github.com/m3db/m3coordinator/models/m3tag"
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/storage/local"
@@ -76,6 +77,7 @@ func generateTag() ident.Tag {
 
 func generateTagIters(ctrl *gomock.Controller) *index.MockTaggedIDsIter {
 	mockTagIter := ident.NewMockTagIterator(ctrl)
+	mockTagIter.EXPECT().Duplicate().Return(mockTagIter)
 	mockTagIter.EXPECT().Next().Return(true).MaxTimes(1)
 	mockTagIter.EXPECT().Next().Return(false)
 	mockTagIter.EXPECT().Current().Return(generateTag())
@@ -114,7 +116,15 @@ func TestSearchResponse(t *testing.T) {
 
 	assert.Equal(t, testID, results.Metrics[0].ID)
 	assert.Equal(t, testNamespace, results.Metrics[0].Namespace)
-	assert.Equal(t, models.Tags{"foo": "bar"}, results.Metrics[0].Tags)
+	tags := results.Metrics[0].Tags
+	assert.Equal(t, tags.ID().String(), "foo=bar,")
+	m3tags, ok := tags.(*m3tag.M3Tags)
+	require.True(t, ok)
+	it := m3tags.TagIterator()
+	assert.True(t, it.Next())
+	assert.Equal(t, it.Current().Name.String(), "foo")
+	assert.Equal(t, it.Current().Value.String(), "bar")
+	assert.False(t, it.Next())
 }
 
 func TestSearchEndpoint(t *testing.T) {

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
+	"github.com/m3db/m3coordinator/models"
 	"github.com/m3db/m3coordinator/storage"
 
 	"github.com/golang/protobuf/proto"
@@ -140,16 +141,30 @@ func id(lowerCaseTags map[string]string, name string) string {
 	}
 	sort.Strings(sortedKeys)
 
-	for i = 0; i < len(sortedKeys)-1; i++ {
-		buffer.WriteString(sortedKeys[i])
-		buffer.WriteString(lowerCaseTags[sortedKeys[i]])
+	for _, key := range sortedKeys {
+		buffer.WriteString(key)
+		buffer.WriteString(lowerCaseTags[key])
 	}
 
 	return buffer.String()
 }
 
+func metricsTagsToPromLabels(tags map[string]string) models.PrometheusLabels {
+	// quick and dirty conversion to prom labels
+	labels := make(models.PrometheusLabels, 0, len(tags))
+
+	for k, v := range tags {
+		labels = append(labels, &prompb.Label{
+			Name:  k,
+			Value: v,
+		})
+	}
+
+	return labels
+}
+
 func metricsToPromTS(m Metrics) *prompb.TimeSeries {
-	labels := storage.TagsToPromLabels(m.Tags)
+	labels := metricsTagsToPromLabels(m.Tags)
 	samples := metricsPointsToSamples(m.Value, m.Time)
 	return &prompb.TimeSeries{
 		Labels:  labels,
@@ -188,6 +203,7 @@ func encodeWriteRequest(ts []*prompb.TimeSeries) *bytes.Reader {
 	data, _ := proto.Marshal(req)
 	compressed := snappy.Encode(nil, data)
 	b := bytes.NewReader(compressed)
+
 	return b
 }
 

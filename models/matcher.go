@@ -1,14 +1,10 @@
 package models
 
 import (
+	"errors"
 	"fmt"
-	"hash/fnv"
 	"regexp"
-	"sort"
 )
-
-// Tags is a key/value map of metric tags.
-type Tags map[string]string
 
 // Metric is the individual metric that gets returned from the search endpoint
 type Metric struct {
@@ -31,17 +27,15 @@ const (
 	MatchNotRegexp
 )
 
+var (
+	matchSymbols = [MatchNotRegexp + 1]string{"=", "!=", "=~", "!~"}
+
+	// ErrInvalidMatcher is returned when an invalid matcher is constructed.
+	ErrInvalidMatcher = errors.New("invalid matcher type")
+)
+
 func (m MatchType) String() string {
-	typeToStr := map[MatchType]string{
-		MatchEqual:     "=",
-		MatchNotEqual:  "!=",
-		MatchRegexp:    "=~",
-		MatchNotRegexp: "!~",
-	}
-	if str, ok := typeToStr[m]; ok {
-		return str
-	}
-	panic("unknown match type")
+	return matchSymbols[m]
 }
 
 // Matcher models the matching of a label.
@@ -55,6 +49,9 @@ type Matcher struct {
 
 // NewMatcher returns a matcher object.
 func NewMatcher(t MatchType, n, v string) (*Matcher, error) {
+	if t > MatchNotRegexp || t < MatchEqual {
+		return nil, ErrInvalidMatcher
+	}
 	m := &Matcher{
 		Type:  t,
 		Name:  n,
@@ -92,41 +89,6 @@ func (m *Matcher) Matches(s string) bool {
 // Matchers is of matchers
 type Matchers []*Matcher
 
-// ToTags converts Matchers to Tags
-// NB (braskin): this only works for exact matches
-func (m Matchers) ToTags() (Tags, error) {
-	tags := make(Tags, len(m))
-	for _, v := range m {
-		if v.Type != MatchEqual {
-			return nil, fmt.Errorf("illegal match type, got %v, but expecting: %v", v.Type, MatchEqual)
-		}
-		tags[v.Name] = v.Value
-	}
-
-	return tags, nil
-}
-
-// ID returns a string representation of the tags
-func (t Tags) ID() string {
-	sep := ","
-	eq := "="
-
-	var b string
-	var keys []string
-
-	for k := range t {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	for _, k := range keys {
-		b += k
-		b += eq
-		b += t[k]
-		b += sep
-	}
-
-	h := fnv.New32a()
-	h.Write([]byte(b))
-	return fmt.Sprintf("%d", h.Sum32())
-}
+func (s Matchers) Len() int           { return len(s) }
+func (s Matchers) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s Matchers) Less(i, j int) bool { return s[i].Name < s[j].Name }

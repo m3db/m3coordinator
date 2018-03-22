@@ -37,9 +37,9 @@ func (m *MockPolicyResolver) EXPECT() *MockPolicyResolverMockRecorder {
 }
 
 // Resolve mocks base method
-func (m *MockPolicyResolver) Resolve(ctx context.Context, tagMatchers models.Matchers, startTime, endTime time.Time) ([]tsdb.FetchRequest, error) {
+func (m *MockPolicyResolver) Resolve(ctx context.Context, tagMatchers models.Matchers, startTime, endTime time.Time) ([]*tsdb.FetchRequest, error) {
 	ret := m.ctrl.Call(m, "Resolve", ctx, tagMatchers, startTime, endTime)
-	ret0, _ := ret[0].([]tsdb.FetchRequest)
+	ret0, _ := ret[0].([]*tsdb.FetchRequest)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

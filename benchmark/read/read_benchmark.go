@@ -3,7 +3,9 @@ package main
 import (
 	"bytes"
 	"flag"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"time"
 
@@ -15,6 +17,7 @@ import (
 	"github.com/m3db/m3db/client"
 	"github.com/m3db/m3db/encoding"
 	xconfig "github.com/m3db/m3x/config"
+	"github.com/m3db/m3x/ident"
 
 	"github.com/golang/snappy"
 )
@@ -83,9 +86,11 @@ func benchmarkCoordinator(start, end time.Time) {
 		if err != nil {
 			log.Fatalf("Unable to fetch metrics from m3coordinator, got error %v\n", err)
 		}
-		readResponse = make([]byte, r.ContentLength)
-		r.Body.Read(readResponse)
-		r.Body.Close()
+		if r.ContentLength >= 0 {
+			readResponse = make([]byte, r.ContentLength)
+			r.Body.Read(readResponse)
+			r.Body.Close()
+		}
 		if r.StatusCode != 200 {
 			log.Fatalf("HTTP read failed with code %d, error: %s", r.StatusCode, string(readResponse))
 		}
@@ -100,6 +105,7 @@ func benchmarkCoordinator(start, end time.Time) {
 		if err := proto.Unmarshal(reqBuf, &req); err != nil {
 			log.Fatalf("Unable to unmarshal prompb response, got error %v\n", err)
 		}
+
 		return req.Size()
 	}
 
@@ -127,7 +133,14 @@ func benchmarkM3DB(start, end time.Time) {
 	var rawResults encoding.SeriesIterators
 
 	fetch := func() {
-		rawResults, err = session.FetchAll(namespace, ids, start, end)
+		ns := ident.StringID(namespace)
+		it := ident.NewStringIDsSliceIterator(ids)
+		defer func() {
+			ns.Finalize()
+			it.Close()
+		}()
+
+		rawResults, err = session.FetchIDs(ns, it, start, end)
 		if err != nil {
 			log.Fatalf("Unable to fetch metrics from m3db, got error %v\n", err)
 		}
@@ -140,18 +153,49 @@ func benchmarkM3DB(start, end time.Time) {
 	genericBenchmarker(fetch, count)
 }
 
-type none struct{}
-
 func getUniqueIds() []string {
-	idMap := make(map[string]none)
+	ids := make([]string, 0)
+
 	common.ConvertToM3(dataFile, workers, func(m *common.M3Metric) {
-		idMap[m.ID] = none{}
+		ids = append(ids, m.ID)
 	})
-	ids := make([]string, 0, len(idMap))
-	for k := range idMap {
-		ids = append(ids, k)
-	}
+
 	return ids
+}
+
+type tempTag struct {
+	name  string
+	value string
+}
+
+func (t tempTag) String() string {
+	return fmt.Sprintf(t.name, t.value)
+}
+
+func getUniqueTags() map[tempTag]struct{} {
+	tags := make(map[tempTag]struct{})
+
+	common.ConvertToProm(dataFile, 1, 1, func(reader *bytes.Reader) {
+		buf, _ := ioutil.ReadAll(reader)
+
+		reqBuf, err := snappy.Decode(nil, buf)
+		if err != nil {
+			panic(err)
+		}
+
+		var req prompb.WriteRequest
+		if err := proto.Unmarshal(reqBuf, &req); err != nil {
+			panic(err)
+		}
+		ts := req.GetTimeseries()[0]
+
+		labels := ts.GetLabels()
+		for _, label := range labels {
+			tag := tempTag{name: label.GetName(), value: label.GetValue()}
+			tags[tag] = struct{}{}
+		}
+	})
+	return tags
 }
 
 func genericBenchmarker(fetch func(), count countFunc) {
@@ -169,14 +213,14 @@ func genericBenchmarker(fetch func(), count countFunc) {
 }
 
 func generateMatchers() []*prompb.LabelMatcher {
-	ids := getUniqueIds()
-	matchers := make([]*prompb.LabelMatcher, len(ids))
-	for i, id := range ids {
-		matchers[i] = &prompb.LabelMatcher{
+	tags := getUniqueTags()
+	matchers := make([]*prompb.LabelMatcher, 0, len(tags))
+	for k := range tags {
+		matchers = append(matchers, &prompb.LabelMatcher{
 			Type:  prompb.LabelMatcher_EQ,
-			Name:  "eq",
-			Value: id,
-		}
+			Name:  k.name,
+			Value: k.value,
+		})
 	}
 	return matchers
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/m3db/m3coordinator/errors"
 	"github.com/m3db/m3coordinator/models"
+	"github.com/m3db/m3coordinator/models/m3tag"
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/ts"
@@ -28,7 +29,11 @@ type localStorage struct {
 
 // NewStorage creates a new local Storage instance.
 func NewStorage(session client.Session, namespace string, policyResolver resolver.PolicyResolver) storage.Storage {
-	return &localStorage{session: session, namespace: namespace, policyResolver: policyResolver}
+	return &localStorage{
+		session:        session,
+		namespace:      namespace,
+		policyResolver: policyResolver,
+	}
 }
 
 func (s *localStorage) Fetch(ctx context.Context, query *storage.FetchQuery, options *storage.FetchOptions) (*storage.FetchResult, error) {
@@ -48,8 +53,13 @@ func (s *localStorage) Fetch(ctx context.Context, query *storage.FetchQuery, opt
 
 	req := fetchReqs[0]
 	reqRange := req.Ranges[0]
-	id := ident.StringID(req.ID)
+	id := ident.StringID(req.ID.String())
 	namespace := ident.StringID(s.namespace)
+	defer func() {
+		id.Finalize()
+		namespace.Finalize()
+	}()
+
 	iter, err := s.session.Fetch(namespace, id, reqRange.Start, reqRange.End)
 	if err != nil {
 		return nil, err
@@ -72,12 +82,12 @@ func (s *localStorage) Fetch(ctx context.Context, query *storage.FetchQuery, opt
 	}
 
 	// TODO: Get the correct metric name
-	tags, err := query.TagMatchers.ToTags()
+	tags, err := m3tag.MatchersToM3Tags(query.TagMatchers)
 	if err != nil {
 		return nil, err
 	}
 
-	series := ts.NewSeries(ctx, tags.ID(), reqRange.Start, values, tags)
+	series := ts.NewSeries(ctx, tags.ID().String(), reqRange.Start, values, tags)
 	seriesList := make([]*ts.Series, 1)
 	seriesList[0] = series
 	return &storage.FetchResult{
@@ -127,12 +137,11 @@ func (s *localStorage) Write(ctx context.Context, query *storage.WriteQuery) err
 		return errors.ErrNilWriteQuery
 	}
 
-	id := query.Tags.ID()
 	common := &writeRequestCommon{
 		store:      s,
 		annotation: query.Annotation,
 		unit:       query.Unit,
-		id:         id,
+		tags:       query.Tags,
 	}
 
 	requests := make([]execution.Request, len(query.Datapoints))
@@ -149,8 +158,22 @@ func (s *localStorage) Type() storage.Type {
 func (w *writeRequest) Process(ctx context.Context) error {
 	common := w.writeRequestCommon
 	store := common.store
-	id := ident.StringID(common.id)
+
+	id := ident.StringID(common.tags.ID().String())
 	namespace := ident.StringID(store.namespace)
+	defer func() {
+		id.Finalize()
+		namespace.Finalize()
+	}()
+
+	// TODO (arnikola) get tag iterator from tags and use session.WriteTagged when it is implemented
+	// tags, ok := common.tags.(*m3tag.M3Tags)
+	// if !ok {
+	// 	return store.session.Write(namespace, id, w.timestamp, w.value, common.unit, common.annotation)
+	// }
+	// it := tags.TagIterator()
+	// defer it.Close()
+	// return store.session.WriteTagged(namespace, id, it, w.timestamp, w.value, common.unit, common.annotation)
 	return store.session.Write(namespace, id, w.timestamp, w.value, common.unit, common.annotation)
 }
 
@@ -158,7 +181,7 @@ type writeRequestCommon struct {
 	store      *localStorage
 	annotation []byte
 	unit       xtime.Unit
-	id         string
+	tags       models.Tags
 }
 
 type writeRequest struct {

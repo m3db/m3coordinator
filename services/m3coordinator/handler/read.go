@@ -69,8 +69,7 @@ func (h *PromReadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	compressed := snappy.Encode(nil, data)
 	if _, err := w.Write(compressed); err != nil {
-		logger.Error("unable to encode read results to snappy", zap.Any("err", err))
-		Error(w, err, http.StatusInternalServerError)
+		logger.Error("unable to write encoded data", zap.Any("err", err))
 		return
 	}
 }
@@ -119,7 +118,10 @@ func (h *PromReadHandler) read(reqCtx context.Context, w http.ResponseWriter, r 
 			return nil, result.Err
 		}
 
-		promRes := storage.FetchResultToPromResult(result.FetchResult)
+		promRes, err := storage.FetchResultToPromResult(result.FetchResult)
+		if err != nil {
+			return nil, err
+		}
 		promResults = append(promResults, promRes)
 	}
 

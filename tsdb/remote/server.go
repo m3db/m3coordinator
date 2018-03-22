@@ -37,6 +37,7 @@ func StartNewGrpcServer(server *grpc.Server, address string, waitForStart chan<-
 	if err != nil {
 		return err
 	}
+
 	waitForStart <- struct{}{}
 	return server.Serve(lis)
 }
@@ -55,13 +56,14 @@ func (s *grpcServer) Fetch(message *rpc.FetchMessage, stream rpc.Query_FetchServ
 	// Iterate while there are more results
 	for {
 		result, err := s.storage.Fetch(ctx, storeQuery, nil)
-
 		if err != nil {
 			logger.Error("unable to fetch local query", zap.Any("error", err))
 			return err
 		}
-		err = stream.Send(EncodeFetchResult(result))
 
+		fetchResult := EncodeFetchResult(result)
+
+		err = stream.Send(fetchResult)
 		if err != nil {
 			logger.Error("unable to send fetch result", zap.Any("error", err))
 			return err
@@ -70,6 +72,7 @@ func (s *grpcServer) Fetch(message *rpc.FetchMessage, stream rpc.Query_FetchServ
 			break
 		}
 	}
+
 	return nil
 }
 

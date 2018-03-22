@@ -14,6 +14,7 @@ import (
 	"github.com/m3db/m3coordinator/executor"
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
 	"github.com/m3db/m3coordinator/mocks"
+	"github.com/m3db/m3coordinator/models/m3tag"
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/storage/local"
@@ -67,7 +68,7 @@ func setupServer(t *testing.T) *httptest.Server {
 
 	mockResolver.EXPECT().Resolve(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Do(func(_, _, _, _ interface{}) {
 		time.Sleep(100 * time.Millisecond)
-	}).Return([]tsdb.FetchRequest{}, nil)
+	}).Return([]*tsdb.FetchRequest{}, nil)
 
 	storage := local.NewStorage(session, "metrics", mockResolver)
 	engine := executor.NewEngine(storage)
@@ -96,7 +97,6 @@ func TestPromReadParsingBad(t *testing.T) {
 	_, err := promRead.parseRequest(req)
 	require.NotNil(t, err, "unable to parse request")
 }
-
 func TestPromReadStorageWithFetchError(t *testing.T) {
 	logging.InitWithCores(nil)
 	ctrl := gomock.NewController(t)
@@ -117,7 +117,7 @@ func TestQueryMatchMustBeEqual(t *testing.T) {
 	matchers, err := storage.PromMatchersToM3(req.Queries[0].Matchers)
 	require.NoError(t, err)
 
-	_, err = matchers.ToTags()
+	_, err = m3tag.MatchersToM3Tags(matchers)
 	assert.NoError(t, err)
 }
 

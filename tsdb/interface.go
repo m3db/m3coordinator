@@ -3,6 +3,8 @@ package tsdb
 import (
 	"time"
 
+	"github.com/m3db/m3coordinator/models"
+
 	"github.com/m3db/m3metrics/policy"
 	xtime "github.com/m3db/m3x/time"
 )
@@ -19,17 +21,21 @@ func (r FetchRange) Equal(other FetchRange) bool {
 }
 
 // FetchRanges is a list of fetch ranges.
-type FetchRanges []FetchRange
+type FetchRanges []*FetchRange
 
 // FetchRequest is a request to fetch data from a source for a given id.
 type FetchRequest struct {
-	ID     string
+	ID     models.CoordinatorID
 	Ranges FetchRanges
 }
 
 // NewSingleRangeRequest creates a new single-range request.
-func NewSingleRangeRequest(id string, start, end time.Time, p policy.StoragePolicy) FetchRequest {
+func NewSingleRangeRequest(start, end time.Time, p policy.StoragePolicy) FetchRanges {
 	rng := xtime.Range{Start: start, End: end}
-	ranges := []FetchRange{{Range: rng, StoragePolicy: p}}
-	return FetchRequest{ID: id, Ranges: ranges}
+	return []*FetchRange{
+		&FetchRange{
+			Range:         rng,
+			StoragePolicy: p,
+		},
+	}
 }

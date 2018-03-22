@@ -6,8 +6,11 @@ import (
 
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
 	"github.com/m3db/m3coordinator/models"
+	"github.com/m3db/m3coordinator/models/m3tag"
+	"github.com/m3db/m3coordinator/services/m3coordinator/options"
 	"github.com/m3db/m3coordinator/ts"
 
+	"github.com/m3db/m3x/context"
 	xtime "github.com/m3db/m3x/time"
 )
 
@@ -16,8 +19,8 @@ const (
 )
 
 // PromWriteTSToM3 converts a prometheus write query to an M3 one
-func PromWriteTSToM3(timeseries *prompb.TimeSeries) *WriteQuery {
-	tags := PromLabelsToM3Tags(timeseries.Labels)
+func PromWriteTSToM3(ctx context.Context, opts options.Options, timeseries *prompb.TimeSeries) *WriteQuery {
+	tags := m3tag.PromLabelsToM3Tags(ctx, opts, timeseries.Labels)
 	datapoints := PromSamplesToM3Datapoints(timeseries.Samples)
 
 	return &WriteQuery{
@@ -26,16 +29,6 @@ func PromWriteTSToM3(timeseries *prompb.TimeSeries) *WriteQuery {
 		Unit:       xTimeUnit,
 		Annotation: nil,
 	}
-}
-
-// PromLabelsToM3Tags converts Prometheus labels to M3 tags
-func PromLabelsToM3Tags(labels []*prompb.Label) models.Tags {
-	tags := make(models.Tags, len(labels))
-	for _, label := range labels {
-		tags[label.Name] = label.Value
-	}
-
-	return tags
 }
 
 // PromSamplesToM3Datapoints converts Prometheus samples to M3 datapoints
@@ -116,34 +109,27 @@ func TimeToTimestamp(timestamp time.Time) int64 {
 }
 
 // FetchResultToPromResult converts fetch results from M3 to Prometheus result
-func FetchResultToPromResult(result *FetchResult) *prompb.QueryResult {
+func FetchResultToPromResult(result *FetchResult) (*prompb.QueryResult, error) {
 	timeseries := make([]*prompb.TimeSeries, 0)
 
 	for _, series := range result.SeriesList {
-		promTs := SeriesToPromTS(series)
+		promTs, err := SeriesToPromTS(series)
+		if err != nil {
+			return nil, err
+		}
 		timeseries = append(timeseries, promTs)
 	}
 
 	return &prompb.QueryResult{
 		Timeseries: timeseries,
-	}
+	}, nil
 }
 
 // SeriesToPromTS converts a series to prometheus timeseries
-func SeriesToPromTS(series *ts.Series) *prompb.TimeSeries {
-	labels := TagsToPromLabels(series.Tags)
+func SeriesToPromTS(series *ts.Series) (*prompb.TimeSeries, error) {
+	labels := models.TagsToPromLabels(series.Tags)
 	samples := SeriesToPromSamples(series)
-	return &prompb.TimeSeries{Labels: labels, Samples: samples}
-}
-
-// TagsToPromLabels converts tags to prometheus labels
-func TagsToPromLabels(tags models.Tags) []*prompb.Label {
-	labels := make([]*prompb.Label, 0, len(tags))
-	for k, v := range tags {
-		labels = append(labels, &prompb.Label{Name: k, Value: v})
-	}
-
-	return labels
+	return &prompb.TimeSeries{Labels: labels, Samples: samples}, nil
 }
 
 // SeriesToPromSamples series datapoints to prometheus samples

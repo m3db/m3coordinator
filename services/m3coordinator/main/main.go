@@ -15,6 +15,7 @@ import (
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/services/m3coordinator/config"
 	"github.com/m3db/m3coordinator/services/m3coordinator/httpd"
+	"github.com/m3db/m3coordinator/services/m3coordinator/options"
 	"github.com/m3db/m3coordinator/storage"
 
 	"github.com/m3db/m3coordinator/storage/fanout"
@@ -80,7 +81,9 @@ func main() {
 	if err != nil {
 		logger.Fatal("unable to set up handlers", zap.Any("error", err))
 	}
-	handler.RegisterRoutes()
+
+	opts := options.NewOptions()
+	handler.RegisterRoutes(opts)
 
 	logger.Info("starting server", zap.String("address", flags.listenAddress))
 	go http.ListenAndServe(flags.listenAddress, handler.Router)

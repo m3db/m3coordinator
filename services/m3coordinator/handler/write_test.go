@@ -8,7 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/m3db/m3coordinator/services/m3coordinator/options"
+
 	"github.com/m3db/m3coordinator/generated/proto/prometheus/prompb"
+	"github.com/m3db/m3coordinator/models"
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/storage/local"
 	"github.com/m3db/m3coordinator/util/logging"
@@ -26,7 +29,7 @@ import (
 func generatePromWriteRequest() *prompb.WriteRequest {
 	req := &prompb.WriteRequest{
 		Timeseries: []*prompb.TimeSeries{{
-			Labels: []*prompb.Label{
+			Labels: models.PrometheusLabels{
 				{Name: "foo", Value: "bar"},
 				{Name: "biz", Value: "baz"},
 			},
@@ -36,7 +39,7 @@ func generatePromWriteRequest() *prompb.WriteRequest {
 			},
 		},
 			{
-				Labels: []*prompb.Label{
+				Labels: models.PrometheusLabels{
 					{Name: "foo", Value: "qux"},
 					{Name: "bar", Value: "baz"},
 				},
@@ -89,6 +92,6 @@ func TestPromWrite(t *testing.T) {
 	r, err := promWrite.parseRequest(req)
 	require.Nil(t, err, "unable to parse request")
 
-	writeErr := promWrite.write(context.TODO(), r)
+	writeErr := promWrite.write(context.TODO(), options.NewOptions(), r)
 	require.NoError(t, writeErr)
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/m3db/m3coordinator/generated/proto/m3coordinator"
 	"github.com/m3db/m3coordinator/models"
+	"github.com/m3db/m3coordinator/models/m3tag"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/ts"
 
@@ -30,13 +31,23 @@ var (
 	mps1     = int32(120)
 	time1    = "2093-02-06T11:54:48+07:00"
 
-	tags0  = map[string]string{"a": "b", "c": "d"}
-	tags1  = map[string]string{"e": "f", "g": "h"}
+	tags0  = generateTags("foo", "bar")
+	tags1  = generateTags("biz", "baz")
 	float0 = 100.0
 	float1 = 3.5
 	ann    = []byte("aasjgał")
 	id     = "asdgsdh"
 )
+
+func generateTags(name, value string) *rpc.Tags {
+	tags := []*rpc.Tag{
+		{
+			Name:  name,
+			Value: value,
+		},
+	}
+	return &rpc.Tags{Tags: tags}
+}
 
 func parseTimes(t *testing.T) (time.Time, time.Time) {
 	t0, err := time.Parse(time.RFC3339, time0)
@@ -56,7 +67,7 @@ func TestTimeConversions(t *testing.T) {
 func createRPCSeries(t *testing.T) ([]*rpc.Series, time.Time, time.Time) {
 	t0, t1 := parseTimes(t)
 	return []*rpc.Series{
-		&rpc.Series{
+		{
 			Name:          name0,
 			StartTime:     fromTime(t0),
 			Values:        valList0,
@@ -64,7 +75,7 @@ func createRPCSeries(t *testing.T) ([]*rpc.Series, time.Time, time.Time) {
 			Specification: spec0,
 			MillisPerStep: mps0,
 		},
-		&rpc.Series{
+		{
 			Name:          name1,
 			StartTime:     fromTime(t1),
 			Values:        valList1,
@@ -87,8 +98,8 @@ func TestDecodeFetchResult(t *testing.T) {
 	assert.True(t, t1.Equal(tsSeries[1].StartTime()))
 	assert.Equal(t, spec0, tsSeries[0].Specification)
 	assert.Equal(t, spec1, tsSeries[1].Specification)
-	assert.Equal(t, models.Tags(tags0), tsSeries[0].Tags)
-	assert.Equal(t, models.Tags(tags1), tsSeries[1].Tags)
+	assert.Equal(t, m3tag.RPCToM3Tags(tags0).ID().String(), tsSeries[0].Tags.ID().String())
+	assert.Equal(t, m3tag.RPCToM3Tags(tags1).ID().String(), tsSeries[1].Tags.ID().String())
 
 	assert.Equal(t, len(valList0), tsSeries[0].Len())
 	assert.Equal(t, len(valList1), tsSeries[1].Len())
@@ -178,7 +189,7 @@ func createStorageWriteQuery(t *testing.T) (*storage.WriteQuery, ts.Datapoints) 
 		},
 	}
 	return &storage.WriteQuery{
-		Tags:       tags0,
+		Tags:       m3tag.RPCToM3Tags(tags0),
 		Unit:       xtime.Unit(2),
 		Annotation: ann,
 		Datapoints: points,
@@ -202,7 +213,7 @@ func TestEncodeWriteMessage(t *testing.T) {
 
 func writeQueriesAreEqual(t *testing.T, this, other *storage.WriteQuery) {
 	assert.Equal(t, this.Annotation, other.Annotation)
-	assert.Equal(t, this.Tags, other.Tags)
+	assert.Equal(t, this.Tags.ID().String(), other.Tags.ID().String())
 	assert.Equal(t, this.Unit, other.Unit)
 	assert.Equal(t, this.Datapoints.Len(), other.Datapoints.Len())
 	for i := 0; i < this.Datapoints.Len(); i++ {
