@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetPlacementService(t *testing.T) {
+func TestPlacementService(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockClient := client.NewMockClient(ctrl)
@@ -27,20 +27,20 @@ func TestGetPlacementService(t *testing.T) {
 	mockClient.EXPECT().Services(gomock.Not(nil)).Return(mockServices, nil)
 	mockServices.EXPECT().PlacementService(gomock.Not(nil), gomock.Not(nil)).Return(mockPlacementService, nil)
 
-	placementService, err := GetPlacementService(mockClient)
+	placementService, err := PlacementService(mockClient)
 	assert.NoError(t, err)
 	assert.NotNil(t, placementService)
 
 	// Test Services returns error
 	mockClient.EXPECT().Services(gomock.Not(nil)).Return(nil, errors.New("dummy service error"))
-	placementService, err = GetPlacementService(mockClient)
+	placementService, err = PlacementService(mockClient)
 	assert.Nil(t, placementService)
 	assert.EqualError(t, err, "dummy service error")
 
 	// Test PlacementService returns error
 	mockClient.EXPECT().Services(gomock.Not(nil)).Return(mockServices, nil)
 	mockServices.EXPECT().PlacementService(gomock.Not(nil), gomock.Not(nil)).Return(nil, errors.New("dummy placement error"))
-	placementService, err = GetPlacementService(mockClient)
+	placementService, err = PlacementService(mockClient)
 	assert.Nil(t, placementService)
 	assert.EqualError(t, err, "dummy placement error")
 }

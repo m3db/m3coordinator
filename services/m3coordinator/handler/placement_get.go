@@ -58,7 +58,7 @@ func (h *PlacementGetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *PlacementGetHandler) placementGet(ctx context.Context) (placement.Placement, int, error) {
-	ps, err := GetPlacementService(h.clusterClient)
+	ps, err := PlacementService(h.clusterClient)
 	if err != nil {
 		return nil, 0, err
 	}

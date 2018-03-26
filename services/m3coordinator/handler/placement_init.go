@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	// PlacementInitURL is the url for the placement init handler.
+	// PlacementInitURL is the url for the placement init handler (with the POST method).
 	PlacementInitURL = "/placement/init"
 )
 
@@ -31,14 +31,14 @@ func NewPlacementInitHandler(clusterClient m3clusterClient.Client) http.Handler 
 }
 
 func (h *PlacementInitHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger := logging.WithContext(ctx)
+
 	req, rErr := h.parseRequest(r)
 	if rErr != nil {
 		Error(w, rErr.Error(), rErr.Code())
 		return
 	}
-
-	ctx := r.Context()
-	logger := logging.WithContext(ctx)
 
 	placement, err := h.placementInit(ctx, req)
 	if err != nil {
@@ -68,16 +68,16 @@ func (h *PlacementInitHandler) parseRequest(r *http.Request) (*admin.PlacementIn
 	}
 	defer r.Body.Close()
 
-	var initReq admin.PlacementInitRequest
-	if err := json.Unmarshal(body, &initReq); err != nil {
+	initReq := new(admin.PlacementInitRequest)
+	if err := json.Unmarshal(body, initReq); err != nil {
 		return nil, NewParseError(err, http.StatusBadRequest)
 	}
 
-	return &initReq, nil
+	return initReq, nil
 }
 
 func (h *PlacementInitHandler) placementInit(ctx context.Context, r *admin.PlacementInitRequest) (placement.Placement, error) {
-	ps, err := GetPlacementService(h.clusterClient)
+	ps, err := PlacementService(h.clusterClient)
 	if err != nil {
 		return nil, err
 	}
