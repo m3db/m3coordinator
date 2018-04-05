@@ -17,7 +17,7 @@ const (
 	blockTwoID = "test_two"
 )
 
-func createM3SeriesBlocksList(ctrl *gomock.Controller, now time.Time) []SeriesBlocks {
+func newM3SeriesBlocksList(ctrl *gomock.Controller, now time.Time) []SeriesBlocks {
 	seriesBlocksOne := newM3SeriesBlock(blockOneID, ctrl, now)
 	blocksOne := SeriesBlocks{
 		Blocks: seriesBlocksOne,
@@ -58,7 +58,7 @@ func newM3SeriesBlock(id string, ctrl *gomock.Controller, now time.Time) []Serie
 func TestConvertM3Blocks(t *testing.T) {
 	now := time.Now()
 	ctrl := gomock.NewController(t)
-	seriesBlocks := createM3SeriesBlocksList(ctrl, now)
+	seriesBlocks := newM3SeriesBlocksList(ctrl, now)
 	m3CoordBlocks, err := SeriesBlockToMultiSeriesBlocks(seriesBlocks)
 	require.NoError(t, err)
 
