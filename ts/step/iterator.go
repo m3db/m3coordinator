@@ -1,3 +1,23 @@
+// Copyright (c) 2018 Uber Technologies, Inc.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
 package step
 
 import (
@@ -8,12 +28,12 @@ import (
 )
 
 var (
-	errBlocksMisaligned = errors.New("validation failed. blocks are misaligned on either start or end times")
-	errNumBlocks        = errors.New("validation failed. number of blocks is not uniform across SeriesBlocks")
+	errBlocksMisaligned = errors.New("blocks are misaligned on either start or end times")
+	errNumBlocks        = errors.New("number of blocks is not uniform across SeriesBlocks")
 )
 
 // SeriesBlockToMultiSeriesBlocks converts M3DB blocks to multi series blocks
-func SeriesBlockToMultiSeriesBlocks(blocks []SeriesBlocks) ([]MultiSeriesBlock, error) {
+func SeriesBlockToMultiSeriesBlocks(blocks []SeriesBlocks, seriesIteratorsPool encoding.MutableSeriesIteratorsPool) ([]MultiSeriesBlock, error) {
 	numBlocks := len(blocks[0].Blocks)
 	if err := validateBlocks(blocks, numBlocks); err != nil {
 		return []MultiSeriesBlock{}, err
@@ -22,20 +42,29 @@ func SeriesBlockToMultiSeriesBlocks(blocks []SeriesBlocks) ([]MultiSeriesBlock, 
 	multiSeriesBlocks := make([]MultiSeriesBlock, 0, numBlocks)
 	for i := 0; i < numBlocks; i++ {
 		numSeries := len(blocks)
-		s := make([]encoding.SeriesIterator, numSeries)
+		var iters encoding.MutableSeriesIterators
+		if seriesIteratorsPool != nil {
+			iters = seriesIteratorsPool.Get(numSeries)
+			iters.Reset(numSeries)
+			for _, seriesIter := range iters.Iters() {
+				iters.SetAt(i, seriesIter)
+			}
+		} else {
+			s := make([]encoding.SeriesIterator, numSeries)
 
-		for j, block := range blocks {
-			s[j] = block.Blocks[i].SeriesIterator
+			for j, block := range blocks {
+				s[j] = block.Blocks[i].SeriesIterator
+			}
+			iters = encoding.NewSeriesIterators(s, nil)
 		}
 
 		multiSeriesBlocks = append(multiSeriesBlocks,
 			MultiSeriesBlock{
 				Start:           blocks[0].Blocks[i].Start,
 				End:             blocks[0].Blocks[i].End,
-				SeriesIterators: encoding.NewSeriesIterators(s, nil),
+				SeriesIterators: iters,
 			})
 	}
-
 	return multiSeriesBlocks, nil
 }
 
