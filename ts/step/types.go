@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package step
+package iter
 
 import (
 	"time"
@@ -57,7 +57,7 @@ type StepIter interface {
 // SeriesIter iterates through a CompressedSeriesIterator horizontally
 type SeriesIter interface {
 	Next() bool
-	Current() []*ts.Datapoint
+	Current() []ts.Datapoint // todo(braskin): optimize into a ts.Series later
 }
 
 // CompressedStepIterator implements the StepIter interface
