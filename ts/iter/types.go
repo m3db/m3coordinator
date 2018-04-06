@@ -48,6 +48,10 @@ type MultiSeriesBlock struct {
 	SeriesIterators encoding.SeriesIterators
 }
 
+// MultiSeriesBlocks is a slice of MultiSeriesBlock
+// todo(braskin): add close method on this to close each SeriesIterator
+type MultiSeriesBlocks []MultiSeriesBlock
+
 // StepIter iterates through a CompressedStepIterator vertically
 type StepIter interface {
 	Next() bool

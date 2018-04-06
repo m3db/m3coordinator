@@ -33,13 +33,13 @@ var (
 )
 
 // SeriesBlockToMultiSeriesBlocks converts M3DB blocks to multi series blocks
-func SeriesBlockToMultiSeriesBlocks(blocks []SeriesBlocks, seriesIteratorsPool encoding.MutableSeriesIteratorsPool) ([]MultiSeriesBlock, error) {
+func SeriesBlockToMultiSeriesBlocks(blocks []SeriesBlocks, seriesIteratorsPool encoding.MutableSeriesIteratorsPool) (MultiSeriesBlocks, error) {
 	numBlocks := len(blocks[0].Blocks)
 	if err := validateBlocks(blocks, numBlocks); err != nil {
-		return []MultiSeriesBlock{}, err
+		return MultiSeriesBlocks{}, err
 	}
 
-	multiSeriesBlocks := make([]MultiSeriesBlock, 0, numBlocks)
+	multiSeriesBlocks := make(MultiSeriesBlocks, 0, numBlocks)
 	for i := 0; i < numBlocks; i++ {
 		numSeries := len(blocks)
 		var iters encoding.MutableSeriesIterators

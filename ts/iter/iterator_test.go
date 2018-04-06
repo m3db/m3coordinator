@@ -50,8 +50,7 @@ func newM3SeriesBlocksList(ctrl *gomock.Controller, now time.Time) []SeriesBlock
 		ID:     ident.StringID(blockTwoID),
 	}
 
-	seriesBlocks := []SeriesBlocks{blocksOne, blocksTwo}
-	return seriesBlocks
+	return []SeriesBlocks{blocksOne, blocksTwo}
 }
 
 func newM3SeriesBlock(id string, ctrl *gomock.Controller, now time.Time) []SeriesBlock {
