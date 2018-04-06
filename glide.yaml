@@ -42,6 +42,6 @@ import:
   subpackages:
   - http2
 - package: github.com/prometheus/prometheus
-  version: ^2.2.1
+  version: 998dfcbac689ae832ea64ca134fcb096f61a7f62
   subpackages:
   - promql

@@ -1,5 +1,5 @@
-hash: 1aa272e705d982eb524c454687b664cb19d98a3619166d8e16ef4e64e2f30224
-updated: 2018-04-06T10:10:10.950962169-04:00
+hash: c8e0ba912adfa001b1599d6a346615bf40942fc29be60579967a744f4c00a13f
+updated: 2018-04-06T13:32:04.563600706-04:00
 imports:
 - name: github.com/alecthomas/template
   version: a0175ee3bccc567396460bf5acd36800cb10c49c
@@ -202,7 +202,7 @@ imports:
 - name: github.com/prometheus/procfs
   version: 1878d9fbb537119d24b21ca07effd591627cd160
 - name: github.com/prometheus/prometheus
-  version: bc6058c81272a8d938c05e75607371284236aadc
+  version: 998dfcbac689ae832ea64ca134fcb096f61a7f62
   subpackages:
   - pkg/labels
   - pkg/textparse
