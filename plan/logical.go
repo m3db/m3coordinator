@@ -6,38 +6,43 @@ import (
 	"github.com/m3db/m3coordinator/parser"
 )
 
+// LogicalPlan converts a DAG into a list of steps to be executed in order
 type LogicalPlan struct {
-	Transforms map[parser.TransformID]*PlanStep
+	Transforms map[parser.TransformID]*LogicalStep
 	Pipeline   []parser.TransformID // Ordered list of steps to be performed
 }
 
-type PlanStep struct {
+// LogicalStep is a single step in a logical plan
+type LogicalStep struct {
 	Parents   []parser.TransformID
 	Children  []parser.TransformID
 	Transform *parser.Transform
 }
 
+// NewLogicalPlan returns an empty logical plan
 func NewLogicalPlan() *LogicalPlan {
 	return &LogicalPlan{
-		Transforms: make(map[parser.TransformID]*PlanStep),
+		Transforms: make(map[parser.TransformID]*LogicalStep),
 		Pipeline:   make([]parser.TransformID, 0),
 	}
 }
 
-func NewPlanStep(Transform *parser.Transform) *PlanStep {
-	return &PlanStep{
+// NewLogicalStep returns an empty plan step
+func NewLogicalStep(Transform *parser.Transform) *LogicalStep {
+	return &LogicalStep{
 		Transform: Transform,
 		Parents:   make([]parser.TransformID, 0),
 		Children:  make([]parser.TransformID, 0),
 	}
 }
 
+// GenerateLogicalPlan creates a plan from the DAG structure
 func GenerateLogicalPlan(transforms parser.Transforms, edges parser.Edges) (*LogicalPlan, error) {
 	lp := NewLogicalPlan()
 
 	// Create all steps
 	for _, transform := range transforms {
-		lp.Transforms[transform.ID] = NewPlanStep(transform)
+		lp.Transforms[transform.ID] = NewLogicalStep(transform)
 		lp.Pipeline = append(lp.Pipeline, transform.ID)
 	}
 
