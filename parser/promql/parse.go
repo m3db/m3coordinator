@@ -19,7 +19,6 @@ func Parse(q string) (parser.Parser, error) {
 	}
 
 	return &promParser{expr: expr}, nil
-
 }
 
 func (p *promParser) DAG() (parser.Transforms, parser.Edges, error) {

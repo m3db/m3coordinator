@@ -10,7 +10,6 @@ import (
 
 // NewSelectorFromVector creates a new fetchop
 func NewSelectorFromVector(n *promql.VectorSelector) parser.Operation {
-
 	// TODO: convert n.LabelMatchers to Matchers
 	return &functions.FetchOp{Name: n.Name, Offset: n.Offset, Matchers: nil}
 }
@@ -26,7 +25,6 @@ func NewOperator(opType promql.ItemType) parser.Operation {
 	switch getOpType(opType) {
 	case functions.CountType:
 		return &functions.CountOp{}
-
 	}
 	// TODO: handle other types
 	return nil
