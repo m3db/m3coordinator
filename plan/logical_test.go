@@ -18,20 +18,21 @@ func TestSingleChildParentRelation(t *testing.T) {
 		ID: parser.TransformID("2"),
 	}
 
-	transforms := make(parser.Transforms, 0)
-	transforms = append(transforms, fetchTransform)
-	transforms = append(transforms, sumTransform)
+	transforms := parser.Transforms{fetchTransform, sumTransform}
+	edges := parser.Edges {
+		&parser.Edge{
+			ParentID: fetchTransform.ID,
+			ChildID: sumTransform.ID,
+		},
+	}
 
-	edges := make(parser.Edges, 0)
-	edges = append(edges, &parser.Edge{
-		ParentID: fetchTransform.ID,
-		ChildID: sumTransform.ID,
-	})
 
 	lp, err := GenerateLogicalPlan(transforms, edges)
 	require.NoError(t, err)
+	assert.Len(t, lp.Transforms[sumTransform.ID].Parents, 1)
+	assert.Len(t, lp.Transforms[fetchTransform.ID].Children, 1)
+	assert.Len(t, lp.Transforms[fetchTransform.ID].Parents, 0)
+	assert.Len(t, lp.Transforms[sumTransform.ID].Children, 0)
 	assert.Equal(t, lp.Transforms[fetchTransform.ID].Children[0], sumTransform.ID)
 	assert.Equal(t, lp.Transforms[sumTransform.ID].Parents[0], fetchTransform.ID)
-	assert.Len(t, lp.Transforms[sumTransform.ID].Children, 0)
-
 }
