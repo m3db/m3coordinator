@@ -17,7 +17,7 @@ func TestDAG(t *testing.T) {
 	transforms, edges, err := p.DAG()
 	require.NoError(t, err)
 	assert.Len(t, transforms, 2)
-	assert.Equal(t, transforms[0].Op.Type(), functions.FetchType)
+	assert.Equal(t, transforms[0].Op.OpType(), functions.FetchType)
 	assert.Equal(t, transforms[0].ID, parser.TransformID("0"))
 	assert.Equal(t, transforms[1].ID, parser.TransformID("1"))
 	assert.Len(t, edges, 1)

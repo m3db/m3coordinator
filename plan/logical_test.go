@@ -26,7 +26,6 @@ func TestSingleChildParentRelation(t *testing.T) {
 		},
 	}
 
-
 	lp, err := GenerateLogicalPlan(transforms, edges)
 	require.NoError(t, err)
 	assert.Len(t, lp.Transforms[sumTransform.ID].Parents, 1)
@@ -35,4 +34,6 @@ func TestSingleChildParentRelation(t *testing.T) {
 	assert.Len(t, lp.Transforms[sumTransform.ID].Children, 0)
 	assert.Equal(t, lp.Transforms[fetchTransform.ID].Children[0], sumTransform.ID)
 	assert.Equal(t, lp.Transforms[sumTransform.ID].Parents[0], fetchTransform.ID)
+	// Will get better once we implement ops. Then we can test for existence of ops
+	assert.Contains(t, lp.String(), "Parents")
 }

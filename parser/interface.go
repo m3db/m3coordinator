@@ -15,7 +15,7 @@ type TransformID string
 
 // Operation is a function that can be applied to data
 type Operation interface {
-	Type() string
+	OpType() string
 }
 
 // Transforms is a slice of Transform

@@ -17,7 +17,7 @@ type FetchOp struct {
 	Matchers models.Matchers
 }
 
-// Type for the operator
-func (o *FetchOp) Type() string {
+// OpType for the operator
+func (o *FetchOp) OpType() string {
 	return FetchType
 }

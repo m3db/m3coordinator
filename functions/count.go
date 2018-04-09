@@ -7,7 +7,7 @@ const CountType = "count"
 type CountOp struct {
 }
 
-// Type for the operator
-func (o *CountOp) Type() string {
+// OpType for the operator
+func (o *CountOp) OpType() string {
 	return CountType
 }

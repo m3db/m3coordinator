@@ -36,6 +36,14 @@ func NewLogicalStep(Transform *parser.Transform) *LogicalStep {
 	}
 }
 
+func (l *LogicalPlan) String() string {
+	return fmt.Sprintf("Transforms: %s, Pipeline: %s", l.Transforms, l.Pipeline)
+}
+
+func (l *LogicalStep) String() string {
+	return fmt.Sprintf("Parents: %s, Children: %s, Transform: %s", l.Parents, l.Children, l.Transform)
+}
+
 // GenerateLogicalPlan creates a plan from the DAG structure
 func GenerateLogicalPlan(transforms parser.Transforms, edges parser.Edges) (*LogicalPlan, error) {
 	lp := NewLogicalPlan()
