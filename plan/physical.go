@@ -7,25 +7,25 @@ import (
 	"github.com/m3db/m3coordinator/storage"
 )
 
-// Physical represents the physical plan
-type Physical struct {
-	Transforms map[parser.TransformID]*LogicalStep
+// PhysicalPlan represents the physical plan
+type PhysicalPlan struct {
+	Steps      map[parser.TransformID]*LogicalStep
 	Pipeline   []parser.TransformID // Ordered list of steps to be performed
 	ResultStep *LogicalStep
 }
 
 // newPhysicalPlan generates a new physical plan after cloning the logical plan so that any changes here do not update the logical plan
-func newPhysicalPlan(lp *LogicalPlan) *Physical {
+func newPhysicalPlan(lp *LogicalPlan) *PhysicalPlan {
 	cloned := lp.Clone()
-	return &Physical{
-		Transforms: cloned.Transforms,
-		Pipeline:   cloned.Pipeline,
+	return &PhysicalPlan{
+		Steps:    cloned.Steps,
+		Pipeline: cloned.Pipeline,
 	}
 }
 
-// PhysicalPlan is used to generate a physical plan. Its responsibilities include creating consolidation nodes, result nodes,
+// GeneratePhysicalPlan is used to generate a physical plan. Its responsibilities include creating consolidation nodes, result nodes,
 // pushing down predicates, changing the ordering for nodes
-func PhysicalPlan(lp *LogicalPlan, storage storage.Storage) (*Physical, error) {
+func GeneratePhysicalPlan(lp *LogicalPlan, storage storage.Storage) (*PhysicalPlan, error) {
 	p := newPhysicalPlan(lp)
 	if err := p.createResultNode(); err != nil {
 		return nil, err
@@ -34,23 +34,23 @@ func PhysicalPlan(lp *LogicalPlan, storage storage.Storage) (*Physical, error) {
 	return p, nil
 }
 
-func (p *Physical) createResultNode() error {
+func (p *PhysicalPlan) createResultNode() error {
 	leaf, err := p.leafNode()
 	if err != nil {
 		return err
 	}
 
-	resultNode := parser.NewTransformFromOperation(&ResultOp{}, len(p.Transforms)+1)
+	resultNode := parser.NewTransformFromOperation(&ResultOp{}, len(p.Steps)+1)
 	resultStep := newLogicalStep(resultNode)
-	resultStep.Parents = append(resultStep.Parents, leaf.Transform.ID())
+	resultStep.Parents = append(resultStep.Parents, leaf.ID())
 	p.ResultStep = resultStep
 	return nil
 }
 
-func (p *Physical) leafNode() (*LogicalStep, error) {
+func (p *PhysicalPlan) leafNode() (*LogicalStep, error) {
 	var leaf *LogicalStep
 	for _, transformID := range p.Pipeline {
-		node, ok := p.Transforms[transformID]
+		node, ok := p.Steps[transformID]
 		if !ok {
 			return nil, fmt.Errorf("transform not found, %s", transformID)
 		}
@@ -67,6 +67,6 @@ func (p *Physical) leafNode() (*LogicalStep, error) {
 	return leaf, nil
 }
 
-func (p *Physical) String() string {
-	return fmt.Sprintf("Transforms: %s, Pipeline: %s, Result: %s", p.Transforms, p.Pipeline, p.ResultStep)
+func (p *PhysicalPlan) String() string {
+	return fmt.Sprintf("Steps: %s, Pipeline: %s, Result: %s", p.Steps, p.Pipeline, p.ResultStep)
 }

@@ -22,10 +22,10 @@ func TestResultNode(t *testing.T) {
 
 	lp, err := GenerateLogicalPlan(transforms, edges)
 	require.NoError(t, err)
-	p, err := PhysicalPlan(lp, nil)
+	p, err := GeneratePhysicalPlan(lp, nil)
 	require.NoError(t, err)
 	node, err := p.leafNode()
 	require.NoError(t, err)
-	assert.Equal(t, node.Transform.ID(), countTransform.ID())
+	assert.Equal(t, node.ID(), countTransform.ID())
 	assert.Equal(t, p.ResultStep.Transform.Op().OpType(), ResultType)
 }

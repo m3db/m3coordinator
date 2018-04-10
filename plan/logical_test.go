@@ -23,12 +23,12 @@ func TestSingleChildParentRelation(t *testing.T) {
 
 	lp, err := GenerateLogicalPlan(transforms, edges)
 	require.NoError(t, err)
-	assert.Len(t, lp.Transforms[countTransform.ID()].Parents, 1)
-	assert.Len(t, lp.Transforms[fetchTransform.ID()].Children, 1)
-	assert.Len(t, lp.Transforms[fetchTransform.ID()].Parents, 0)
-	assert.Len(t, lp.Transforms[countTransform.ID()].Children, 0)
-	assert.Equal(t, lp.Transforms[fetchTransform.ID()].Children[0], countTransform.ID())
-	assert.Equal(t, lp.Transforms[countTransform.ID()].Parents[0], fetchTransform.ID())
+	assert.Len(t, lp.Steps[countTransform.ID()].Parents, 1)
+	assert.Len(t, lp.Steps[fetchTransform.ID()].Children, 1)
+	assert.Len(t, lp.Steps[fetchTransform.ID()].Parents, 0)
+	assert.Len(t, lp.Steps[countTransform.ID()].Children, 0)
+	assert.Equal(t, lp.Steps[fetchTransform.ID()].Children[0], countTransform.ID())
+	assert.Equal(t, lp.Steps[countTransform.ID()].Parents[0], fetchTransform.ID())
 	// Will get better once we implement ops. Then we can test for existence of ops
 	assert.Contains(t, lp.String(), "Parents")
 }

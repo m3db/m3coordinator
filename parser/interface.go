@@ -15,14 +15,14 @@ type TransformID string
 
 // Operation is a function that can be applied to data
 type Operation interface {
+	fmt.Stringer
 	OpType() string
-	String() string
 }
 
 // Transforms is a slice of Transform
 type Transforms []*Transform
 
-// Transform is a node in common DAG which can be uniquely identified. It is immutable
+// Transform is an immutable node in common DAG which can be uniquely identified. In the future we would want it to be serializable
 type Transform struct {
 	id TransformID
 	op Operation
