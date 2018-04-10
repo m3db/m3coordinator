@@ -1,6 +1,7 @@
 package functions
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/m3db/m3coordinator/models"
@@ -20,4 +21,9 @@ type FetchOp struct {
 // OpType for the operator
 func (o *FetchOp) OpType() string {
 	return FetchType
+}
+
+// String representation
+func (o *FetchOp) String() string {
+	return fmt.Sprintf("type: %s. name: %s, range: %v, offset: %v, matchers: %v", o.OpType(), o.Name, o.Range, o.Offset, o.Matchers)
 }

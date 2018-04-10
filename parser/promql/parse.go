@@ -51,8 +51,8 @@ func walk(node pql.Node) (parser.Transforms, parser.Edges, error) {
 
 		opTransform := parser.NewTransformFromOperation(NewOperator(n.Op), len(transforms))
 		edges = append(edges, &parser.Edge{
-			ParentID: transforms[len(transforms)-1].ID,
-			ChildID:  opTransform.ID,
+			ParentID: transforms[len(transforms)-1].ID(),
+			ChildID:  opTransform.ID(),
 		})
 		transforms = append(transforms, opTransform)
 		// TODO: handle labels, params
