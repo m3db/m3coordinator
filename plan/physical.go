@@ -41,8 +41,12 @@ func (p *PhysicalPlan) createResultNode() error {
 	}
 
 	resultNode := parser.NewTransformFromOperation(&ResultOp{}, len(p.Steps)+1)
-	resultStep := newLogicalStep(resultNode)
-	resultStep.Parents = append(resultStep.Parents, leaf.ID())
+	resultStep := &LogicalStep{
+		Transform: resultNode,
+		Parents:   []parser.TransformID{leaf.ID()},
+		Children:  []parser.TransformID{},
+	}
+
 	p.ResultStep = resultStep
 	return nil
 }
