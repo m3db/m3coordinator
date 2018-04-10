@@ -19,30 +19,20 @@ type LogicalStep struct {
 	Transform *parser.Transform
 }
 
-// newLogicalPlan returns an empty logical plan
-func newLogicalPlan() *LogicalPlan {
-	return &LogicalPlan{
+// GenerateLogicalPlan creates a plan from the DAG structure
+func GenerateLogicalPlan(transforms parser.Transforms, edges parser.Edges) (*LogicalPlan, error) {
+	lp := &LogicalPlan{
 		Steps:    make(map[parser.TransformID]*LogicalStep),
 		Pipeline: make([]parser.TransformID, 0),
 	}
-}
-
-// newLogicalStep returns an empty plan step
-func newLogicalStep(Transform *parser.Transform) *LogicalStep {
-	return &LogicalStep{
-		Transform: Transform,
-		Parents:   make([]parser.TransformID, 0),
-		Children:  make([]parser.TransformID, 0),
-	}
-}
-
-// GenerateLogicalPlan creates a plan from the DAG structure
-func GenerateLogicalPlan(transforms parser.Transforms, edges parser.Edges) (*LogicalPlan, error) {
-	lp := newLogicalPlan()
 
 	// Create all steps
 	for _, transform := range transforms {
-		lp.Steps[transform.ID()] = newLogicalStep(transform)
+		lp.Steps[transform.ID()] = &LogicalStep{
+			Transform: transform,
+			Parents:   make([]parser.TransformID, 0),
+			Children:  make([]parser.TransformID, 0),
+		}
 		lp.Pipeline = append(lp.Pipeline, transform.ID())
 	}
 
