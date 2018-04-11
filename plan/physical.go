@@ -14,19 +14,16 @@ type PhysicalPlan struct {
 	ResultStep *LogicalStep
 }
 
-// newPhysicalPlan generates a new physical plan after cloning the logical plan so that any changes here do not update the logical plan
-func newPhysicalPlan(lp *LogicalPlan) *PhysicalPlan {
+// NewPhysicalPlan is used to generate a physical plan. Its responsibilities include creating consolidation nodes, result nodes,
+// pushing down predicates, changing the ordering for nodes
+func NewPhysicalPlan(lp *LogicalPlan, storage storage.Storage) (*PhysicalPlan, error) {
+	// generate a new physical plan after cloning the logical plan so that any changes here do not update the logical plan
 	cloned := lp.Clone()
-	return &PhysicalPlan{
+	p := &PhysicalPlan{
 		Steps:    cloned.Steps,
 		Pipeline: cloned.Pipeline,
 	}
-}
 
-// GeneratePhysicalPlan is used to generate a physical plan. Its responsibilities include creating consolidation nodes, result nodes,
-// pushing down predicates, changing the ordering for nodes
-func GeneratePhysicalPlan(lp *LogicalPlan, storage storage.Storage) (*PhysicalPlan, error) {
-	p := newPhysicalPlan(lp)
 	if err := p.createResultNode(); err != nil {
 		return nil, err
 	}
