@@ -1,5 +1,5 @@
-hash: c8e0ba912adfa001b1599d6a346615bf40942fc29be60579967a744f4c00a13f
-updated: 2018-04-06T13:32:04.563600706-04:00
+hash: 0dd01bcaa6d668e4ee88305c61d7a2c941a754acd23f337f025e128b9d6ebed9
+updated: 2018-04-11T14:50:35.315297-04:00
 imports:
 - name: github.com/alecthomas/template
   version: a0175ee3bccc567396460bf5acd36800cb10c49c
@@ -24,10 +24,13 @@ imports:
   - clientv3
   - clientv3/concurrency
   - embed
+  - error
   - etcdserver/api/v3rpc/rpctypes
   - etcdserver/etcdserverpb
   - integration
   - mvcc/mvccpb
+  - pkg/types
+  - store
 - name: github.com/davecgh/go-spew
   version: adab96458c51a58dc1783b3335dcce5461522e75
   subpackages:
@@ -76,8 +79,10 @@ imports:
   version: 53c1911da2b537f792e7cafcb446b05ffe33b996
 - name: github.com/kr/logfmt
   version: b84e30acd515aadc4b783ad4ff83aff3299bdfe0
+- name: github.com/jonboulle/clockwork
+  version: 2eee05ed794112d45db504eb05aa693efd2b8b09
 - name: github.com/m3db/m3cluster
-  version: ac52883b085bacbfa8441c511342d429772c8317
+  version: 53fc512c11e1ed03db2d65dac4c139a3c2ff2eda
   subpackages:
   - client
   - client/etcd
@@ -94,14 +99,13 @@ imports:
   - placement/service
   - placement/storage
   - services
-  - services/client/etcd
   - services/heartbeat/etcd
   - services/leader
   - services/leader/campaign
   - services/leader/election
   - shard
 - name: github.com/m3db/m3db
-  version: eb29e62b58f8c77b9a9d54919c377b7a43f1fc39
+  version: c5d97a9ddc10cbd27a2d1fb69d78e4de6b9a9159
   subpackages:
   - client
   - clock
@@ -116,7 +120,10 @@ imports:
   - network/server/tchannelthrift/errors
   - network/server/tchannelthrift/node/channel
   - persist
+  - ratelimit
   - retention
+  - runtime
+  - serialize
   - sharding
   - storage/block
   - storage/bootstrap/result
@@ -127,6 +134,7 @@ imports:
   - ts
   - x/tchannel
   - x/xio
+  - x/xpool
 - name: github.com/m3db/m3metrics
   version: 17e4ddf89f2b0c8fbb16b6d5b71a871b793d2a00
   subpackages:

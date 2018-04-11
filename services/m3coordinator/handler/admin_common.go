@@ -21,11 +21,17 @@
 package handler
 
 import (
+	"fmt"
+	"time"
+
 	m3clusterClient "github.com/m3db/m3cluster/client"
 	"github.com/m3db/m3cluster/generated/proto/placementpb"
+	"github.com/m3db/m3cluster/kv"
 	"github.com/m3db/m3cluster/placement"
 	"github.com/m3db/m3cluster/services"
 	"github.com/m3db/m3cluster/shard"
+	nsproto "github.com/m3db/m3db/generated/proto/namespace"
+	"github.com/m3db/m3db/storage/namespace"
 )
 
 const (
@@ -37,6 +43,9 @@ const (
 
 	// DefaultServiceZone is the default service ID zone
 	DefaultServiceZone = "embedded"
+
+	// M3DBNodeNamespacesKey is the KV key that holds namespaces
+	M3DBNodeNamespacesKey = "m3db.node.namespaces"
 )
 
 // AdminHandler represents a generic handler for admin endpoints.
@@ -46,7 +55,7 @@ type AdminHandler struct {
 
 // PlacementService gets a placement service from an m3cluster client
 func PlacementService(clusterClient m3clusterClient.Client) (placement.Service, error) {
-	cs, err := clusterClient.Services(services.NewOptions())
+	cs, err := clusterClient.Services(services.NewOverrideOptions())
 	if err != nil {
 		return nil, err
 	}
@@ -64,6 +73,11 @@ func PlacementService(clusterClient m3clusterClient.Client) (placement.Service, 
 	return ps, nil
 }
 
+// GetKV gets a KV store from an m3cluster client
+func GetKV(clusterClient m3clusterClient.Client) (kv.Store, error) {
+	return clusterClient.KV()
+}
+
 // ConvertInstancesProto converts a slice of protobuf `Instance`s to `placement.Instance`s
 func ConvertInstancesProto(instancesProto []*placementpb.Instance) ([]placement.Instance, error) {
 	res := make([]placement.Instance, 0, len(instancesProto))
@@ -79,7 +93,7 @@ func ConvertInstancesProto(instancesProto []*placementpb.Instance) ([]placement.
 			SetHostname(instanceProto.Hostname).
 			SetID(instanceProto.Id).
 			SetPort(instanceProto.Port).
-			SetRack(instanceProto.Rack).
+			SetIsolationGroup(instanceProto.IsolationGroup).
 			SetShards(shards).
 			SetShardSetID(instanceProto.ShardSetId).
 			SetWeight(instanceProto.Weight).
@@ -89,4 +103,34 @@ func ConvertInstancesProto(instancesProto []*placementpb.Instance) ([]placement.
 	}
 
 	return res, nil
+}
+
+func currentNamespaceMetadata(store kv.Store) ([]namespace.Metadata, error) {
+	value, err := store.Get(M3DBNodeNamespacesKey)
+	if err == kv.ErrNotFound {
+		return []namespace.Metadata{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	var protoRegistry nsproto.Registry
+	if err := value.Unmarshal(&protoRegistry); err != nil {
+		return nil, fmt.Errorf("unable to parse value, err: %v", err)
+	}
+
+	nsMap, err := namespace.FromProto(protoRegistry)
+	if err != nil {
+		return nil, err
+	}
+
+	return nsMap.Metadatas(), nil
+}
+
+func parseDurationWithDefault(s, def string) (time.Duration, error) {
+	if s == "" {
+		s = def
+	}
+
+	return time.ParseDuration(s)
 }
