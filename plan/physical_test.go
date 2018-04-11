@@ -7,6 +7,7 @@ import (
 	"github.com/m3db/m3coordinator/parser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/tools/go/gcimporter15/testdata"
 )
 
 func TestResultNode(t *testing.T) {
@@ -22,10 +23,11 @@ func TestResultNode(t *testing.T) {
 
 	lp, err := NewLogicalPlan(transforms, edges)
 	require.NoError(t, err)
-	p, err := NewPhysicalPlan(lp, nil)
+	pl, err := NewPhysicalPlan(lp, nil)
 	require.NoError(t, err)
+	p := pl.(*physicalPlan)
 	node, err := p.leafNode()
 	require.NoError(t, err)
 	assert.Equal(t, node.ID(), countTransform.ID())
-	assert.Equal(t, p.ResultStep.Transform.Op().OpType(), ResultType)
+	assert.Equal(t, p.resultStep.Transform.Op().OpType(), ResultType)
 }
