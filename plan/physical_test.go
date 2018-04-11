@@ -5,9 +5,9 @@ import (
 
 	"github.com/m3db/m3coordinator/functions"
 	"github.com/m3db/m3coordinator/parser"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/tools/go/gcimporter15/testdata"
 )
 
 func TestResultNode(t *testing.T) {
