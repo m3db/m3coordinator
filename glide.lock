@@ -24,10 +24,13 @@ imports:
   - clientv3
   - clientv3/concurrency
   - embed
+  - error
   - etcdserver/api/v3rpc/rpctypes
   - etcdserver/etcdserverpb
   - integration
   - mvcc/mvccpb
+  - pkg/types
+  - store
 - name: github.com/davecgh/go-spew
   version: adab96458c51a58dc1783b3335dcce5461522e75
   subpackages:
@@ -74,6 +77,8 @@ imports:
   version: 53c1911da2b537f792e7cafcb446b05ffe33b996
 - name: github.com/kr/logfmt
   version: b84e30acd515aadc4b783ad4ff83aff3299bdfe0
+- name: github.com/jonboulle/clockwork
+  version: 2eee05ed794112d45db504eb05aa693efd2b8b09
 - name: github.com/m3db/m3cluster
   version: 53fc512c11e1ed03db2d65dac4c139a3c2ff2eda
   subpackages:

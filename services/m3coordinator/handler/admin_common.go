@@ -85,6 +85,11 @@ func PlacementService(clusterClient m3clusterClient.Client, cfg config.Configura
 	return ps, nil
 }
 
+// GetKV gets a KV store from an m3cluster client
+func GetKV(clusterClient m3clusterClient.Client) (kv.Store, error) {
+	return clusterClient.KV()
+}
+
 // ConvertInstancesProto converts a slice of protobuf `Instance`s to `placement.Instance`s
 func ConvertInstancesProto(instancesProto []*placementpb.Instance) ([]placement.Instance, error) {
 	res := make([]placement.Instance, 0, len(instancesProto))
@@ -114,12 +119,10 @@ func ConvertInstancesProto(instancesProto []*placementpb.Instance) ([]placement.
 
 func currentNamespaceMetadata(store kv.Store) ([]namespace.Metadata, error) {
 	value, err := store.Get(M3DBNodeNamespacesKey)
-
+	if err == kv.ErrNotFound {
+		return []namespace.Metadata{}, nil
+	}
 	if err != nil {
-		if err == kv.ErrNotFound {
-			return []namespace.Metadata{}, nil
-		}
-
 		return nil, err
 	}
 

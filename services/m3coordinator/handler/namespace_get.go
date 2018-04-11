@@ -30,6 +30,8 @@ import (
 
 	m3clusterClient "github.com/m3db/m3cluster/client"
 	"github.com/m3db/m3cluster/kv"
+	"github.com/m3db/m3coordinator/generated/proto/admin"
+	"github.com/m3db/m3coordinator/util/logging"
 	nsproto "github.com/m3db/m3db/generated/proto/namespace"
 	"go.uber.org/zap"
 )
