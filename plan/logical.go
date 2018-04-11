@@ -19,8 +19,8 @@ type LogicalStep struct {
 	Transform *parser.Transform
 }
 
-// GenerateLogicalPlan creates a plan from the DAG structure
-func GenerateLogicalPlan(transforms parser.Transforms, edges parser.Edges) (*LogicalPlan, error) {
+// NewLogicalPlan creates a plan from the DAG structure
+func NewLogicalPlan(transforms parser.Transforms, edges parser.Edges) (*LogicalPlan, error) {
 	lp := &LogicalPlan{
 		Steps:    make(map[parser.TransformID]*LogicalStep),
 		Pipeline: make([]parser.TransformID, 0),

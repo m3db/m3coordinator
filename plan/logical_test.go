@@ -21,7 +21,7 @@ func TestSingleChildParentRelation(t *testing.T) {
 		},
 	}
 
-	lp, err := GenerateLogicalPlan(transforms, edges)
+	lp, err := NewLogicalPlan(transforms, edges)
 	require.NoError(t, err)
 	assert.Len(t, lp.Steps[countTransform.ID()].Parents, 1)
 	assert.Len(t, lp.Steps[fetchTransform.ID()].Children, 1)

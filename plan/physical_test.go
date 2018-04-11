@@ -20,7 +20,7 @@ func TestResultNode(t *testing.T) {
 		},
 	}
 
-	lp, err := GenerateLogicalPlan(transforms, edges)
+	lp, err := NewLogicalPlan(transforms, edges)
 	require.NoError(t, err)
 	p, err := NewPhysicalPlan(lp, nil)
 	require.NoError(t, err)
