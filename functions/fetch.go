@@ -18,6 +18,10 @@ type FetchOp struct {
 	Matchers models.Matchers
 }
 
+type FetchNode struct {
+	op *FetchOp
+}
+
 // OpType for the operator
 func (o FetchOp) OpType() string {
 	return FetchType
@@ -26,4 +30,9 @@ func (o FetchOp) OpType() string {
 // String representation
 func (o FetchOp) String() string {
 	return fmt.Sprintf("type: %s. name: %s, range: %v, offset: %v, matchers: %v", o.OpType(), o.Name, o.Range, o.Offset, o.Matchers)
+}
+
+// OpType for the operator
+func (o *FetchOp) Node() *FetchNode {
+	return &FetchNode{op: o}
 }

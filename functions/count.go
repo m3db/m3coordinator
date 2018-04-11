@@ -18,3 +18,12 @@ func (o CountOp) OpType() string {
 func (o CountOp) String() string {
 	return fmt.Sprintf("type: %s", o.OpType())
 }
+
+// OpType for the operator
+func (o *CountOp) Node() *CountNode {
+	return &CountNode{op: o}
+}
+
+type CountNode struct {
+	op *CountOp
+}
