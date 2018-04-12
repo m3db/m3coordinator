@@ -45,14 +45,15 @@ func TestPlacementGetHandler(t *testing.T) {
 	mockPlacementService := placement.NewMockService(ctrl)
 	require.NotNil(t, mockPlacementService)
 
+	mockClient.EXPECT().Services(gomock.Not(nil)).Return(mockServices, nil)
+	mockServices.EXPECT().PlacementService(gomock.Not(nil), gomock.Not(nil)).Return(mockPlacementService, nil)
+
 	handler := NewPlacementGetHandler(mockClient)
 	w := httptest.NewRecorder()
 
-	req, err := http.NewRequest("GET", "/placement/get", nil)
-	require.NoError(t, err)
+	req := httptest.NewRequest("GET", "/placement/get", nil)
+	require.NotNil(t, req)
 
-	mockClient.EXPECT().Services(gomock.Not(nil)).Return(mockServices, nil)
-	mockServices.EXPECT().PlacementService(gomock.Not(nil), gomock.Not(nil)).Return(mockPlacementService, nil)
 	mockPlacementService.EXPECT().Placement().Return(placement.NewPlacement(), 0, nil)
 	handler.ServeHTTP(w, req)
 
