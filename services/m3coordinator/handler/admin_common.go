@@ -107,10 +107,12 @@ func ConvertInstancesProto(instancesProto []*placementpb.Instance) ([]placement.
 
 func currentNamespaceMetadata(store kv.Store) ([]namespace.Metadata, error) {
 	value, err := store.Get(M3DBNodeNamespacesKey)
-	if err == kv.ErrNotFound {
-		return []namespace.Metadata{}, nil
-	}
+
 	if err != nil {
+		if err == kv.ErrNotFound {
+			return []namespace.Metadata{}, nil
+		}
+
 		return nil, err
 	}
 

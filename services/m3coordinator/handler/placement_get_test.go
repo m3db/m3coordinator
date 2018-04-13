@@ -29,6 +29,7 @@ import (
 	"github.com/m3db/m3cluster/client"
 	"github.com/m3db/m3cluster/placement"
 	"github.com/m3db/m3cluster/services"
+	"github.com/m3db/m3coordinator/util/logging"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -36,6 +37,8 @@ import (
 )
 
 func TestPlacementGetHandler(t *testing.T) {
+	logging.InitWithCores(nil)
+
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockClient := client.NewMockClient(ctrl)
