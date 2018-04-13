@@ -40,12 +40,12 @@ func NewLogicalPlan(transforms parser.Transforms, edges parser.Edges) (*LogicalP
 	for _, edge := range edges {
 		parent, ok := lp.Steps[edge.ParentID]
 		if !ok {
-			return nil, fmt.Errorf("invalid DAG found, parent %s not found", edge.ParentID)
+			return nil, fmt.Errorf("invalid DAG found, parent %s not found for child %s", edge.ParentID, edge.ChildID)
 		}
 
 		child, ok := lp.Steps[edge.ChildID]
 		if !ok {
-			return nil, fmt.Errorf("invalid DAG found, child %s not found", edge.ChildID)
+			return nil, fmt.Errorf("invalid DAG found, child %s not found for parent %s", edge.ChildID, edge.ParentID)
 		}
 
 		parent.Children = append(parent.Children, child.ID())

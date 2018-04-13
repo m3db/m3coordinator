@@ -22,18 +22,19 @@ type Operation interface {
 // Transforms is a slice of Transform
 type Transforms []*Transform
 
-// Transform is an immutable node in common DAG which can be uniquely identified. In the future we would want it to be serializable
+// Transform represents an immutable node in the common DAG with a unique identifier.
+// TODO: make this serializable
 type Transform struct {
 	id TransformID
 	op Operation
 }
 
-// ID is a unique ID for the transform
+// ID is the unique ID for the transform
 func (t *Transform) ID() TransformID {
 	return t.id
 }
 
-// Op is a operation for the transform
+// Op represents the operation used in the transform
 func (t *Transform) Op() Operation {
 	return t.op
 }
