@@ -20,7 +20,7 @@ type Operation interface {
 }
 
 // Transforms is a slice of Transform
-type Transforms []*Transform
+type Transforms []Transform
 
 // Transform represents an immutable node in the common DAG with a unique identifier.
 // TODO: make this serializable
@@ -30,16 +30,16 @@ type Transform struct {
 }
 
 // ID is the unique ID for the transform
-func (t *Transform) ID() TransformID {
+func (t Transform) ID() TransformID {
 	return t.id
 }
 
 // Op represents the operation used in the transform
-func (t *Transform) Op() Operation {
+func (t Transform) Op() Operation {
 	return t.op
 }
 
-func (t *Transform) String() string {
+func (t Transform) String() string {
 	return fmt.Sprintf("ID: %s, Op: %s", t.ID(), t.Op())
 }
 
@@ -49,16 +49,16 @@ type Edge struct {
 	ChildID  TransformID
 }
 
-func (e *Edge) String() string {
+func (e Edge) String() string {
 	return fmt.Sprintf("parent: %s, child: %s", e.ParentID, e.ChildID)
 }
 
 // Edges is a slice of Edge
-type Edges []*Edge
+type Edges []Edge
 
 // NewTransformFromOperation creates a new transform
-func NewTransformFromOperation(Op Operation, nextID int) *Transform {
-	return &Transform{
+func NewTransformFromOperation(Op Operation, nextID int) Transform {
+	return Transform{
 		op: Op,
 		id: TransformID(fmt.Sprintf("%v", nextID)),
 	}

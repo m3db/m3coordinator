@@ -15,7 +15,7 @@ func TestResultNode(t *testing.T) {
 	countTransform := parser.NewTransformFromOperation(&functions.CountOp{}, 2)
 	transforms := parser.Transforms{fetchTransform, countTransform}
 	edges := parser.Edges{
-		&parser.Edge{
+		parser.Edge{
 			ParentID: fetchTransform.ID(),
 			ChildID:  countTransform.ID(),
 		},
