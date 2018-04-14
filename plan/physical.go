@@ -8,11 +8,7 @@ import (
 )
 
 // PhysicalPlan represents the physical plan
-type PhysicalPlan interface {
-	fmt.Stringer
-}
-
-type physicalPlan struct {
+type PhysicalPlan struct {
 	steps      map[parser.TransformID]LogicalStep
 	pipeline   []parser.TransformID // Ordered list of steps to be performed
 	resultStep LogicalStep
@@ -23,22 +19,23 @@ type physicalPlan struct {
 func NewPhysicalPlan(lp LogicalPlan, storage storage.Storage) (PhysicalPlan, error) {
 	// generate a new physical plan after cloning the logical plan so that any changes here do not update the logical plan
 	cloned := lp.Clone()
-	p := physicalPlan{
+	p := PhysicalPlan{
 		steps:    cloned.Steps,
 		pipeline: cloned.Pipeline,
 	}
 
-	if err := p.createResultNode(); err != nil {
-		return nil, err
+	pl, err := p.createResultNode()
+	if err != nil {
+		return PhysicalPlan{}, err
 	}
 
-	return p, nil
+	return pl, nil
 }
 
-func (p physicalPlan) createResultNode() error {
+func (p PhysicalPlan) createResultNode() (PhysicalPlan, error) {
 	leaf, err := p.leafNode()
 	if err != nil {
-		return err
+		return p, err
 	}
 
 	resultNode := parser.NewTransformFromOperation(&ResultOp{}, len(p.steps)+1)
@@ -49,10 +46,10 @@ func (p physicalPlan) createResultNode() error {
 	}
 
 	p.resultStep = resultStep
-	return nil
+	return p, nil
 }
 
-func (p physicalPlan) leafNode() (LogicalStep, error) {
+func (p PhysicalPlan) leafNode() (LogicalStep, error) {
 	var leaf LogicalStep
 	found := false
 	for _, transformID := range p.pipeline {
@@ -74,6 +71,6 @@ func (p physicalPlan) leafNode() (LogicalStep, error) {
 	return leaf, nil
 }
 
-func (p physicalPlan) String() string {
+func (p PhysicalPlan) String() string {
 	return fmt.Sprintf("Steps: %s, Pipeline: %s, Result: %s", p.steps, p.pipeline, p.resultStep)
 }

@@ -11,8 +11,8 @@ import (
 )
 
 func TestResultNode(t *testing.T) {
-	fetchTransform := parser.NewTransformFromOperation(&functions.FetchOp{}, 1)
-	countTransform := parser.NewTransformFromOperation(&functions.CountOp{}, 2)
+	fetchTransform := parser.NewTransformFromOperation(functions.FetchOp{}, 1)
+	countTransform := parser.NewTransformFromOperation(functions.CountOp{}, 2)
 	transforms := parser.Transforms{fetchTransform, countTransform}
 	edges := parser.Edges{
 		parser.Edge{
@@ -23,9 +23,8 @@ func TestResultNode(t *testing.T) {
 
 	lp, err := NewLogicalPlan(transforms, edges)
 	require.NoError(t, err)
-	pl, err := NewPhysicalPlan(lp, nil)
+	p, err := NewPhysicalPlan(lp, nil)
 	require.NoError(t, err)
-	p := pl.(*physicalPlan)
 	node, err := p.leafNode()
 	require.NoError(t, err)
 	assert.Equal(t, node.ID(), countTransform.ID())

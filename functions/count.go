@@ -10,11 +10,11 @@ type CountOp struct {
 }
 
 // OpType for the operator
-func (o *CountOp) OpType() string {
+func (o CountOp) OpType() string {
 	return CountType
 }
 
 // String representation
-func (o *CountOp) String() string {
+func (o CountOp) String() string {
 	return fmt.Sprintf("type: %s", o.OpType())
 }
