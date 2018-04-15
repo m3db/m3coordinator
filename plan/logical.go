@@ -28,12 +28,12 @@ func NewLogicalPlan(transforms parser.Transforms, edges parser.Edges) (LogicalPl
 
 	// Create all steps
 	for _, transform := range transforms {
-		lp.Steps[transform.ID()] = LogicalStep{
+		lp.Steps[transform.ID] = LogicalStep{
 			Transform: transform,
 			Parents:   make([]parser.TransformID, 0, 1),
 			Children:  make([]parser.TransformID, 0, 1),
 		}
-		lp.Pipeline = append(lp.Pipeline, transform.ID())
+		lp.Pipeline = append(lp.Pipeline, transform.ID)
 	}
 
 	// Link all parent/children
@@ -83,7 +83,7 @@ func (l LogicalStep) String() string {
 
 // ID is a convenience method to expose the inner transforms' ID
 func (l LogicalStep) ID() parser.TransformID {
-	return l.Transform.ID()
+	return l.Transform.ID
 }
 
 // Clone the step, the transform is immutable so its left as is

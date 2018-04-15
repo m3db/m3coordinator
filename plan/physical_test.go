@@ -16,8 +16,8 @@ func TestResultNode(t *testing.T) {
 	transforms := parser.Transforms{fetchTransform, countTransform}
 	edges := parser.Edges{
 		parser.Edge{
-			ParentID: fetchTransform.ID(),
-			ChildID:  countTransform.ID(),
+			ParentID: fetchTransform.ID,
+			ChildID:  countTransform.ID,
 		},
 	}
 
@@ -27,6 +27,6 @@ func TestResultNode(t *testing.T) {
 	require.NoError(t, err)
 	node, err := p.leafNode()
 	require.NoError(t, err)
-	assert.Equal(t, node.ID(), countTransform.ID())
-	assert.Equal(t, p.resultStep.Transform.Op().OpType(), ResultType)
+	assert.Equal(t, node.ID(), countTransform.ID)
+	assert.Equal(t, p.resultStep.Transform.Op.OpType(), ResultType)
 }
