@@ -24,13 +24,10 @@ imports:
   - clientv3
   - clientv3/concurrency
   - embed
-  - error
   - etcdserver/api/v3rpc/rpctypes
   - etcdserver/etcdserverpb
   - integration
   - mvcc/mvccpb
-  - pkg/types
-  - store
 - name: github.com/davecgh/go-spew
   version: adab96458c51a58dc1783b3335dcce5461522e75
   subpackages:
@@ -175,10 +172,6 @@ imports:
   - watch
 - name: github.com/m3db/stackadler32
   version: bfebcd73ef6ffe0ee30489227f0330c39064b674
-- name: github.com/matttproud/golang_protobuf_extensions
-  version: c12348ce28de40eed0136aa2b644d0ee0650e56c
-  subpackages:
-  - pbutil
 - name: github.com/mschoch/smat
   version: 90eadee771aeab36e8bf796039b8c261bebebe4f
 - name: github.com/nightlyone/lockfile
