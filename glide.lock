@@ -1,5 +1,5 @@
-hash: 0dd01bcaa6d668e4ee88305c61d7a2c941a754acd23f337f025e128b9d6ebed9
-updated: 2018-04-11T14:50:35.315297-04:00
+hash: bb79c08050f447f011746c836641fa9e74f8a9b73e0cb86160126af67e9be0c5
+updated: 2018-04-16T13:49:05.125299-04:00
 imports:
 - name: github.com/alecthomas/template
   version: a0175ee3bccc567396460bf5acd36800cb10c49c
@@ -24,13 +24,10 @@ imports:
   - clientv3
   - clientv3/concurrency
   - embed
-  - error
   - etcdserver/api/v3rpc/rpctypes
   - etcdserver/etcdserverpb
   - integration
   - mvcc/mvccpb
-  - pkg/types
-  - store
 - name: github.com/davecgh/go-spew
   version: adab96458c51a58dc1783b3335dcce5461522e75
   subpackages:
@@ -91,7 +88,6 @@ imports:
   - generated/proto/placementpb
   - kv
   - kv/etcd
-  - kv/mem
   - kv/util/runtime
   - placement
   - placement/algo
@@ -105,7 +101,7 @@ imports:
   - services/leader/election
   - shard
 - name: github.com/m3db/m3db
-  version: c5d97a9ddc10cbd27a2d1fb69d78e4de6b9a9159
+  version: 3732c30f1ccefca23d3783c8e4948911cc5ec24d
   subpackages:
   - client
   - clock
@@ -146,6 +142,7 @@ imports:
   subpackages:
   - doc
   - index/segment
+  - index/segment/mem
 - name: github.com/m3db/m3x
   version: 73f3a41ef5c250e122ef225893ce0ac5962456e7
   subpackages:
@@ -167,10 +164,6 @@ imports:
   - watch
 - name: github.com/m3db/stackadler32
   version: bfebcd73ef6ffe0ee30489227f0330c39064b674
-- name: github.com/matttproud/golang_protobuf_extensions
-  version: c12348ce28de40eed0136aa2b644d0ee0650e56c
-  subpackages:
-  - pbutil
 - name: github.com/mschoch/smat
   version: 90eadee771aeab36e8bf796039b8c261bebebe4f
 - name: github.com/nightlyone/lockfile
@@ -283,7 +276,7 @@ imports:
 - name: go.uber.org/multierr
   version: 3c4937480c32f4c13a875a1829af76c98ca3d40a
 - name: go.uber.org/zap
-  version: 35aad584952c3e7020db7b839f6b102de6271f89
+  version: eeedf312bc6c57391d84767a4cd413f02a917974
   subpackages:
   - buffer
   - internal/bufferpool
