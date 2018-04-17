@@ -147,7 +147,7 @@ func checkFetch(ctx context.Context, t *testing.T, client Client, read *storage.
 
 func checkWrite(ctx context.Context, t *testing.T, client Client, write *storage.WriteQuery) {
 	err := client.Write(ctx, write)
-	require.Nil(t, err)
+	assert.Nil(t, err)
 }
 
 func checkErrorFetch(ctx context.Context, t *testing.T, client Client, read *storage.FetchQuery, readOpts *storage.FetchOptions) {
@@ -343,31 +343,33 @@ func TestRoundRobinClientRpc(t *testing.T) {
 	}()
 	require.NoError(t, err)
 
-	// Host ordering is non deterministic. Ensure round robin occurs after first result.
-	fetch, err := client.Fetch(ctx, read, readOpts)
-	if fetch == nil {
-		// Fetch called on errHost
-		assert.Equal(t, errRead.Error(), grpc.ErrorDesc(err))
+	for i := 0; i < 100; i++ {
+		// Host ordering is non deterministic. Ensure round robin occurs after first result.
+		fetch, err := client.Fetch(ctx, read, readOpts)
+		if fetch == nil {
+			// Fetch called on errHost
+			assert.Equal(t, errRead.Error(), grpc.ErrorDesc(err))
 
-		// Write called on host
-		checkWrite(ctx, t, client, write)
+			// Write called on host
+			checkWrite(ctx, t, client, write)
 
-		// Write called on errHost
-		checkErrorWrite(ctx, t, client, write)
+			// Write called on errHost
+			checkErrorWrite(ctx, t, client, write)
 
-		// Fetch called on host
-		checkFetch(ctx, t, client, read, readOpts)
-	} else {
-		//Fetch called on host
-		checkRemoteFetch(t, fetch)
+			// Fetch called on host
+			checkFetch(ctx, t, client, read, readOpts)
+		} else {
+			//Fetch called on host
+			checkRemoteFetch(t, fetch)
 
-		// Fetch called on errHost
-		checkErrorFetch(ctx, t, client, read, readOpts)
+			// Fetch called on errHost
+			checkErrorFetch(ctx, t, client, read, readOpts)
 
-		// Write called on hostß
-		checkWrite(ctx, t, client, write)
+			// Write called on hostß
+			checkWrite(ctx, t, client, write)
 
-		// Write called on errHost
-		checkErrorWrite(ctx, t, client, write)
+			// Write called on errHost
+			checkErrorWrite(ctx, t, client, write)
+		}
 	}
 }
