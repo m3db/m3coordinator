@@ -11,7 +11,7 @@ import (
 type PhysicalPlan struct {
 	steps      map[parser.TransformID]LogicalStep
 	pipeline   []parser.TransformID // Ordered list of steps to be performed
-	resultStep LogicalStep
+	ResultStep LogicalStep
 }
 
 // NewPhysicalPlan is used to generate a physical plan. Its responsibilities include creating consolidation nodes, result nodes,
@@ -45,7 +45,7 @@ func (p PhysicalPlan) createResultNode() (PhysicalPlan, error) {
 		Children:  []parser.TransformID{},
 	}
 
-	p.resultStep = resultStep
+	p.ResultStep = resultStep
 	return p, nil
 }
 
@@ -71,6 +71,12 @@ func (p PhysicalPlan) leafNode() (LogicalStep, error) {
 	return leaf, nil
 }
 
+func (p PhysicalPlan) Step(ID parser.TransformID) (LogicalStep, bool) {
+	// Editor complains when inlining the map get
+	step, ok := p.steps[ID]
+	return step, ok
+}
+
 func (p PhysicalPlan) String() string {
-	return fmt.Sprintf("Steps: %s, Pipeline: %s, Result: %s", p.steps, p.pipeline, p.resultStep)
+	return fmt.Sprintf("Steps: %s, Pipeline: %s, Result: %s", p.steps, p.pipeline, p.ResultStep)
 }
