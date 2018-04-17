@@ -1,5 +1,5 @@
-hash: bb79c08050f447f011746c836641fa9e74f8a9b73e0cb86160126af67e9be0c5
-updated: 2018-04-16T13:49:05.125299-04:00
+hash: a15db92df8a81d848f94a51ae99c5bae03f61196b86fdb59ac7be1a58e62735b
+updated: 2018-04-17T14:44:49.556946-04:00
 imports:
 - name: github.com/alecthomas/template
   version: a0175ee3bccc567396460bf5acd36800cb10c49c
@@ -76,8 +76,6 @@ imports:
   version: 53c1911da2b537f792e7cafcb446b05ffe33b996
 - name: github.com/kr/logfmt
   version: b84e30acd515aadc4b783ad4ff83aff3299bdfe0
-- name: github.com/jonboulle/clockwork
-  version: 2eee05ed794112d45db504eb05aa693efd2b8b09
 - name: github.com/m3db/m3cluster
   version: 53fc512c11e1ed03db2d65dac4c139a3c2ff2eda
   subpackages:
@@ -164,6 +162,10 @@ imports:
   - watch
 - name: github.com/m3db/stackadler32
   version: bfebcd73ef6ffe0ee30489227f0330c39064b674
+- name: github.com/matttproud/golang_protobuf_extensions
+  version: c12348ce28de40eed0136aa2b644d0ee0650e56c
+  subpackages:
+  - pbutil
 - name: github.com/mschoch/smat
   version: 90eadee771aeab36e8bf796039b8c261bebebe4f
 - name: github.com/nightlyone/lockfile
@@ -216,7 +218,7 @@ imports:
   - util/strutil
   - util/testutil
 - name: github.com/prometheus/tsdb
-  version: bd832fc8274e8fe63999ac749daaaff9d881241f
+  version: def6e5a57439cffe7b44a619c05bce4ac513a63e
   subpackages:
   - chunkenc
   - chunks
