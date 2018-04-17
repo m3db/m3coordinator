@@ -97,7 +97,7 @@ func (h *PlacementInitHandler) parseRequest(r *http.Request) (*admin.PlacementIn
 }
 
 func (h *PlacementInitHandler) placementInit(ctx context.Context, r *admin.PlacementInitRequest) (placement.Placement, error) {
-	ps, err := PlacementService(h.clusterClient)
+	ps, err := PlacementService(h.clusterClient, h.config)
 	if err != nil {
 		return nil, err
 	}

@@ -103,3 +103,9 @@ func WriteJSONResponse(w http.ResponseWriter, resp interface{}, logger *zap.Logg
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(jsonData)
 }
+
+// WriteUninitializedResponse writes a protobuf message to the ResponseWriter
+func WriteUninitializedResponse(w http.ResponseWriter, logger *zap.Logger) {
+	logger.Warn("attempted call before M3DB is fully initialized")
+	http.Error(w, "Unable to perform action before M3DB is fully initialized", http.StatusConflict)
+}

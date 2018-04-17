@@ -60,7 +60,7 @@ func (h *PlacementDeleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *PlacementDeleteHandler) placementDelete(ctx context.Context) error {
-	ps, err := PlacementService(h.clusterClient)
+	ps, err := PlacementService(h.clusterClient, h.config)
 	if err != nil {
 		return err
 	}

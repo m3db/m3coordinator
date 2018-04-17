@@ -30,6 +30,7 @@ import (
 	"github.com/m3db/m3cluster/placement"
 	"github.com/m3db/m3cluster/services"
 	"github.com/m3db/m3cluster/shard"
+	"github.com/m3db/m3coordinator/services/m3coordinator/config"
 	nsproto "github.com/m3db/m3db/generated/proto/namespace"
 	"github.com/m3db/m3db/storage/namespace"
 )
@@ -51,21 +52,38 @@ const (
 // AdminHandler represents a generic handler for admin endpoints.
 type AdminHandler struct {
 	clusterClient m3clusterClient.Client
+	config        config.Configuration
 }
 
 // PlacementService gets a placement service from an m3cluster client
-func PlacementService(clusterClient m3clusterClient.Client) (placement.Service, error) {
+func PlacementService(clusterClient m3clusterClient.Client, cfg config.Configuration) (placement.Service, error) {
 	cs, err := clusterClient.Services(services.NewOverrideOptions())
 	if err != nil {
 		return nil, err
 	}
 
-	sid := services.NewServiceID().
-		SetName(DefaultServiceName).
-		SetEnvironment(DefaultServiceEnvironment).
-		SetZone(DefaultServiceZone)
+	var (
+		serviceName        string
+		serviceEnvironment string
+		serviceZone        string
+	)
 
-	ps, err := cs.PlacementService(sid, placement.NewOptions())
+	if cfg.M3DBClientCfg.EnvironmentConfig.Service == nil {
+		serviceName = DefaultServiceName
+		serviceEnvironment = DefaultServiceEnvironment
+		serviceZone = DefaultServiceZone
+	} else {
+		serviceName = cfg.M3DBClientCfg.EnvironmentConfig.Service.Service
+		serviceEnvironment = cfg.M3DBClientCfg.EnvironmentConfig.Service.Env
+		serviceZone = cfg.M3DBClientCfg.EnvironmentConfig.Service.Zone
+	}
+
+	sid := services.NewServiceID().
+		SetName(serviceName).
+		SetEnvironment(serviceEnvironment).
+		SetZone(serviceZone)
+
+	ps, err := cs.PlacementService(sid, placement.NewOptions().SetValidZone(serviceZone))
 	if err != nil {
 		return nil, err
 	}
