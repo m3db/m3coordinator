@@ -30,6 +30,7 @@ import (
 	"github.com/m3db/m3cluster/generated/proto/placementpb"
 	"github.com/m3db/m3cluster/placement"
 	"github.com/m3db/m3cluster/services"
+	"github.com/m3db/m3coordinator/services/m3coordinator/config"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"

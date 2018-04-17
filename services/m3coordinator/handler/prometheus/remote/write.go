@@ -42,13 +42,13 @@ const (
 
 // PromWriteHandler represents a handler for prometheus write endpoint.
 type PromWriteHandler struct {
-	store storage.Storage
+	Store storage.Storage
 }
 
 // NewPromWriteHandler returns a new instance of handler.
 func NewPromWriteHandler(store storage.Storage) http.Handler {
 	return &PromWriteHandler{
-		store: store,
+		Store: store,
 	}
 }
 
@@ -90,7 +90,7 @@ func (h *PromWriteHandler) parseRequest(r *http.Request) (*prompb.WriteRequest, 
 func (h *PromWriteHandler) write(ctx context.Context, r *prompb.WriteRequest) error {
 	requests := make([]execution.Request, len(r.Timeseries))
 	for idx, t := range r.Timeseries {
-		requests[idx] = newLocalWriteRequest(storage.PromWriteTSToM3(t), h.store)
+		requests[idx] = newLocalWriteRequest(storage.PromWriteTSToM3(t), h.Store)
 	}
 	return execution.ExecuteParallel(ctx, requests)
 }

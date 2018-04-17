@@ -92,7 +92,7 @@ func setupServer(t *testing.T) *httptest.Server {
 
 	storage := local.NewStorage(session, "metrics", mockResolver)
 	engine := executor.NewEngine(storage)
-	promRead := &PromReadHandler{engine: engine}
+	promRead := &PromReadHandler{Engine: engine}
 
 	server := httptest.NewServer(promRead)
 	return server
@@ -101,7 +101,7 @@ func setupServer(t *testing.T) *httptest.Server {
 func TestPromReadParsing(t *testing.T) {
 	logging.InitWithCores(nil)
 	storage := local.NewStorage(nil, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
-	promRead := &PromReadHandler{engine: executor.NewEngine(storage)}
+	promRead := &PromReadHandler{Engine: executor.NewEngine(storage)}
 	req, _ := http.NewRequest("POST", PromReadURL, generatePromReadBody(t))
 
 	r, err := promRead.parseRequest(req)
@@ -112,7 +112,7 @@ func TestPromReadParsing(t *testing.T) {
 func TestPromReadParsingBad(t *testing.T) {
 	logging.InitWithCores(nil)
 	storage := local.NewStorage(nil, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
-	promRead := &PromReadHandler{engine: executor.NewEngine(storage)}
+	promRead := &PromReadHandler{Engine: executor.NewEngine(storage)}
 	req, _ := http.NewRequest("POST", PromReadURL, strings.NewReader("bad body"))
 	_, err := promRead.parseRequest(req)
 	require.NotNil(t, err, "unable to parse request")
@@ -125,7 +125,7 @@ func TestPromReadStorageWithFetchError(t *testing.T) {
 	session.EXPECT().Fetch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("unable to get data"))
 
 	storage := local.NewStorage(session, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
-	promRead := &PromReadHandler{engine: executor.NewEngine(storage)}
+	promRead := &PromReadHandler{Engine: executor.NewEngine(storage)}
 	req := generatePromReadRequest()
 	_, err := promRead.read(context.TODO(), httptest.NewRecorder(), req, &prometheus.RequestParams{Timeout: time.Hour})
 	require.NotNil(t, err, "unable to read from storage")

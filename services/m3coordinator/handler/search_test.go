@@ -125,7 +125,7 @@ func searchServer(t *testing.T) *SearchHandler {
 	session.EXPECT().FetchTaggedIDs(gomock.Any(), gomock.Any(), gomock.Any()).Return(generateQueryResults(mockTaggedIDsIter), nil)
 
 	storage := local.NewStorage(session, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
-	search := &SearchHandler{store: storage}
+	search := &SearchHandler{Store: storage}
 
 	return search
 }
