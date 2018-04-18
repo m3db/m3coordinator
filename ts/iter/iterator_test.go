@@ -37,7 +37,7 @@ const (
 	blockTwoID = "test_two"
 )
 
-func newM3SeriesBlocksList(ctrl *gomock.Controller, now time.Time) []SeriesBlocks {
+func newMultiNamespaceSeries(ctrl *gomock.Controller, now time.Time) ([]SeriesBlocks, []SeriesBlocks) {
 	seriesBlocksOne := newM3SeriesBlock(blockOneID, ctrl, now)
 	blocksOne := SeriesBlocks{
 		Blocks: seriesBlocksOne,
@@ -50,7 +50,7 @@ func newM3SeriesBlocksList(ctrl *gomock.Controller, now time.Time) []SeriesBlock
 		ID:     ident.StringID(blockTwoID),
 	}
 
-	return []SeriesBlocks{blocksOne, blocksTwo}
+	return []SeriesBlocks{blocksOne}, []SeriesBlocks{blocksTwo}
 }
 
 func newM3SeriesBlock(id string, ctrl *gomock.Controller, now time.Time) []SeriesBlock {
@@ -77,17 +77,28 @@ func newM3SeriesBlock(id string, ctrl *gomock.Controller, now time.Time) []Serie
 func TestConvertM3Blocks(t *testing.T) {
 	now := time.Now()
 	ctrl := gomock.NewController(t)
-	seriesBlocks := newM3SeriesBlocksList(ctrl, now)
-	m3CoordBlocks, err := SeriesBlockToMultiSeriesBlocks(seriesBlocks, nil)
+	blocksOne, blocksTwo := newMultiNamespaceSeries(ctrl, now)
+	multiNamespaceSeriesList := []MultiNamespaceSeries{blocksOne, blocksTwo}
+	m3CoordBlocks, err := SeriesBlockToMultiSeriesBlocks(multiNamespaceSeriesList, nil)
 	require.NoError(t, err)
 
-	assert.Equal(t, blockOneID, m3CoordBlocks[0].SeriesIterators.Iters()[0].ID().String())
-	assert.Equal(t, blockTwoID, m3CoordBlocks[0].SeriesIterators.Iters()[1].ID().String())
+	assert.Equal(t, blockOneID, m3CoordBlocks[0].Blocks[0].ConsolidatedNSBlocks[0].SeriesIterators.Iters()[0].ID().String())
+	assert.Equal(t, blockTwoID, m3CoordBlocks[0].Blocks[1].ConsolidatedNSBlocks[0].SeriesIterators.Iters()[0].ID().String())
 	assert.Equal(t, now, m3CoordBlocks[0].Start)
 	assert.Equal(t, now.Add(10*time.Minute), m3CoordBlocks[0].End)
 
-	assert.Equal(t, blockOneID, m3CoordBlocks[1].SeriesIterators.Iters()[0].ID().String())
-	assert.Equal(t, blockTwoID, m3CoordBlocks[1].SeriesIterators.Iters()[1].ID().String())
+	assert.Equal(t, blockOneID, m3CoordBlocks[1].Blocks[0].ConsolidatedNSBlocks[0].SeriesIterators.Iters()[0].ID().String())
+	assert.Equal(t, blockTwoID, m3CoordBlocks[1].Blocks[1].ConsolidatedNSBlocks[0].SeriesIterators.Iters()[0].ID().String())
 	assert.Equal(t, now.Add(10*time.Minute), m3CoordBlocks[1].Start)
 	assert.Equal(t, now.Add(20*time.Minute), m3CoordBlocks[1].End)
+}
+
+func TestMultipleNamespacesError(t *testing.T) {
+	now := time.Now()
+	ctrl := gomock.NewController(t)
+	blocksOne, blocksTwo := newMultiNamespaceSeries(ctrl, now)
+	blocksOne = append(blocksOne, blocksOne...)
+	multiNamespaceSeriesList := []MultiNamespaceSeries{blocksOne, blocksTwo}
+	_, err := SeriesBlockToMultiSeriesBlocks(multiNamespaceSeriesList, nil)
+	require.Error(t, err)
 }

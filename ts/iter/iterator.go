@@ -28,44 +28,88 @@ import (
 )
 
 var (
-	errBlocksMisaligned = errors.New("blocks are misaligned on either start or end times")
-	errNumBlocks        = errors.New("number of blocks is not uniform across SeriesBlocks")
+	errBlocksMisaligned   = errors.New("blocks are misaligned on either start or end times")
+	errNumBlocks          = errors.New("number of blocks is not uniform across SeriesBlocks")
+	errMultipleNamespaces = errors.New("consolidating multiple namespaces is currently not supported")
 )
 
 // SeriesBlockToMultiSeriesBlocks converts M3DB blocks to multi series blocks
-func SeriesBlockToMultiSeriesBlocks(blocks []SeriesBlocks, seriesIteratorsPool encoding.MutableSeriesIteratorsPool) (MultiSeriesBlocks, error) {
-	numBlocks := len(blocks[0].Blocks)
-	if err := validateBlocks(blocks, numBlocks); err != nil {
-		return MultiSeriesBlocks{}, err
+func SeriesBlockToMultiSeriesBlocks(multiNamespaceSeriesList []MultiNamespaceSeries, seriesIteratorsPool encoding.MutableSeriesIteratorsPool) (MultiSeriesBlocks, error) {
+	for _, multiNamespaceSeries := range multiNamespaceSeriesList {
+		numBlocks := len(multiNamespaceSeries[0].Blocks)
+		if err := validateBlocks(multiNamespaceSeries, numBlocks); err != nil {
+			return MultiSeriesBlocks{}, err
+		}
 	}
 
-	multiSeriesBlocks := make(MultiSeriesBlocks, 0, numBlocks)
-	for i := 0; i < numBlocks; i++ {
-		numSeries := len(blocks)
-		var iters encoding.MutableSeriesIterators
-		if seriesIteratorsPool != nil {
-			iters = seriesIteratorsPool.Get(numSeries)
-			iters.Reset(numSeries)
-			for _, seriesIter := range iters.Iters() {
-				iters.SetAt(i, seriesIter)
-			}
-		} else {
-			s := make([]encoding.SeriesIterator, numSeries)
-
-			for j, block := range blocks {
-				s[j] = block.Blocks[i].SeriesIterator
-			}
-			iters = encoding.NewSeriesIterators(s, nil)
+	var multiSeriesBlocks MultiSeriesBlocks
+	for i, multiNamespaceSeries := range multiNamespaceSeriesList {
+		multiNSConsolidatedSeriesBlocks, err := newMultiNSConsolidatedSeriesBlocks(multiNamespaceSeries, seriesIteratorsPool)
+		if err != nil {
+			return MultiSeriesBlocks{}, err
 		}
-
-		multiSeriesBlocks = append(multiSeriesBlocks,
-			MultiSeriesBlock{
-				Start:           blocks[0].Blocks[i].Start,
-				End:             blocks[0].Blocks[i].End,
-				SeriesIterators: iters,
-			})
+		if i == 0 {
+			multiSeriesBlocks = make(MultiSeriesBlocks, len(multiNSConsolidatedSeriesBlocks))
+		}
+		for j, multiNSConsolidatedSeriesBlock := range multiNSConsolidatedSeriesBlocks {
+			if i == 0 {
+				multiSeriesBlocks[j].Start = multiNSConsolidatedSeriesBlock.Start
+				multiSeriesBlocks[j].End = multiNSConsolidatedSeriesBlock.End
+			}
+			if multiNSConsolidatedSeriesBlock.Start != multiSeriesBlocks[j].Start || multiNSConsolidatedSeriesBlock.End != multiSeriesBlocks[j].End {
+				return MultiSeriesBlocks{}, err
+			}
+			multiSeriesBlocks[j].Blocks = append(multiSeriesBlocks[j].Blocks, multiNSConsolidatedSeriesBlock)
+		}
 	}
 	return multiSeriesBlocks, nil
+}
+
+func newMultiNSConsolidatedSeriesBlocks(multiNamespaceSeries MultiNamespaceSeries, seriesIteratorsPool encoding.MutableSeriesIteratorsPool) (MultiNSConsolidatedSeriesBlocks, error) {
+	var multiNSConsolidatedSeriesBlocks MultiNSConsolidatedSeriesBlocks
+
+	// todo(braskin): remove this once we support consolidating multiple namespaces
+	if len(multiNamespaceSeries) > 1 {
+		return multiNSConsolidatedSeriesBlocks, errMultipleNamespaces
+	}
+
+	for i, seriesBlocks := range multiNamespaceSeries {
+		sliceOfConsolidatedSeriesBlocks := newConsolidatedSeriesBlocks(seriesBlocks, seriesIteratorsPool)
+		if i == 0 {
+			multiNSConsolidatedSeriesBlocks = make([]MultiNSConsolidatedSeriesBlock, len(sliceOfConsolidatedSeriesBlocks))
+		}
+		for j, consolidatedStepBlock := range sliceOfConsolidatedSeriesBlocks {
+			if i == 0 {
+				multiNSConsolidatedSeriesBlocks[j].Start = consolidatedStepBlock.Start
+				multiNSConsolidatedSeriesBlocks[j].End = consolidatedStepBlock.End
+			}
+			if consolidatedStepBlock.Start != multiNSConsolidatedSeriesBlocks[j].Start || consolidatedStepBlock.End != multiNSConsolidatedSeriesBlocks[j].End {
+				return MultiNSConsolidatedSeriesBlocks{}, errBlocksMisaligned
+			}
+			multiNSConsolidatedSeriesBlocks[j].ConsolidatedNSBlocks = append(multiNSConsolidatedSeriesBlocks[j].ConsolidatedNSBlocks, consolidatedStepBlock)
+		}
+	}
+	return multiNSConsolidatedSeriesBlocks, nil
+}
+
+func newConsolidatedSeriesBlocks(seriesBlocks SeriesBlocks, seriesIteratorsPool encoding.MutableSeriesIteratorsPool) []ConsolidatedSeriesBlock {
+	var consolidatedSeriesBlocks []ConsolidatedSeriesBlock
+	namespace := seriesBlocks.Namespace
+	id := seriesBlocks.ID
+	for _, seriesBlock := range seriesBlocks.Blocks {
+		consolidatedSeriesBlock := ConsolidatedSeriesBlock{
+			Namespace: namespace,
+			ID:        id,
+			Start:     seriesBlock.Start,
+			End:       seriesBlock.End,
+		}
+		s := []encoding.SeriesIterator{seriesBlock.SeriesIterator}
+		// todo(braskin): figure out how many series iterators we need based on largest step size (i.e. namespace)
+		// and in future copy SeriesIterators using the seriesIteratorsPool
+		consolidatedSeriesBlock.SeriesIterators = encoding.NewSeriesIterators(s, nil)
+		consolidatedSeriesBlocks = append(consolidatedSeriesBlocks, consolidatedSeriesBlock)
+	}
+	return consolidatedSeriesBlocks
 }
 
 func validateBlocks(blocks []SeriesBlocks, checkingLen int) error {

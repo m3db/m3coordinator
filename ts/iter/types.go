@@ -37,15 +37,50 @@ type SeriesBlock struct {
 
 // SeriesBlocks is a placeholder until it is added to M3DB
 type SeriesBlocks struct {
-	ID     ident.ID
-	Blocks []SeriesBlock
+	ID        ident.ID
+	Namespace string
+	Blocks    []SeriesBlock
 }
 
-// MultiSeriesBlock represents a vertically oriented block
-type MultiSeriesBlock struct {
+// MultiNamespaceSeries is a single timeseries for multiple namespaces
+type MultiNamespaceSeries []SeriesBlocks
+
+// ID enforces the same ID across namespaces
+func (n MultiNamespaceSeries) ID() ident.ID { return n[0].ID }
+
+// ConsolidatedSeriesBlock is a single block for a given timeseries and namespace
+// which contains all of the necessary SeriesIterators so that consolidation can
+// happen across namespaces
+type ConsolidatedSeriesBlock struct {
+	ID              ident.ID
+	Namespace       string
 	Start           time.Time
 	End             time.Time
 	SeriesIterators encoding.SeriesIterators
+}
+
+// MultiNSConsolidatedSeriesBlock is a single series consolidated across different namespaces
+// for a single block
+type MultiNSConsolidatedSeriesBlock struct {
+	Start                time.Time
+	End                  time.Time
+	ConsolidatedNSBlocks []ConsolidatedSeriesBlock
+	consolidationFunc    ConsolidationFunc
+}
+
+// ConsolidationFunc determines how to consolidate across namespaces
+type ConsolidationFunc func(existing, toAdd float64, count int) float64
+
+// MultiNSConsolidatedSeriesBlocks contain all of the consolidated blocks for
+// a single timeseries across namespaces.
+// Each ConsolidatedBlockIterator will have the same size
+type MultiNSConsolidatedSeriesBlocks []MultiNSConsolidatedSeriesBlock
+
+// MultiSeriesBlock represents a vertically oriented block
+type MultiSeriesBlock struct {
+	Start  time.Time
+	End    time.Time
+	Blocks MultiNSConsolidatedSeriesBlocks
 }
 
 // MultiSeriesBlocks is a slice of MultiSeriesBlock
