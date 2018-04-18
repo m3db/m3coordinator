@@ -1,6 +1,10 @@
 package plan
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/m3db/m3coordinator/parser"
+)
 
 // ResultType gets the results
 const ResultType = "result"
@@ -17,4 +21,13 @@ func (r *ResultOp) OpType() string {
 // String representation
 func (r *ResultOp) String() string {
 	return fmt.Sprintf("type: %s", r.OpType())
+}
+
+type ResultNode struct {
+
+}
+
+// String representation
+func (r *ResultOp) Node(controller *parser.TransformController) parser.OpNode {
+	return &ResultNode{}
 }

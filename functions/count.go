@@ -1,6 +1,10 @@
 package functions
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/m3db/m3coordinator/parser"
+)
 
 // CountType counts number of elements in the vector
 const CountType = "count"
@@ -20,10 +24,11 @@ func (o CountOp) String() string {
 }
 
 // OpType for the operator
-func (o *CountOp) Node() *CountNode {
-	return &CountNode{op: o}
+func (o CountOp) Node(controller *parser.TransformController) parser.OpNode {
+	return &CountNode{op: o, controller: controller}
 }
 
 type CountNode struct {
-	op *CountOp
+	op        CountOp
+	controller *parser.TransformController
 }

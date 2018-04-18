@@ -28,5 +28,5 @@ func TestResultNode(t *testing.T) {
 	node, err := p.leafNode()
 	require.NoError(t, err)
 	assert.Equal(t, node.ID(), countTransform.ID)
-	assert.Equal(t, p.resultStep.Transform.Op.OpType(), ResultType)
+	assert.Equal(t, p.ResultStep.Transform.Op.OpType(), ResultType)
 }

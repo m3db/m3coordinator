@@ -17,7 +17,7 @@ type TransformID string
 type Operation interface {
 	fmt.Stringer
 	OpType() string
-	Node() OpNode
+	Node(controller *TransformController) OpNode
 }
 
 type OpNode interface {
@@ -34,8 +34,9 @@ type Transform struct {
 }
 
 // Node creates a transform node which works on functions and contains state
-func (t Transform) Node() TransformNode {
-	return NewTransformNode(t.Op.Node(), t)
+func (t Transform) Node() (OpNode, *TransformController) {
+	controller := &TransformController{id: t.ID}
+	return t.Op.Node(controller), controller
 }
 
 func (t Transform) String() string {
@@ -63,15 +64,15 @@ func NewTransformFromOperation(Op Operation, nextID int) Transform {
 	}
 }
 
-// Transform node works on functions and contains state
-type TransformNode struct {
-	Op        OpNode
-	transform Transform
+// TransformController controls the caching and forwarding the request to downstream.
+type TransformController struct {
+	id         TransformID
+	cache      Cache
+	transforms []OpNode
 }
 
-func NewTransformNode(op OpNode, transform Transform) TransformNode {
-	return TransformNode{
-		Op:        op,
-		transform: transform,
-	}
+func (t *TransformController) AddTransform(node OpNode) {
+	t.transforms = append(t.transforms, node)
 }
+
+type Cache interface{}
