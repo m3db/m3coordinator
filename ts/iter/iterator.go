@@ -22,82 +22,82 @@ package iter
 
 import (
 	"errors"
-	"time"
 
 	"github.com/m3db/m3db/encoding"
 )
 
 var (
 	errBlocksMisaligned   = errors.New("blocks are misaligned on either start or end times")
-	errNumBlocks          = errors.New("number of blocks is not uniform across SeriesBlocks")
 	errMultipleNamespaces = errors.New("consolidating multiple namespaces is currently not supported")
 )
 
 // SeriesBlockToMultiSeriesBlocks converts M3DB blocks to multi series blocks
 func SeriesBlockToMultiSeriesBlocks(multiNamespaceSeriesList []MultiNamespaceSeries, seriesIteratorsPool encoding.MutableSeriesIteratorsPool) (MultiSeriesBlocks, error) {
-	for _, multiNamespaceSeries := range multiNamespaceSeriesList {
-		numBlocks := len(multiNamespaceSeries[0].Blocks)
-		if err := validateBlocks(multiNamespaceSeries, numBlocks); err != nil {
-			return MultiSeriesBlocks{}, err
-		}
-	}
-
+	// todo(braskin): validate blocks size and aligment per namespace before creating []MultiNamespaceSeries
 	var multiSeriesBlocks MultiSeriesBlocks
-	for i, multiNamespaceSeries := range multiNamespaceSeriesList {
-		multiNSConsolidatedSeriesBlocks, err := newMultiNSConsolidatedSeriesBlocks(multiNamespaceSeries, seriesIteratorsPool)
+	for multiNamespaceSeriesIdx, multiNamespaceSeries := range multiNamespaceSeriesList {
+		consolidatedSeriesBlocks, err := newConsolidatedSeriesBlocks(multiNamespaceSeries, seriesIteratorsPool)
 		if err != nil {
 			return MultiSeriesBlocks{}, err
 		}
-		if i == 0 {
-			multiSeriesBlocks = make(MultiSeriesBlocks, len(multiNSConsolidatedSeriesBlocks))
+
+		if multiNamespaceSeriesIdx == 0 {
+			multiSeriesBlocks = make(MultiSeriesBlocks, len(consolidatedSeriesBlocks))
 		}
-		for j, multiNSConsolidatedSeriesBlock := range multiNSConsolidatedSeriesBlocks {
-			if i == 0 {
-				multiSeriesBlocks[j].Start = multiNSConsolidatedSeriesBlock.Start
-				multiSeriesBlocks[j].End = multiNSConsolidatedSeriesBlock.End
+		for consolidatedSeriesBlockIdx, consolidatedSeriesBlock := range consolidatedSeriesBlocks {
+			if multiNamespaceSeriesIdx == 0 {
+				multiSeriesBlocks[consolidatedSeriesBlockIdx].Start = consolidatedSeriesBlock.Start
+				multiSeriesBlocks[consolidatedSeriesBlockIdx].End = consolidatedSeriesBlock.End
 			}
-			if multiNSConsolidatedSeriesBlock.Start != multiSeriesBlocks[j].Start || multiNSConsolidatedSeriesBlock.End != multiSeriesBlocks[j].End {
+
+			if consolidatedSeriesBlock.Start != multiSeriesBlocks[consolidatedSeriesBlockIdx].Start || consolidatedSeriesBlock.End != multiSeriesBlocks[consolidatedSeriesBlockIdx].End {
 				return MultiSeriesBlocks{}, err
 			}
-			multiSeriesBlocks[j].Blocks = append(multiSeriesBlocks[j].Blocks, multiNSConsolidatedSeriesBlock)
+			multiSeriesBlocks[consolidatedSeriesBlockIdx].Blocks = append(multiSeriesBlocks[consolidatedSeriesBlockIdx].Blocks, consolidatedSeriesBlock)
 		}
 	}
+
 	return multiSeriesBlocks, nil
 }
 
-func newMultiNSConsolidatedSeriesBlocks(multiNamespaceSeries MultiNamespaceSeries, seriesIteratorsPool encoding.MutableSeriesIteratorsPool) (MultiNSConsolidatedSeriesBlocks, error) {
-	var multiNSConsolidatedSeriesBlocks MultiNSConsolidatedSeriesBlocks
+// newConsolidatedSeriesBlocks creates consolidated blocks by timeseries across namespaces
+func newConsolidatedSeriesBlocks(multiNamespaceSeries MultiNamespaceSeries, seriesIteratorsPool encoding.MutableSeriesIteratorsPool) (ConsolidatedSeriesBlocks, error) {
+	var consolidatedSeriesBlocks ConsolidatedSeriesBlocks
 
-	// todo(braskin): remove this once we support consolidating multiple namespaces
+	// todo: remove this once we support consolidating multiple namespaces
 	if len(multiNamespaceSeries) > 1 {
-		return multiNSConsolidatedSeriesBlocks, errMultipleNamespaces
+		return consolidatedSeriesBlocks, errMultipleNamespaces
 	}
 
-	for i, seriesBlocks := range multiNamespaceSeries {
-		sliceOfConsolidatedSeriesBlocks := newConsolidatedSeriesBlocks(seriesBlocks, seriesIteratorsPool)
-		if i == 0 {
-			multiNSConsolidatedSeriesBlocks = make([]MultiNSConsolidatedSeriesBlock, len(sliceOfConsolidatedSeriesBlocks))
+	for seriesBlocksIdx, seriesBlocks := range multiNamespaceSeries {
+		consolidatedNSBlocks := newConsolidatedNSBlocks(seriesBlocks, seriesIteratorsPool)
+		if seriesBlocksIdx == 0 {
+			consolidatedSeriesBlocks = make(ConsolidatedSeriesBlocks, len(consolidatedNSBlocks))
 		}
-		for j, consolidatedStepBlock := range sliceOfConsolidatedSeriesBlocks {
-			if i == 0 {
-				multiNSConsolidatedSeriesBlocks[j].Start = consolidatedStepBlock.Start
-				multiNSConsolidatedSeriesBlocks[j].End = consolidatedStepBlock.End
+
+		for consolidatedNSBlockIdx, consolidatedNSBlock := range consolidatedNSBlocks {
+			if seriesBlocksIdx == 0 {
+				consolidatedSeriesBlocks[consolidatedNSBlockIdx].Start = consolidatedNSBlock.Start
+				consolidatedSeriesBlocks[consolidatedNSBlockIdx].End = consolidatedNSBlock.End
 			}
-			if consolidatedStepBlock.Start != multiNSConsolidatedSeriesBlocks[j].Start || consolidatedStepBlock.End != multiNSConsolidatedSeriesBlocks[j].End {
-				return MultiNSConsolidatedSeriesBlocks{}, errBlocksMisaligned
+
+			if consolidatedNSBlock.Start != consolidatedSeriesBlocks[consolidatedNSBlockIdx].Start || consolidatedNSBlock.End != consolidatedSeriesBlocks[consolidatedNSBlockIdx].End {
+				return ConsolidatedSeriesBlocks{}, errBlocksMisaligned
 			}
-			multiNSConsolidatedSeriesBlocks[j].ConsolidatedNSBlocks = append(multiNSConsolidatedSeriesBlocks[j].ConsolidatedNSBlocks, consolidatedStepBlock)
+			consolidatedSeriesBlocks[consolidatedNSBlockIdx].ConsolidatedNSBlocks = append(consolidatedSeriesBlocks[consolidatedNSBlockIdx].ConsolidatedNSBlocks, consolidatedNSBlock)
 		}
 	}
-	return multiNSConsolidatedSeriesBlocks, nil
+
+	return consolidatedSeriesBlocks, nil
 }
 
-func newConsolidatedSeriesBlocks(seriesBlocks SeriesBlocks, seriesIteratorsPool encoding.MutableSeriesIteratorsPool) []ConsolidatedSeriesBlock {
-	var consolidatedSeriesBlocks []ConsolidatedSeriesBlock
+// newConsolidatedNSBlocks creates a slice of consolidated blocks per namespace for a single timeseries
+func newConsolidatedNSBlocks(seriesBlocks SeriesBlocks, seriesIteratorsPool encoding.MutableSeriesIteratorsPool) []ConsolidatedNSBlock {
+	var consolidatedNSBlocks []ConsolidatedNSBlock
 	namespace := seriesBlocks.Namespace
 	id := seriesBlocks.ID
 	for _, seriesBlock := range seriesBlocks.Blocks {
-		consolidatedSeriesBlock := ConsolidatedSeriesBlock{
+		consolidatedNSBlock := ConsolidatedNSBlock{
 			Namespace: namespace,
 			ID:        id,
 			Start:     seriesBlock.Start,
@@ -106,48 +106,9 @@ func newConsolidatedSeriesBlocks(seriesBlocks SeriesBlocks, seriesIteratorsPool 
 		s := []encoding.SeriesIterator{seriesBlock.SeriesIterator}
 		// todo(braskin): figure out how many series iterators we need based on largest step size (i.e. namespace)
 		// and in future copy SeriesIterators using the seriesIteratorsPool
-		consolidatedSeriesBlock.SeriesIterators = encoding.NewSeriesIterators(s, nil)
-		consolidatedSeriesBlocks = append(consolidatedSeriesBlocks, consolidatedSeriesBlock)
+		consolidatedNSBlock.SeriesIterators = encoding.NewSeriesIterators(s, nil)
+		consolidatedNSBlocks = append(consolidatedNSBlocks, consolidatedNSBlock)
 	}
-	return consolidatedSeriesBlocks
-}
 
-func validateBlocks(blocks []SeriesBlocks, checkingLen int) error {
-	if err := validateBlockSize(blocks, checkingLen); err != nil {
-		return err
-	}
-	if err := validateBlockAlignment(blocks); err != nil {
-		return err
-	}
-	return nil
-}
-
-func validateBlockSize(blocks []SeriesBlocks, checkingLen int) error {
-	for _, block := range blocks {
-		if len(block.Blocks) != checkingLen {
-			return errNumBlocks
-		}
-	}
-	return nil
-}
-
-func validateBlockAlignment(blocks []SeriesBlocks) error {
-	start, end := getStartAndEndTimes(blocks[0])
-	for _, seriesBlock := range blocks[1:] {
-		for i, block := range seriesBlock.Blocks {
-			if block.Start != start[i] || block.End != end[i] {
-				return errBlocksMisaligned
-			}
-		}
-	}
-	return nil
-}
-
-func getStartAndEndTimes(block SeriesBlocks) ([]time.Time, []time.Time) {
-	var start, end []time.Time
-	for _, block := range block.Blocks {
-		start = append(start, block.Start)
-		end = append(end, block.End)
-	}
-	return start, end
+	return consolidatedNSBlocks
 }
