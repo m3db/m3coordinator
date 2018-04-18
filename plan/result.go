@@ -14,20 +14,21 @@ type ResultOp struct {
 }
 
 // OpType is the type of operation
-func (r *ResultOp) OpType() string {
+func (r ResultOp) OpType() string {
 	return ResultType
 }
 
 // String representation
-func (r *ResultOp) String() string {
+func (r ResultOp) String() string {
 	return fmt.Sprintf("type: %s", r.OpType())
 }
 
+// ResultNode is used to provide the results to the caller from the query execution
 type ResultNode struct {
 
 }
 
-// String representation
-func (r *ResultOp) Node(controller *parser.TransformController) parser.OpNode {
+// Node returns the execution node
+func (r ResultOp) Node(controller *parser.TransformController) parser.OpNode {
 	return &ResultNode{}
 }

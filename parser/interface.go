@@ -20,6 +20,7 @@ type Operation interface {
 	Node(controller *TransformController) OpNode
 }
 
+// OpNode represents the execution node
 type OpNode interface {
 }
 
@@ -67,12 +68,10 @@ func NewTransformFromOperation(Op Operation, nextID int) Transform {
 // TransformController controls the caching and forwarding the request to downstream.
 type TransformController struct {
 	id         TransformID
-	cache      Cache
 	transforms []OpNode
 }
 
+// AddTransform adds a dependent transformation to the controller
 func (t *TransformController) AddTransform(node OpNode) {
 	t.transforms = append(t.transforms, node)
 }
-
-type Cache interface{}

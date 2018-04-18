@@ -23,11 +23,12 @@ func (o CountOp) String() string {
 	return fmt.Sprintf("type: %s", o.OpType())
 }
 
-// OpType for the operator
+// Node creates an execution node
 func (o CountOp) Node(controller *parser.TransformController) parser.OpNode {
 	return &CountNode{op: o, controller: controller}
 }
 
+// CountNode is an execution node
 type CountNode struct {
 	op        CountOp
 	controller *parser.TransformController

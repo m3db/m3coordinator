@@ -10,16 +10,19 @@ import (
 )
 
 
+// Source represents data sources which are handled differently than other transforms as they are always independent and can always be parallelized
 type Source interface {
 	Execute(ctx context.Context) error
 }
 
+// ExecutionState represents the execution hierarchy
 type ExecutionState struct {
 	plan       plan.PhysicalPlan
 	sources    []Source
 	resultNode parser.OpNode
 }
 
+// GenerateExecutionState creates an execution state from the physical plan
 func GenerateExecutionState(plan plan.PhysicalPlan) (*ExecutionState, error) {
 	result := plan.ResultStep
 	state := &ExecutionState{
@@ -39,6 +42,8 @@ func GenerateExecutionState(plan plan.PhysicalPlan) (*ExecutionState, error) {
 	return state, nil
 }
 
+// createNode helps to create an execution node recursively
+// TODO: consider modifying this function so that ExecutionState can have a non pointer receiver
 func (s *ExecutionState) createNode(step plan.LogicalStep) (parser.OpNode, *parser.TransformController, error) {
 	stepNode, controller := step.Transform.Node()
 	// TODO: consider using a registry instead of casting to an interface
@@ -74,6 +79,7 @@ func (s *ExecutionState) Execute(ctx context.Context) error {
 	return execution.ExecuteParallel(ctx, requests)
 }
 
+// String representation of the state
 func (s *ExecutionState) String() string {
 	return fmt.Sprintf("plan : %s\nsources: %s\nresult: %s", s.plan, s.sources, s.resultNode)
 }

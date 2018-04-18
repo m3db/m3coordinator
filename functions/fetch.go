@@ -20,6 +20,7 @@ type FetchOp struct {
 	Matchers models.Matchers
 }
 
+// FetchNode is the execution node
 type FetchNode struct {
 	op        FetchOp
 	controller *parser.TransformController
@@ -30,22 +31,17 @@ func (o FetchOp) OpType() string {
 	return FetchType
 }
 
-
-// Execute
-func (o FetchOp) Execute(ctx context.Context) error {
-	return nil
-}
-
 // String representation
 func (o FetchOp) String() string {
 	return fmt.Sprintf("type: %s. name: %s, range: %v, offset: %v, matchers: %v", o.OpType(), o.Name, o.Range, o.Offset, o.Matchers)
 }
 
-// Node for the operator
+// Node creates an execution node
 func (o FetchOp) Node(controller *parser.TransformController) parser.OpNode {
 	return &FetchNode{op: o, controller: controller}
 }
 
+// Execute runs the fetch node operation
 func (n *FetchNode) Execute(ctx context.Context) error {
-	return nil
+	return fmt.Errorf("not implemented")
 }

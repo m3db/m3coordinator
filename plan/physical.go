@@ -38,7 +38,7 @@ func (p PhysicalPlan) createResultNode() (PhysicalPlan, error) {
 		return p, err
 	}
 
-	resultNode := parser.NewTransformFromOperation(&ResultOp{}, len(p.steps)+1)
+	resultNode := parser.NewTransformFromOperation(ResultOp{}, len(p.steps)+1)
 	resultStep := LogicalStep{
 		Transform: resultNode,
 		Parents:   []parser.TransformID{leaf.ID()},
@@ -71,6 +71,7 @@ func (p PhysicalPlan) leafNode() (LogicalStep, error) {
 	return leaf, nil
 }
 
+// Step gets the logical step using its unique ID in the DAG
 func (p PhysicalPlan) Step(ID parser.TransformID) (LogicalStep, bool) {
 	// Editor complains when inlining the map get
 	step, ok := p.steps[ID]

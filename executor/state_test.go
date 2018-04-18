@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"context"
 	"testing"
 
 	"github.com/m3db/m3coordinator/functions"
@@ -29,6 +30,8 @@ func TestValidState(t *testing.T) {
 	state, err := GenerateExecutionState(p)
 	assert.NoError(t, err)
 	require.Len(t, state.sources, 1)
+	err = state.Execute(context.Background())
+	assert.Error(t, err, "not implemented")
 }
 
 func TestWithoutSources(t *testing.T) {
