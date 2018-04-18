@@ -9,14 +9,11 @@ message NamespaceGetResponse {
 }
 
 message NamespaceAddRequest {
-  // Required fields
   string name = 1;
   string retention_period = 2;
   string block_size = 3;
   string buffer_future = 4;
   string buffer_past = 5;
-
-  // Optional fields that are defaulted
   bool block_data_expiry = 6;
   string block_data_expiry_period = 7;
   bool needs_bootstrap = 8;

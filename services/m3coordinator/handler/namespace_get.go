@@ -22,17 +22,17 @@ const (
 	NamespaceGetHTTPMethodURL = "/namespace"
 )
 
-// NamespaceGetHandler represents a handler for placement get endpoint.
-type NamespaceGetHandler AdminHandler
+// namespaceGetHandler represents a handler for placement get endpoint.
+type namespaceGetHandler AdminHandler
 
 // NewNamespaceGetHandler returns a new instance of handler.
 func NewNamespaceGetHandler(clusterClient m3clusterClient.Client) http.Handler {
-	return &NamespaceGetHandler{
+	return &namespaceGetHandler{
 		clusterClient: clusterClient,
 	}
 }
 
-func (h *NamespaceGetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *namespaceGetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := logging.WithContext(ctx)
 	nsRegistry, err := h.namespaceGet(ctx)
@@ -46,10 +46,11 @@ func (h *NamespaceGetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	resp := &admin.NamespaceGetResponse{
 		Registry: &nsRegistry,
 	}
-	WriteJSONResponse(w, resp, logger)
+
+	WriteProtoMsgJSONResponse(w, resp, logger)
 }
 
-func (h *NamespaceGetHandler) namespaceGet(ctx context.Context) (nsproto.Registry, error) {
+func (h *namespaceGetHandler) namespaceGet(ctx context.Context) (nsproto.Registry, error) {
 	var emptyReg = nsproto.Registry{}
 	store, err := GetKV(h.clusterClient)
 	if err != nil {

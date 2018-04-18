@@ -41,24 +41,26 @@ const (
 	PlacementGetHTTPMethodURL = "/placement"
 )
 
-// PlacementGetHandler represents a handler for placement get endpoint.
-type PlacementGetHandler AdminHandler
+// placementGetHandler represents a handler for placement get endpoint.
+type placementGetHandler AdminHandler
 
 // NewPlacementGetHandler returns a new instance of handler.
 func NewPlacementGetHandler(clusterClient m3clusterClient.Client) http.Handler {
-	return &PlacementGetHandler{
+	return &placementGetHandler{
 		clusterClient: clusterClient,
 	}
 }
 
-func (h *PlacementGetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *placementGetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := logging.WithContext(ctx)
 
 	placement, version, err := h.placementGet(ctx)
 	if err != nil {
-		logger.Error("unable to get placement", zap.Any("error", err))
-		Error(w, err, http.StatusInternalServerError)
+		// An error from placementGet signifies "key not found", meaning there is
+		// no placement and as such, should not be treated as an actual error to
+		// the user.
+		w.Write([]byte("no placement found\n"))
 		return
 	}
 
@@ -74,19 +76,14 @@ func (h *PlacementGetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		Version:   int32(version),
 	}
 
-	WriteJSONResponse(w, resp, logger)
+	WriteProtoMsgJSONResponse(w, resp, logger)
 }
 
-func (h *PlacementGetHandler) placementGet(ctx context.Context) (placement.Placement, int, error) {
+func (h *placementGetHandler) placementGet(ctx context.Context) (placement.Placement, int, error) {
 	ps, err := PlacementService(h.clusterClient, h.config)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	placement, version, err := ps.Placement()
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return placement, version, nil
+	return ps.Placement()
 }

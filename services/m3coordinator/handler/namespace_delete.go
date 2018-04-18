@@ -22,17 +22,21 @@ const (
 	NamespaceDeleteURL = "/namespace/delete"
 )
 
-// NamespaceDeleteHandler represents a handler for placement delete endpoint.
-type NamespaceDeleteHandler AdminHandler
+var (
+	errNamespaceNotFound = errors.New("unable to find a namespace with specified name")
+)
+
+// namespaceDeleteHandler represents a handler for placement delete endpoint.
+type namespaceDeleteHandler AdminHandler
 
 // NewNamespaceDeleteHandler returns a new instance of handler.
 func NewNamespaceDeleteHandler(clusterClient m3clusterClient.Client) http.Handler {
-	return &NamespaceDeleteHandler{
+	return &namespaceDeleteHandler{
 		clusterClient: clusterClient,
 	}
 }
 
-func (h *NamespaceDeleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *namespaceDeleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := logging.WithContext(ctx)
 
@@ -44,13 +48,17 @@ func (h *NamespaceDeleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Reques
 
 	err := h.namespaceDelete(ctx, req)
 	if err != nil {
-		logger.Error("unable to get namespace", zap.Any("error", err))
-		Error(w, err, http.StatusInternalServerError)
-		return
+		logger.Error("unable to delete namespace", zap.Any("error", err))
+
+		if err == errNamespaceNotFound {
+			Error(w, err, http.StatusBadRequest)
+		} else {
+			Error(w, err, http.StatusInternalServerError)
+		}
 	}
 }
 
-func (h *NamespaceDeleteHandler) parseRequest(r *http.Request) (*admin.NamespaceDeleteRequest, *ParseError) {
+func (h *namespaceDeleteHandler) parseRequest(r *http.Request) (*admin.NamespaceDeleteRequest, *ParseError) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		return nil, NewParseError(err, http.StatusBadRequest)
@@ -65,7 +73,7 @@ func (h *NamespaceDeleteHandler) parseRequest(r *http.Request) (*admin.Namespace
 	return deleteReq, nil
 }
 
-func (h *NamespaceDeleteHandler) namespaceDelete(ctx context.Context, r *admin.NamespaceDeleteRequest) error {
+func (h *namespaceDeleteHandler) namespaceDelete(ctx context.Context, r *admin.NamespaceDeleteRequest) error {
 	kv, err := GetKV(h.clusterClient)
 	if err != nil {
 		return err
@@ -87,7 +95,7 @@ func (h *NamespaceDeleteHandler) namespaceDelete(ctx context.Context, r *admin.N
 	}
 
 	if !found {
-		return errors.New("unable to find a namespace with specified name")
+		return errNamespaceNotFound
 	}
 
 	// If metadatas are empty, remove the key

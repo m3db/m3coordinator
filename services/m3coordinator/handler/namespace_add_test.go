@@ -7,10 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/m3db/m3cluster/client"
 	"github.com/m3db/m3cluster/kv"
-	"github.com/m3db/m3cluster/placement"
-	"github.com/m3db/m3coordinator/util/logging"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -18,19 +15,7 @@ import (
 )
 
 func TestNamespaceAddHandler(t *testing.T) {
-	logging.InitWithCores(nil)
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	mockClient := client.NewMockClient(ctrl)
-	require.NotNil(t, mockClient)
-	mockKV := kv.NewMockTxnStore(ctrl)
-	require.NotNil(t, mockKV)
-	mockPlacementService := placement.NewMockService(ctrl)
-	require.NotNil(t, mockPlacementService)
-
-	mockClient.EXPECT().KV().Return(mockKV, nil).AnyTimes()
-
+	mockClient, mockKV, _ := SetupNamespaceTest(t)
 	handler := NewNamespaceAddHandler(mockClient)
 	w := httptest.NewRecorder()
 
@@ -40,7 +25,8 @@ func TestNamespaceAddHandler(t *testing.T) {
 			"retention_period": "48h",
 			"block_size": "2h",
 			"buffer_future": "10m",
-			"buffer_past": "5m"
+			"buffer_past": "5m",
+			"needs_fileset_cleanup": false
 		}
 	`
 
@@ -54,5 +40,5 @@ func TestNamespaceAddHandler(t *testing.T) {
 	resp := w.Result()
 	body, _ := ioutil.ReadAll(resp.Body)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.Equal(t, "{\"registry\":{\"namespaces\":{\"testNamespace\":{\"retentionOptions\":{\"retentionPeriodNanos\":172800000000000,\"blockSizeNanos\":7200000000000,\"bufferFutureNanos\":600000000000,\"bufferPastNanos\":300000000000,\"blockDataExpiryAfterNotAccessPeriodNanos\":300000000000}}}}}", string(body))
+	assert.Equal(t, "{\"registry\":{\"namespaces\":{\"testNamespace\":{\"needsBootstrap\":false,\"needsFlush\":false,\"writesToCommitLog\":false,\"needsFilesetCleanup\":false,\"needsRepair\":false,\"retentionOptions\":{\"retentionPeriodNanos\":\"172800000000000\",\"blockSizeNanos\":\"7200000000000\",\"bufferFutureNanos\":\"600000000000\",\"bufferPastNanos\":\"300000000000\",\"blockDataExpiry\":false,\"blockDataExpiryAfterNotAccessPeriodNanos\":\"300000000000\"}}}}}", string(body))
 }

@@ -7,28 +7,32 @@ import (
 	"testing"
 
 	"github.com/m3db/m3coordinator/util/logging"
-	nsproto "github.com/m3db/m3db/generated/proto/namespace"
 
 	"github.com/m3db/m3cluster/client"
 	"github.com/m3db/m3cluster/kv"
+	nsproto "github.com/m3db/m3db/generated/proto/namespace"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestNamespaceGetHandler(t *testing.T) {
+func SetupNamespaceTest(t *testing.T) (*client.MockClient, *kv.MockStore, *gomock.Controller) {
 	logging.InitWithCores(nil)
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mockClient := client.NewMockClient(ctrl)
 	require.NotNil(t, mockClient)
-	mockKV := kv.NewMockTxnStore(ctrl)
+	mockKV := kv.NewMockStore(ctrl)
 	require.NotNil(t, mockKV)
-
 	mockClient.EXPECT().KV().Return(mockKV, nil).AnyTimes()
 
+	return mockClient, mockKV, ctrl
+}
+
+func TestNamespaceGetHandler(t *testing.T) {
+	mockClient, mockKV, ctrl := SetupNamespaceTest(t)
 	handler := NewNamespaceGetHandler(mockClient)
 
 	// Test no namespace
@@ -43,7 +47,7 @@ func TestNamespaceGetHandler(t *testing.T) {
 	resp := w.Result()
 	body, _ := ioutil.ReadAll(resp.Body)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.Equal(t, "{\"registry\":{}}", string(body))
+	assert.Equal(t, "{\"registry\":{\"namespaces\":{}}}", string(body))
 
 	// Test namespace present
 	w = httptest.NewRecorder()
@@ -80,5 +84,5 @@ func TestNamespaceGetHandler(t *testing.T) {
 	resp = w.Result()
 	body, _ = ioutil.ReadAll(resp.Body)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.Equal(t, "{\"registry\":{\"namespaces\":{\"test\":{\"needsBootstrap\":true,\"needsFlush\":true,\"writesToCommitLog\":true,\"retentionOptions\":{\"retentionPeriodNanos\":172800000000000,\"blockSizeNanos\":7200000000000,\"bufferFutureNanos\":600000000000,\"bufferPastNanos\":600000000000,\"blockDataExpiry\":true,\"blockDataExpiryAfterNotAccessPeriodNanos\":3600000000000}}}}}", string(body))
+	assert.Equal(t, "{\"registry\":{\"namespaces\":{\"test\":{\"needsBootstrap\":true,\"needsFlush\":true,\"writesToCommitLog\":true,\"needsFilesetCleanup\":false,\"needsRepair\":false,\"retentionOptions\":{\"retentionPeriodNanos\":\"172800000000000\",\"blockSizeNanos\":\"7200000000000\",\"bufferFutureNanos\":\"600000000000\",\"bufferPastNanos\":\"600000000000\",\"blockDataExpiry\":true,\"blockDataExpiryAfterNotAccessPeriodNanos\":\"3600000000000\"}}}}}", string(body))
 }

@@ -72,13 +72,11 @@ func (m *NamespaceGetResponse) GetRegistry() *namespace.Registry {
 }
 
 type NamespaceAddRequest struct {
-	// Required fields
-	Name            string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	RetentionPeriod string `protobuf:"bytes,2,opt,name=retention_period,json=retentionPeriod,proto3" json:"retention_period,omitempty"`
-	BlockSize       string `protobuf:"bytes,3,opt,name=block_size,json=blockSize,proto3" json:"block_size,omitempty"`
-	BufferFuture    string `protobuf:"bytes,4,opt,name=buffer_future,json=bufferFuture,proto3" json:"buffer_future,omitempty"`
-	BufferPast      string `protobuf:"bytes,5,opt,name=buffer_past,json=bufferPast,proto3" json:"buffer_past,omitempty"`
-	// Optional fields that are defaulted
+	Name                  string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	RetentionPeriod       string `protobuf:"bytes,2,opt,name=retention_period,json=retentionPeriod,proto3" json:"retention_period,omitempty"`
+	BlockSize             string `protobuf:"bytes,3,opt,name=block_size,json=blockSize,proto3" json:"block_size,omitempty"`
+	BufferFuture          string `protobuf:"bytes,4,opt,name=buffer_future,json=bufferFuture,proto3" json:"buffer_future,omitempty"`
+	BufferPast            string `protobuf:"bytes,5,opt,name=buffer_past,json=bufferPast,proto3" json:"buffer_past,omitempty"`
 	BlockDataExpiry       bool   `protobuf:"varint,6,opt,name=block_data_expiry,json=blockDataExpiry,proto3" json:"block_data_expiry,omitempty"`
 	BlockDataExpiryPeriod string `protobuf:"bytes,7,opt,name=block_data_expiry_period,json=blockDataExpiryPeriod,proto3" json:"block_data_expiry_period,omitempty"`
 	NeedsBootstrap        bool   `protobuf:"varint,8,opt,name=needs_bootstrap,json=needsBootstrap,proto3" json:"needs_bootstrap,omitempty"`

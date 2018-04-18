@@ -22,7 +22,8 @@ package handler
 
 import (
 	"fmt"
-	"time"
+
+	"github.com/m3db/m3coordinator/services/m3coordinator/config"
 
 	m3clusterClient "github.com/m3db/m3cluster/client"
 	"github.com/m3db/m3cluster/generated/proto/placementpb"
@@ -30,7 +31,6 @@ import (
 	"github.com/m3db/m3cluster/placement"
 	"github.com/m3db/m3cluster/services"
 	"github.com/m3db/m3cluster/shard"
-	"github.com/m3db/m3coordinator/services/m3coordinator/config"
 	nsproto "github.com/m3db/m3db/generated/proto/namespace"
 	"github.com/m3db/m3db/storage/namespace"
 )
@@ -62,20 +62,14 @@ func PlacementService(clusterClient m3clusterClient.Client, cfg config.Configura
 		return nil, err
 	}
 
-	var (
-		serviceName        string
-		serviceEnvironment string
-		serviceZone        string
-	)
+	serviceName := DefaultServiceName
+	serviceEnvironment := DefaultServiceEnvironment
+	serviceZone := DefaultServiceZone
 
-	if cfg.M3DBClientCfg.EnvironmentConfig.Service == nil {
-		serviceName = DefaultServiceName
-		serviceEnvironment = DefaultServiceEnvironment
-		serviceZone = DefaultServiceZone
-	} else {
-		serviceName = cfg.M3DBClientCfg.EnvironmentConfig.Service.Service
-		serviceEnvironment = cfg.M3DBClientCfg.EnvironmentConfig.Service.Env
-		serviceZone = cfg.M3DBClientCfg.EnvironmentConfig.Service.Zone
+	if service := cfg.M3DBClientCfg.EnvironmentConfig.Service; service != nil {
+		serviceName = service.Service
+		serviceEnvironment = service.Env
+		serviceZone = service.Zone
 	}
 
 	sid := services.NewServiceID().
@@ -145,12 +139,4 @@ func currentNamespaceMetadata(store kv.Store) ([]namespace.Metadata, error) {
 	}
 
 	return nsMap.Metadatas(), nil
-}
-
-func parseDurationWithDefault(s, def string) (time.Duration, error) {
-	if s == "" {
-		s = def
-	}
-
-	return time.ParseDuration(s)
 }

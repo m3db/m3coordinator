@@ -113,9 +113,9 @@ func main() {
 		logger.Fatal("unable to create m3db client", zap.Any("error", err))
 	}
 
-	// Instantiating an M3DB session requires a topology to be set in KV. This function
-	// watches (blocks) for that, so this needs to happen after the potential embedded KV
-	// and corresponding endpoints is set up.
+	// Instantiating an M3DB session requires a topology. This function watches (blocks)
+	// for that, so this needs to happen after the potential embedded KV and corresponding
+	// endpoints are set up.
 	session, err := m3dbClient.NewSession()
 	if err != nil {
 		logger.Fatal("unable to create m3db client session", zap.Any("error", err))

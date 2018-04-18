@@ -27,6 +27,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/snappy"
 	"go.uber.org/zap"
 )
@@ -91,9 +93,9 @@ func ParseRequestParams(r *http.Request) (*RequestParams, error) {
 	return &params, nil
 }
 
-// WriteJSONResponse writes a protobuf message to the ResponseWriter
-func WriteJSONResponse(w http.ResponseWriter, resp interface{}, logger *zap.Logger) {
-	jsonData, err := json.Marshal(resp)
+// WriteJSONResponse writes a generic to the ResponseWriter
+func WriteJSONResponse(w http.ResponseWriter, data interface{}, logger *zap.Logger) {
+	jsonData, err := json.Marshal(data)
 	if err != nil {
 		logger.Error("unable to marshal json", zap.Any("error", err))
 		Error(w, err, http.StatusInternalServerError)
@@ -102,6 +104,20 @@ func WriteJSONResponse(w http.ResponseWriter, resp interface{}, logger *zap.Logg
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(jsonData)
+}
+
+// WriteProtoMsgJSONResponse writes a protobuf message to the ResponseWriter. This uses jsonpb
+// for json marshalling, which encodes fields with default values, even with the omitempty tag.
+func WriteProtoMsgJSONResponse(w http.ResponseWriter, data proto.Message, logger *zap.Logger) {
+	marshaler := jsonpb.Marshaler{EmitDefaults: true}
+
+	w.Header().Set("Content-Type", "application/json")
+	err := marshaler.Marshal(w, data)
+
+	if err != nil {
+		logger.Error("unable to marshal json", zap.Any("error", err))
+		Error(w, err, http.StatusInternalServerError)
+	}
 }
 
 // WriteUninitializedResponse writes a protobuf message to the ResponseWriter
