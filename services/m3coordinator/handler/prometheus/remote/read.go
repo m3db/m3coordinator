@@ -44,12 +44,12 @@ const (
 
 // PromReadHandler represents a handler for prometheus read endpoint.
 type PromReadHandler struct {
-	Engine *executor.Engine
+	engine *executor.Engine
 }
 
 // NewPromReadHandler returns a new instance of handler.
 func NewPromReadHandler(engine *executor.Engine) http.Handler {
-	return &PromReadHandler{Engine: engine}
+	return &PromReadHandler{engine: engine}
 }
 
 func (h *PromReadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -140,7 +140,7 @@ func (h *PromReadHandler) read(reqCtx context.Context, w http.ResponseWriter, r 
 	abortCh, closingCh := handler.CloseWatcher(ctx, w)
 	opts.AbortCh = abortCh
 
-	go h.Engine.Execute(ctx, query, opts, closingCh, results)
+	go h.engine.Execute(ctx, query, opts, closingCh, results)
 
 	promResults := make([]*prompb.QueryResult, 0, 1)
 	for result := range results {

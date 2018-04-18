@@ -66,6 +66,21 @@ func TestNamespaceDeleteHandlerDeleteAll(t *testing.T) {
 
 	registry := nsproto.Registry{
 		Namespaces: map[string]*nsproto.NamespaceOptions{
+			"otherNamespace": &nsproto.NamespaceOptions{
+				NeedsBootstrap:      true,
+				NeedsFlush:          true,
+				WritesToCommitLog:   true,
+				NeedsFilesetCleanup: false,
+				NeedsRepair:         false,
+				RetentionOptions: &nsproto.RetentionOptions{
+					RetentionPeriodNanos:                     172800000000000,
+					BlockSizeNanos:                           7200000000000,
+					BufferFutureNanos:                        600000000000,
+					BufferPastNanos:                          600000000000,
+					BlockDataExpiry:                          true,
+					BlockDataExpiryAfterNotAccessPeriodNanos: 3600000000000,
+				},
+			},
 			"testNamespace": &nsproto.NamespaceOptions{
 				BootstrapEnabled:  true,
 				FlushEnabled:      true,
@@ -89,6 +104,7 @@ func TestNamespaceDeleteHandlerDeleteAll(t *testing.T) {
 
 	mockKV.EXPECT().Get(M3DBNodeNamespacesKey).Return(mockValue, nil)
 	mockKV.EXPECT().Delete(M3DBNodeNamespacesKey).Return(nil, nil)
+	mockKV.EXPECT().Set(M3DBNodeNamespacesKey, gomock.Any()).Return(1, nil)
 	handler.ServeHTTP(w, req)
 
 	resp := w.Result()
