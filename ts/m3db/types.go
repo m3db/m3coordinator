@@ -18,13 +18,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package iter
+package m3db
 
 import (
 	"time"
 
 	"github.com/m3db/m3db/encoding"
-	"github.com/m3db/m3db/ts"
 	"github.com/m3db/m3x/ident"
 )
 
@@ -86,31 +85,3 @@ type MultiSeriesBlock struct {
 // MultiSeriesBlocks is a slice of MultiSeriesBlock
 // todo(braskin): add close method on this to close each SeriesIterator
 type MultiSeriesBlocks []MultiSeriesBlock
-
-// StepIter iterates through a CompressedStepIterator vertically
-type StepIter interface {
-	Next() bool
-	Current() Data
-}
-
-// SeriesIter iterates through a CompressedSeriesIterator horizontally
-type SeriesIter interface {
-	Next() bool
-	Current() []ts.Datapoint // todo(braskin): optimize into a ts.Series later
-}
-
-// CompressedStepIterator implements the StepIter interface
-type CompressedStepIterator struct {
-	MultiSeriesBlock
-}
-
-// CompressedSeriesIterator implements the SeriesIter interface
-type CompressedSeriesIterator struct {
-	MultiSeriesBlock
-}
-
-// Data is the data per timestamp in a MultiSeriesBlock
-type Data struct {
-	timestamp time.Time
-	values    []float64
-}

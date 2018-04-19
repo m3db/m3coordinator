@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package iter
+package m3db
 
 import (
 	"errors"
@@ -27,8 +27,7 @@ import (
 )
 
 var (
-	errBlocksMisaligned   = errors.New("blocks are misaligned on either start or end times")
-	errMultipleNamespaces = errors.New("consolidating multiple namespaces is currently not supported")
+	errBlocksMisaligned = errors.New("blocks misaligned")
 )
 
 // SeriesBlockToMultiSeriesBlocks converts M3DB blocks to multi series blocks
@@ -44,6 +43,7 @@ func SeriesBlockToMultiSeriesBlocks(multiNamespaceSeriesList []MultiNamespaceSer
 		if multiNamespaceSeriesIdx == 0 {
 			multiSeriesBlocks = make(MultiSeriesBlocks, len(consolidatedSeriesBlocks))
 		}
+
 		for consolidatedSeriesBlockIdx, consolidatedSeriesBlock := range consolidatedSeriesBlocks {
 			if multiNamespaceSeriesIdx == 0 {
 				multiSeriesBlocks[consolidatedSeriesBlockIdx].Start = consolidatedSeriesBlock.Start
@@ -51,8 +51,9 @@ func SeriesBlockToMultiSeriesBlocks(multiNamespaceSeriesList []MultiNamespaceSer
 			}
 
 			if consolidatedSeriesBlock.Start != multiSeriesBlocks[consolidatedSeriesBlockIdx].Start || consolidatedSeriesBlock.End != multiSeriesBlocks[consolidatedSeriesBlockIdx].End {
-				return MultiSeriesBlocks{}, err
+				return MultiSeriesBlocks{}, errBlocksMisaligned
 			}
+
 			multiSeriesBlocks[consolidatedSeriesBlockIdx].Blocks = append(multiSeriesBlocks[consolidatedSeriesBlockIdx].Blocks, consolidatedSeriesBlock)
 		}
 	}
@@ -63,11 +64,6 @@ func SeriesBlockToMultiSeriesBlocks(multiNamespaceSeriesList []MultiNamespaceSer
 // newConsolidatedSeriesBlocks creates consolidated blocks by timeseries across namespaces
 func newConsolidatedSeriesBlocks(multiNamespaceSeries MultiNamespaceSeries, seriesIteratorsPool encoding.MutableSeriesIteratorsPool) (ConsolidatedSeriesBlocks, error) {
 	var consolidatedSeriesBlocks ConsolidatedSeriesBlocks
-
-	// todo: remove this once we support consolidating multiple namespaces
-	if len(multiNamespaceSeries) > 1 {
-		return consolidatedSeriesBlocks, errMultipleNamespaces
-	}
 
 	for seriesBlocksIdx, seriesBlocks := range multiNamespaceSeries {
 		consolidatedNSBlocks := newConsolidatedNSBlocks(seriesBlocks, seriesIteratorsPool)
@@ -84,6 +80,7 @@ func newConsolidatedSeriesBlocks(multiNamespaceSeries MultiNamespaceSeries, seri
 			if consolidatedNSBlock.Start != consolidatedSeriesBlocks[consolidatedNSBlockIdx].Start || consolidatedNSBlock.End != consolidatedSeriesBlocks[consolidatedNSBlockIdx].End {
 				return ConsolidatedSeriesBlocks{}, errBlocksMisaligned
 			}
+
 			consolidatedSeriesBlocks[consolidatedNSBlockIdx].ConsolidatedNSBlocks = append(consolidatedSeriesBlocks[consolidatedNSBlockIdx].ConsolidatedNSBlocks, consolidatedNSBlock)
 		}
 	}
@@ -93,7 +90,7 @@ func newConsolidatedSeriesBlocks(multiNamespaceSeries MultiNamespaceSeries, seri
 
 // newConsolidatedNSBlocks creates a slice of consolidated blocks per namespace for a single timeseries
 func newConsolidatedNSBlocks(seriesBlocks SeriesBlocks, seriesIteratorsPool encoding.MutableSeriesIteratorsPool) []ConsolidatedNSBlock {
-	var consolidatedNSBlocks []ConsolidatedNSBlock
+	consolidatedNSBlocks := make([]ConsolidatedNSBlock, 0)
 	namespace := seriesBlocks.Namespace
 	id := seriesBlocks.ID
 	for _, seriesBlock := range seriesBlocks.Blocks {
