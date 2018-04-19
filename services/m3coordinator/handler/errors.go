@@ -26,8 +26,10 @@ import (
 	"strings"
 )
 
-// ErrInvalidParams is returned when input parameters are invalid
-var ErrInvalidParams = errors.New("invalid request params")
+var (
+	// ErrInvalidParams is returned when input parameters are invalid
+	ErrInvalidParams = errors.New("invalid request params")
+)
 
 // Error will serve an HTTP error
 func Error(w http.ResponseWriter, err error, code int) {

@@ -28,6 +28,10 @@ const (
 	defaultBlockDataExpiryPeriodStr = "5m"
 )
 
+var (
+	errMissingNamespaceName = errors.New("must specify namespace name")
+)
+
 // namespaceAddHandler represents a handler for placement add endpoint.
 type namespaceAddHandler AdminHandler
 
@@ -113,7 +117,7 @@ func metadataFromRequest(r *admin.NamespaceAddRequest) (namespace.Metadata, erro
 	// Explicitly check existence of name. Other required fields are `time.Duration`s,
 	// which will fail to parse as such on empty string.
 	if r.Name == "" {
-		return nil, errors.New("must specify namespace name")
+		return nil, errMissingNamespaceName
 	}
 	blockSize, err := time.ParseDuration(r.BlockSize)
 	if err != nil {
