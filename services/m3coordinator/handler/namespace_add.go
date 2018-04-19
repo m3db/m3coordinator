@@ -80,7 +80,7 @@ func (h *namespaceAddHandler) parseRequest(r *http.Request) (*admin.NamespaceAdd
 
 func (h *namespaceAddHandler) namespaceAdd(ctx context.Context, r *admin.NamespaceAddRequest) (nsproto.Registry, error) {
 	var emptyReg = nsproto.Registry{}
-	kv, err := GetKV(h.clusterClient)
+	kv, err := h.clusterClient.KV()
 	if err != nil {
 		return emptyReg, err
 	}

@@ -74,7 +74,7 @@ func (h *namespaceDeleteHandler) parseRequest(r *http.Request) (*admin.Namespace
 }
 
 func (h *namespaceDeleteHandler) namespaceDelete(ctx context.Context, r *admin.NamespaceDeleteRequest) error {
-	kv, err := GetKV(h.clusterClient)
+	kv, err := h.clusterClient.KV()
 	if err != nil {
 		return err
 	}

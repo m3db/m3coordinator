@@ -52,7 +52,7 @@ func (h *namespaceGetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 func (h *namespaceGetHandler) namespaceGet(ctx context.Context) (nsproto.Registry, error) {
 	var emptyReg = nsproto.Registry{}
-	store, err := GetKV(h.clusterClient)
+	store, err := h.clusterClient.KV()
 	if err != nil {
 		return emptyReg, err
 	}
