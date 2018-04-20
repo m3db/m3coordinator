@@ -37,21 +37,24 @@ func SeriesBlockToMultiSeriesBlocks(multiNamespaceSeriesList []MultiNamespaceSer
 	for multiNamespaceSeriesIdx, multiNamespaceSeries := range multiNamespaceSeriesList {
 		consolidatedSeriesBlocks, err := newConsolidatedSeriesBlocks(multiNamespaceSeries, seriesIteratorsPool)
 		if err != nil {
-			return MultiSeriesBlocks{}, err
+			return nil, err
 		}
 
+		// once we get the length of consolidatedSeriesBlocks, we can create a
+		// MultiSeriesBlocks list with the proper size
 		if multiNamespaceSeriesIdx == 0 {
 			multiSeriesBlocks = make(MultiSeriesBlocks, len(consolidatedSeriesBlocks))
 		}
 
 		for consolidatedSeriesBlockIdx, consolidatedSeriesBlock := range consolidatedSeriesBlocks {
+			// we only want to set the start and end times once
 			if multiNamespaceSeriesIdx == 0 {
 				multiSeriesBlocks[consolidatedSeriesBlockIdx].Start = consolidatedSeriesBlock.Start
 				multiSeriesBlocks[consolidatedSeriesBlockIdx].End = consolidatedSeriesBlock.End
 			}
 
-			if consolidatedSeriesBlock.Start != multiSeriesBlocks[consolidatedSeriesBlockIdx].Start || consolidatedSeriesBlock.End != multiSeriesBlocks[consolidatedSeriesBlockIdx].End {
-				return MultiSeriesBlocks{}, errBlocksMisaligned
+			if err := consolidatedSeriesBlock.isBeyondBounds(multiSeriesBlocks[consolidatedSeriesBlockIdx]); err != nil {
+				return nil, err
 			}
 
 			multiSeriesBlocks[consolidatedSeriesBlockIdx].Blocks = append(multiSeriesBlocks[consolidatedSeriesBlockIdx].Blocks, consolidatedSeriesBlock)
@@ -67,18 +70,21 @@ func newConsolidatedSeriesBlocks(multiNamespaceSeries MultiNamespaceSeries, seri
 
 	for seriesBlocksIdx, seriesBlocks := range multiNamespaceSeries {
 		consolidatedNSBlocks := newConsolidatedNSBlocks(seriesBlocks, seriesIteratorsPool)
+		// once we get the length of consolidatedNSBlocks, we can create a
+		// ConsolidatedSeriesBlocks list with the proper size
 		if seriesBlocksIdx == 0 {
 			consolidatedSeriesBlocks = make(ConsolidatedSeriesBlocks, len(consolidatedNSBlocks))
 		}
 
 		for consolidatedNSBlockIdx, consolidatedNSBlock := range consolidatedNSBlocks {
+			// we only want to set the start and end times once
 			if seriesBlocksIdx == 0 {
 				consolidatedSeriesBlocks[consolidatedNSBlockIdx].Start = consolidatedNSBlock.Start
 				consolidatedSeriesBlocks[consolidatedNSBlockIdx].End = consolidatedNSBlock.End
 			}
 
-			if consolidatedNSBlock.Start != consolidatedSeriesBlocks[consolidatedNSBlockIdx].Start || consolidatedNSBlock.End != consolidatedSeriesBlocks[consolidatedNSBlockIdx].End {
-				return ConsolidatedSeriesBlocks{}, errBlocksMisaligned
+			if err := consolidatedNSBlock.isBeyondBounds(consolidatedSeriesBlocks[consolidatedNSBlockIdx]); err != nil {
+				return nil, err
 			}
 
 			consolidatedSeriesBlocks[consolidatedNSBlockIdx].ConsolidatedNSBlocks = append(consolidatedSeriesBlocks[consolidatedNSBlockIdx].ConsolidatedNSBlocks, consolidatedNSBlock)
@@ -90,7 +96,7 @@ func newConsolidatedSeriesBlocks(multiNamespaceSeries MultiNamespaceSeries, seri
 
 // newConsolidatedNSBlocks creates a slice of consolidated blocks per namespace for a single timeseries
 func newConsolidatedNSBlocks(seriesBlocks SeriesBlocks, seriesIteratorsPool encoding.MutableSeriesIteratorsPool) []ConsolidatedNSBlock {
-	consolidatedNSBlocks := make([]ConsolidatedNSBlock, 0)
+	consolidatedNSBlocks := make([]ConsolidatedNSBlock, 0, len(seriesBlocks.Blocks))
 	namespace := seriesBlocks.Namespace
 	id := seriesBlocks.ID
 	for _, seriesBlock := range seriesBlocks.Blocks {
