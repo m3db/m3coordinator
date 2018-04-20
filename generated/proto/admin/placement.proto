@@ -14,3 +14,11 @@ message PlacementGetResponse {
   placementpb.Placement placement = 1;
   int32 version = 2;
 }
+
+message PlacementAddRequest {
+  repeated placementpb.Instance instances = 1;
+}
+
+message PlacementRemoveRequest {
+  repeated string instance_ids = 1;
+}

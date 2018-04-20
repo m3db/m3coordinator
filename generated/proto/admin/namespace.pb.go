@@ -34,6 +34,8 @@
 		NamespaceDeleteRequest
 		PlacementInitRequest
 		PlacementGetResponse
+		PlacementAddRequest
+		PlacementRemoveRequest
 */
 package admin
 

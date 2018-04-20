@@ -115,6 +115,10 @@ func (h *Handler) RegisterRoutes() {
 		h.Router.HandleFunc(handler.PlacementDeleteURL, logged(handler.NewPlacementDeleteHandler(h.clusterClient)).ServeHTTP).Methods("POST")
 		h.Router.HandleFunc(handler.PlacementDeleteHTTPMethodURL, logged(handler.NewPlacementDeleteHandler(h.clusterClient)).ServeHTTP).Methods("DELETE")
 
+		h.Router.HandleFunc(handler.PlacementAddURL, logged(handler.NewPlacementAddHandler(h.clusterClient)).ServeHTTP).Methods("POST")
+
+		h.Router.HandleFunc(handler.PlacementRemoveURL, logged(handler.NewPlacementRemoveHandler(h.clusterClient)).ServeHTTP).Methods("POST")
+
 		h.Router.HandleFunc(handler.NamespaceGetURL, logged(handler.NewNamespaceGetHandler(h.clusterClient)).ServeHTTP).Methods("GET")
 		h.Router.HandleFunc(handler.NamespaceGetHTTPMethodURL, logged(handler.NewNamespaceGetHandler(h.clusterClient)).ServeHTTP).Methods("GET")
 
