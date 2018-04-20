@@ -6,30 +6,36 @@ import (
 
 	"github.com/m3db/m3coordinator/parser"
 	"github.com/m3db/m3coordinator/plan"
+	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/util/execution"
 )
-
-
-// Source represents data sources which are handled differently than other transforms as they are always independent and can always be parallelized
-type Source interface {
-	Execute(ctx context.Context) error
-}
 
 // ExecutionState represents the execution hierarchy
 type ExecutionState struct {
 	plan       plan.PhysicalPlan
-	sources    []Source
+	sources    []parser.Source
 	resultNode parser.OpNode
+	storage    storage.Storage
 }
 
 // GenerateExecutionState creates an execution state from the physical plan
-func GenerateExecutionState(plan plan.PhysicalPlan) (*ExecutionState, error) {
+func GenerateExecutionState(plan plan.PhysicalPlan, storage storage.Storage) (*ExecutionState, error) {
 	result := plan.ResultStep
 	state := &ExecutionState{
-		plan: plan,
+		plan:    plan,
+		storage: storage,
 	}
 
-	resultNode, _, err := state.createNode(result)
+	if len(result.Parents) > 1 {
+		return nil, fmt.Errorf("result node should have a single parent")
+	}
+
+	step, ok := plan.Step(result.Parents[0])
+	if !ok {
+		return nil, fmt.Errorf("incorrect parent reference in result node, parentId: %s, node: %s", result.Parents[0], result.ID())
+	}
+
+	controller, err := state.createNode(step)
 	if err != nil {
 		return nil, err
 	}
@@ -38,35 +44,44 @@ func GenerateExecutionState(plan plan.PhysicalPlan) (*ExecutionState, error) {
 		return nil, fmt.Errorf("empty sources for the execution state")
 	}
 
-	state.resultNode = resultNode
+	state.resultNode = plan.ResultNode{}
+	controller.AddTransform(state.resultNode)
+
 	return state, nil
 }
 
 // createNode helps to create an execution node recursively
 // TODO: consider modifying this function so that ExecutionState can have a non pointer receiver
-func (s *ExecutionState) createNode(step plan.LogicalStep) (parser.OpNode, *parser.TransformController, error) {
-	stepNode, controller := step.Transform.Node()
+func (s *ExecutionState) createNode(step plan.LogicalStep) (*parser.TransformController, error) {
 	// TODO: consider using a registry instead of casting to an interface
-	source, ok := stepNode.(Source)
+	sourceParams, ok := step.Transform.Op.(parser.SourceParams)
 	if ok {
+		source, controller := parser.CreateSource(step.ID(), sourceParams, s.storage)
 		s.sources = append(s.sources, source)
+		return controller, nil
 	}
 
+	transformParams, ok := step.Transform.Op.(parser.TransformParams)
+	if !ok {
+		return nil, fmt.Errorf("invalid transform step, %s", step)
+	}
+
+	transformNode, controller := parser.CreateTransform(step.ID(), transformParams)
 	for _, parentID := range step.Parents {
 		parentStep, ok := s.plan.Step(parentID)
 		if !ok {
-			return nil, nil, fmt.Errorf("incorrect parent reference, parentId: %s, node: %s", parentID, step.ID())
+			return nil, fmt.Errorf("incorrect parent reference, parentId: %s, node: %s", parentID, step.ID())
 		}
 
-		_, parentController, err := s.createNode(parentStep)
+		parentController, err := s.createNode(parentStep)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
-		parentController.AddTransform(stepNode)
+		parentController.AddTransform(transformNode)
 	}
 
-	return stepNode, controller, nil
+	return controller, nil
 }
 
 // Execute the sources in parallel and return the first error
@@ -85,7 +100,7 @@ func (s *ExecutionState) String() string {
 }
 
 type sourceRequest struct {
-	source Source
+	source parser.Source
 }
 
 func (s sourceRequest) Process(ctx context.Context) error {

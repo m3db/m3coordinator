@@ -15,7 +15,7 @@ import (
 func TestValidState(t *testing.T) {
 	fetchTransform := parser.NewTransformFromOperation(functions.FetchOp{}, 1)
 	countTransform := parser.NewTransformFromOperation(functions.CountOp{}, 2)
-	transforms := parser.Transforms{fetchTransform, countTransform}
+	transforms := parser.Nodes{fetchTransform, countTransform}
 	edges := parser.Edges{
 		parser.Edge{
 			ParentID: fetchTransform.ID,
@@ -36,7 +36,7 @@ func TestValidState(t *testing.T) {
 
 func TestWithoutSources(t *testing.T) {
 	countTransform := parser.NewTransformFromOperation(functions.CountOp{}, 2)
-	transforms := parser.Transforms{countTransform}
+	transforms := parser.Nodes{countTransform}
 	edges := parser.Edges{}
 	lp, err := plan.NewLogicalPlan(transforms, edges)
 	require.NoError(t, err)
@@ -49,7 +49,7 @@ func TestWithoutSources(t *testing.T) {
 
 func TestOnlySources(t *testing.T) {
 	fetchTransform := parser.NewTransformFromOperation(functions.FetchOp{}, 1)
-	transforms := parser.Transforms{fetchTransform}
+	transforms := parser.Nodes{fetchTransform}
 	edges := parser.Edges{}
 	lp, err := plan.NewLogicalPlan(transforms, edges)
 	require.NoError(t, err)

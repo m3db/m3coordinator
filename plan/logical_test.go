@@ -13,7 +13,7 @@ import (
 func TestSingleChildParentRelation(t *testing.T) {
 	fetchTransform := parser.NewTransformFromOperation(functions.FetchOp{}, 1)
 	countTransform := parser.NewTransformFromOperation(functions.CountOp{}, 2)
-	transforms := parser.Transforms{fetchTransform, countTransform}
+	transforms := parser.Nodes{fetchTransform, countTransform}
 	edges := parser.Edges {
 		parser.Edge{
 			ParentID: fetchTransform.ID,
@@ -38,7 +38,7 @@ func TestSingleParentMultiChild(t *testing.T) {
 	fetchTransform := parser.NewTransformFromOperation(functions.FetchOp{}, 1)
 	countTransform1 := parser.NewTransformFromOperation(functions.CountOp{}, 2)
 	countTransform2 := parser.NewTransformFromOperation(functions.CountOp{}, 3)
-	transforms := parser.Transforms{fetchTransform, countTransform1, countTransform2}
+	transforms := parser.Nodes{fetchTransform, countTransform1, countTransform2}
 	edges := parser.Edges {
 		parser.Edge{
 			ParentID: fetchTransform.ID,
@@ -64,7 +64,7 @@ func TestMultiParent(t *testing.T) {
 	fetchTransform2 := parser.NewTransformFromOperation(functions.FetchOp{}, 2)
 	countTransform := parser.NewTransformFromOperation(functions.CountOp{}, 3)
 
-	transforms := parser.Transforms{fetchTransform1, fetchTransform2, countTransform}
+	transforms := parser.Nodes{fetchTransform1, fetchTransform2, countTransform}
 	edges := parser.Edges {
 		parser.Edge{
 			ParentID: fetchTransform1.ID,

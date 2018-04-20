@@ -13,7 +13,7 @@ import (
 func TestResultNode(t *testing.T) {
 	fetchTransform := parser.NewTransformFromOperation(functions.FetchOp{}, 1)
 	countTransform := parser.NewTransformFromOperation(functions.CountOp{}, 2)
-	transforms := parser.Transforms{fetchTransform, countTransform}
+	transforms := parser.Nodes{fetchTransform, countTransform}
 	edges := parser.Edges{
 		parser.Edge{
 			ParentID: fetchTransform.ID,

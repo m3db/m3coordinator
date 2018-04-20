@@ -9,8 +9,8 @@ import (
 
 // PhysicalPlan represents the physical plan
 type PhysicalPlan struct {
-	steps      map[parser.TransformID]LogicalStep
-	pipeline   []parser.TransformID // Ordered list of steps to be performed
+	steps      map[parser.NodeID]LogicalStep
+	pipeline   []parser.NodeID // Ordered list of steps to be performed
 	ResultStep LogicalStep
 }
 
@@ -41,8 +41,8 @@ func (p PhysicalPlan) createResultNode() (PhysicalPlan, error) {
 	resultNode := parser.NewTransformFromOperation(ResultOp{}, len(p.steps)+1)
 	resultStep := LogicalStep{
 		Transform: resultNode,
-		Parents:   []parser.TransformID{leaf.ID()},
-		Children:  []parser.TransformID{},
+		Parents:   []parser.NodeID{leaf.ID()},
+		Children:  []parser.NodeID{},
 	}
 
 	p.ResultStep = resultStep
@@ -72,7 +72,7 @@ func (p PhysicalPlan) leafNode() (LogicalStep, error) {
 }
 
 // Step gets the logical step using its unique ID in the DAG
-func (p PhysicalPlan) Step(ID parser.TransformID) (LogicalStep, bool) {
+func (p PhysicalPlan) Step(ID parser.NodeID) (LogicalStep, bool) {
 	// Editor complains when inlining the map get
 	step, ok := p.steps[ID]
 	return step, ok
