@@ -53,8 +53,8 @@ func SeriesBlockToMultiSeriesBlocks(multiNamespaceSeriesList []MultiNamespaceSer
 				multiSeriesBlocks[consolidatedSeriesBlockIdx].End = consolidatedSeriesBlock.End
 			}
 
-			if err := consolidatedSeriesBlock.isBeyondBounds(multiSeriesBlocks[consolidatedSeriesBlockIdx]); err != nil {
-				return nil, err
+			if !consolidatedSeriesBlock.isBeyondBounds(multiSeriesBlocks[consolidatedSeriesBlockIdx]) {
+				return nil, errBlocksMisaligned
 			}
 
 			multiSeriesBlocks[consolidatedSeriesBlockIdx].Blocks = append(multiSeriesBlocks[consolidatedSeriesBlockIdx].Blocks, consolidatedSeriesBlock)
@@ -83,8 +83,8 @@ func newConsolidatedSeriesBlocks(multiNamespaceSeries MultiNamespaceSeries, seri
 				consolidatedSeriesBlocks[consolidatedNSBlockIdx].End = consolidatedNSBlock.End
 			}
 
-			if err := consolidatedNSBlock.isBeyondBounds(consolidatedSeriesBlocks[consolidatedNSBlockIdx]); err != nil {
-				return nil, err
+			if !consolidatedNSBlock.isBeyondBounds(consolidatedSeriesBlocks[consolidatedNSBlockIdx]) {
+				return nil, errBlocksMisaligned
 			}
 
 			consolidatedSeriesBlocks[consolidatedNSBlockIdx].ConsolidatedNSBlocks = append(consolidatedSeriesBlocks[consolidatedNSBlockIdx].ConsolidatedNSBlocks, consolidatedNSBlock)

@@ -58,11 +58,11 @@ type ConsolidatedNSBlock struct {
 	SeriesIterators encoding.SeriesIterators
 }
 
-func (c ConsolidatedNSBlock) isBeyondBounds(consolidatedSeriesBlock ConsolidatedSeriesBlock) error {
+func (c ConsolidatedNSBlock) isBeyondBounds(consolidatedSeriesBlock ConsolidatedSeriesBlock) bool {
 	if c.Start != consolidatedSeriesBlock.Start || c.End != consolidatedSeriesBlock.End {
-		return errBlocksMisaligned
+		return false
 	}
-	return nil
+	return true
 }
 
 // ConsolidatedSeriesBlock is a single series consolidated across different namespaces
@@ -74,11 +74,11 @@ type ConsolidatedSeriesBlock struct {
 	consolidationFunc    ConsolidationFunc
 }
 
-func (c ConsolidatedSeriesBlock) isBeyondBounds(multiSeriesBlock MultiSeriesBlock) error {
+func (c ConsolidatedSeriesBlock) isBeyondBounds(multiSeriesBlock MultiSeriesBlock) bool {
 	if c.Start != multiSeriesBlock.Start || c.End != multiSeriesBlock.End {
-		return errBlocksMisaligned
+		return false
 	}
-	return nil
+	return true
 }
 
 // ConsolidationFunc determines how to consolidate across namespaces
