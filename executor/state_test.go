@@ -59,3 +59,28 @@ func TestOnlySources(t *testing.T) {
 	assert.NoError(t, err)
 	require.Len(t, state.sources, 1)
 }
+
+func TestMultipleSources(t *testing.T) {
+	fetchTransform1 := parser.NewTransformFromOperation(functions.FetchOp{}, 1)
+	countTransform := parser.NewTransformFromOperation(functions.CountOp{}, 2)
+	fetchTransform2 := parser.NewTransformFromOperation(functions.FetchOp{}, 3)
+	transforms := parser.Nodes{fetchTransform1, fetchTransform2, countTransform}
+	edges := parser.Edges{
+		parser.Edge{
+			ParentID: fetchTransform1.ID,
+			ChildID:  countTransform.ID,
+		},
+		parser.Edge{
+			ParentID: fetchTransform2.ID,
+			ChildID:  countTransform.ID,
+		},
+	}
+
+	lp, err := plan.NewLogicalPlan(transforms, edges)
+	require.NoError(t, err)
+	p, err := plan.NewPhysicalPlan(lp, nil)
+	require.NoError(t, err)
+	state, err := GenerateExecutionState(p, nil)
+	assert.NoError(t, err)
+	require.Len(t, state.sources, 2)
+}

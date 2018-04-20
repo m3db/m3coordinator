@@ -9,6 +9,8 @@ import (
 	"github.com/m3db/m3coordinator/plan"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/util/execution"
+
+	"github.com/pkg/errors"
 )
 
 // ExecutionState represents the execution hierarchy
@@ -62,7 +64,7 @@ func GenerateExecutionState(pplan plan.PhysicalPlan, storage storage.Storage) (*
 	}
 
 	if len(state.sources) == 0 {
-		return nil, fmt.Errorf("empty sources for the execution state")
+		return nil, errors.New("empty sources for the execution state")
 	}
 
 	state.resultNode = ResultNode{}
