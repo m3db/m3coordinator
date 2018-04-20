@@ -58,7 +58,7 @@ type ConsolidatedNSBlock struct {
 	SeriesIterators encoding.SeriesIterators
 }
 
-func (c ConsolidatedNSBlock) isBeyondBounds(consolidatedSeriesBlock ConsolidatedSeriesBlock) bool {
+func (c ConsolidatedNSBlock) beyondBounds(consolidatedSeriesBlock ConsolidatedSeriesBlock) bool {
 	if c.Start != consolidatedSeriesBlock.Start || c.End != consolidatedSeriesBlock.End {
 		return false
 	}
@@ -74,7 +74,7 @@ type ConsolidatedSeriesBlock struct {
 	consolidationFunc    ConsolidationFunc
 }
 
-func (c ConsolidatedSeriesBlock) isBeyondBounds(multiSeriesBlock MultiSeriesBlock) bool {
+func (c ConsolidatedSeriesBlock) beyondBounds(multiSeriesBlock MultiSeriesBlock) bool {
 	if c.Start != multiSeriesBlock.Start || c.End != multiSeriesBlock.End {
 		return false
 	}

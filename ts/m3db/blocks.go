@@ -53,7 +53,7 @@ func SeriesBlockToMultiSeriesBlocks(multiNamespaceSeriesList []MultiNamespaceSer
 				multiSeriesBlocks[consolidatedSeriesBlockIdx].End = consolidatedSeriesBlock.End
 			}
 
-			if !consolidatedSeriesBlock.isBeyondBounds(multiSeriesBlocks[consolidatedSeriesBlockIdx]) {
+			if !consolidatedSeriesBlock.beyondBounds(multiSeriesBlocks[consolidatedSeriesBlockIdx]) {
 				return nil, errBlocksMisaligned
 			}
 
@@ -83,7 +83,7 @@ func newConsolidatedSeriesBlocks(multiNamespaceSeries MultiNamespaceSeries, seri
 				consolidatedSeriesBlocks[consolidatedNSBlockIdx].End = consolidatedNSBlock.End
 			}
 
-			if !consolidatedNSBlock.isBeyondBounds(consolidatedSeriesBlocks[consolidatedNSBlockIdx]) {
+			if !consolidatedNSBlock.beyondBounds(consolidatedSeriesBlocks[consolidatedNSBlockIdx]) {
 				return nil, errBlocksMisaligned
 			}
 
