@@ -3,8 +3,6 @@ package parser
 import (
 	"context"
 	"fmt"
-
-	"github.com/m3db/m3coordinator/storage"
 )
 
 // Parser consists of the language specific representation of AST and can convert into a common DAG
@@ -22,21 +20,6 @@ type Params interface {
 	OpType() string
 }
 
-// Source represents data sources which are handled differently than other transforms as they are always independent and can always be parallelized
-type Source interface {
-	Execute(ctx context.Context) error
-}
-
-type TransformParams interface {
-	Params
-	Node(controller *TransformController) OpNode
-}
-
-type SourceParams interface {
-	Params
-	Node(controller *TransformController, storage storage.Storage) Source
-}
-
 // OpNode represents the execution node
 type OpNode interface {
 }
@@ -49,17 +32,6 @@ type Nodes []Node
 type Node struct {
 	ID NodeID
 	Op Params
-}
-
-func CreateSource(ID NodeID, params SourceParams, storage storage.Storage) (Source, *TransformController) {
-	controller := &TransformController{id: ID}
-	return params.Node(controller, storage), controller
-}
-
-// CreateTransform creates a transform node which works on functions and contains state
-func CreateTransform(ID NodeID, params TransformParams) (OpNode, *TransformController) {
-	controller := &TransformController{id: ID}
-	return params.Node(controller), controller
 }
 
 func (t Node) String() string {
@@ -87,13 +59,7 @@ func NewTransformFromOperation(Op Params, nextID int) Node {
 	}
 }
 
-// TransformController controls the caching and forwarding the request to downstream.
-type TransformController struct {
-	id         NodeID
-	transforms []OpNode
-}
-
-// AddTransform adds a dependent transformation to the controller
-func (t *TransformController) AddTransform(node OpNode) {
-	t.transforms = append(t.transforms, node)
+// Source represents data sources which are handled differently than other transforms as they are always independent and can always be parallelized
+type Source interface {
+	Execute(ctx context.Context) error
 }

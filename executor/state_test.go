@@ -27,8 +27,8 @@ func TestValidState(t *testing.T) {
 	require.NoError(t, err)
 	p, err := plan.NewPhysicalPlan(lp, nil)
 	require.NoError(t, err)
-	state, err := GenerateExecutionState(p)
-	assert.NoError(t, err)
+	state, err := GenerateExecutionState(p, nil)
+	require.NoError(t, err)
 	require.Len(t, state.sources, 1)
 	err = state.Execute(context.Background())
 	assert.Error(t, err, "not implemented")
@@ -42,7 +42,7 @@ func TestWithoutSources(t *testing.T) {
 	require.NoError(t, err)
 	p, err := plan.NewPhysicalPlan(lp, nil)
 	require.NoError(t, err)
-	_, err = GenerateExecutionState(p)
+	_, err = GenerateExecutionState(p, nil)
 	assert.Error(t, err)
 }
 
@@ -55,7 +55,7 @@ func TestOnlySources(t *testing.T) {
 	require.NoError(t, err)
 	p, err := plan.NewPhysicalPlan(lp, nil)
 	require.NoError(t, err)
-	state, err := GenerateExecutionState(p)
+	state, err := GenerateExecutionState(p, nil)
 	assert.NoError(t, err)
 	require.Len(t, state.sources, 1)
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/m3db/m3coordinator/executor/transform"
 	"github.com/m3db/m3coordinator/parser"
 	"github.com/m3db/m3coordinator/plan"
 	"github.com/m3db/m3coordinator/storage"
@@ -18,21 +19,39 @@ type ExecutionState struct {
 	storage    storage.Storage
 }
 
+func CreateSource(ID parser.NodeID, params SourceParams, storage storage.Storage) (parser.Source, *transform.Controller) {
+	controller := &transform.Controller{ID: ID}
+	return params.Node(controller, storage), controller
+}
+
+// CreateTransform creates a transform node which works on functions and contains state
+func CreateTransform(ID parser.NodeID, params TransformParams) (parser.OpNode, *transform.Controller) {
+	controller := &transform.Controller{ID: ID}
+	return params.Node(controller), controller
+}
+
+
+type TransformParams interface {
+	parser.Params
+	Node(controller *transform.Controller) parser.OpNode
+}
+
+type SourceParams interface {
+	parser.Params
+	Node(controller *transform.Controller, storage storage.Storage) parser.Source
+}
+
 // GenerateExecutionState creates an execution state from the physical plan
-func GenerateExecutionState(plan plan.PhysicalPlan, storage storage.Storage) (*ExecutionState, error) {
-	result := plan.ResultStep
+func GenerateExecutionState(pplan plan.PhysicalPlan, storage storage.Storage) (*ExecutionState, error) {
+	result := pplan.ResultStep
 	state := &ExecutionState{
-		plan:    plan,
+		plan:    pplan,
 		storage: storage,
 	}
 
-	if len(result.Parents) > 1 {
-		return nil, fmt.Errorf("result node should have a single parent")
-	}
-
-	step, ok := plan.Step(result.Parents[0])
+	step, ok := pplan.Step(result.Parent)
 	if !ok {
-		return nil, fmt.Errorf("incorrect parent reference in result node, parentId: %s, node: %s", result.Parents[0], result.ID())
+		return nil, fmt.Errorf("incorrect parent reference in result node, parentId: %s", result.Parent)
 	}
 
 	controller, err := state.createNode(step)
@@ -44,7 +63,7 @@ func GenerateExecutionState(plan plan.PhysicalPlan, storage storage.Storage) (*E
 		return nil, fmt.Errorf("empty sources for the execution state")
 	}
 
-	state.resultNode = plan.ResultNode{}
+	state.resultNode = ResultNode{}
 	controller.AddTransform(state.resultNode)
 
 	return state, nil
@@ -52,21 +71,21 @@ func GenerateExecutionState(plan plan.PhysicalPlan, storage storage.Storage) (*E
 
 // createNode helps to create an execution node recursively
 // TODO: consider modifying this function so that ExecutionState can have a non pointer receiver
-func (s *ExecutionState) createNode(step plan.LogicalStep) (*parser.TransformController, error) {
+func (s *ExecutionState) createNode(step plan.LogicalStep) (*transform.Controller, error) {
 	// TODO: consider using a registry instead of casting to an interface
-	sourceParams, ok := step.Transform.Op.(parser.SourceParams)
+	sourceParams, ok := step.Transform.Op.(SourceParams)
 	if ok {
-		source, controller := parser.CreateSource(step.ID(), sourceParams, s.storage)
+		source, controller := CreateSource(step.ID(), sourceParams, s.storage)
 		s.sources = append(s.sources, source)
 		return controller, nil
 	}
 
-	transformParams, ok := step.Transform.Op.(parser.TransformParams)
+	transformParams, ok := step.Transform.Op.(TransformParams)
 	if !ok {
 		return nil, fmt.Errorf("invalid transform step, %s", step)
 	}
 
-	transformNode, controller := parser.CreateTransform(step.ID(), transformParams)
+	transformNode, controller := CreateTransform(step.ID(), transformParams)
 	for _, parentID := range step.Parents {
 		parentStep, ok := s.plan.Step(parentID)
 		if !ok {

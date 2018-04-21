@@ -11,7 +11,12 @@ import (
 type PhysicalPlan struct {
 	steps      map[parser.NodeID]LogicalStep
 	pipeline   []parser.NodeID // Ordered list of steps to be performed
-	ResultStep LogicalStep
+	ResultStep ResultOp
+}
+
+// ResultOp is resonsible for delivering results to the clients
+type ResultOp struct {
+	Parent parser.NodeID
 }
 
 // NewPhysicalPlan is used to generate a physical plan. Its responsibilities include creating consolidation nodes, result nodes,
@@ -38,14 +43,7 @@ func (p PhysicalPlan) createResultNode() (PhysicalPlan, error) {
 		return p, err
 	}
 
-	resultNode := parser.NewTransformFromOperation(ResultOp{}, len(p.steps)+1)
-	resultStep := LogicalStep{
-		Transform: resultNode,
-		Parents:   []parser.NodeID{leaf.ID()},
-		Children:  []parser.NodeID{},
-	}
-
-	p.ResultStep = resultStep
+	p.ResultStep = ResultOp{Parent: leaf.ID()}
 	return p, nil
 }
 

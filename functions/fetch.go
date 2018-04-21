@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/m3db/m3coordinator/executor/transform"
 	"github.com/m3db/m3coordinator/models"
 	"github.com/m3db/m3coordinator/parser"
+	"github.com/m3db/m3coordinator/storage"
 )
 
 // FetchType gets the series from storage
@@ -22,8 +24,9 @@ type FetchOp struct {
 
 // FetchNode is the execution node
 type FetchNode struct {
-	op        FetchOp
-	controller *parser.TransformController
+	op         FetchOp
+	controller *transform.Controller
+	storage    storage.Storage
 }
 
 // OpType for the operator
@@ -37,8 +40,8 @@ func (o FetchOp) String() string {
 }
 
 // Node creates an execution node
-func (o FetchOp) Node(controller *parser.TransformController) parser.OpNode {
-	return &FetchNode{op: o, controller: controller}
+func (o FetchOp) Node(controller *transform.Controller, storage storage.Storage) parser.Source {
+	return &FetchNode{op: o, controller: controller, storage: storage}
 }
 
 // Execute runs the fetch node operation

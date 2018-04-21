@@ -3,6 +3,7 @@ package functions
 import (
 	"fmt"
 
+	"github.com/m3db/m3coordinator/executor/transform"
 	"github.com/m3db/m3coordinator/parser"
 )
 
@@ -24,12 +25,12 @@ func (o CountOp) String() string {
 }
 
 // Node creates an execution node
-func (o CountOp) Node(controller *parser.TransformController) parser.OpNode {
+func (o CountOp) Node(controller *transform.Controller) parser.OpNode {
 	return &CountNode{op: o, controller: controller}
 }
 
 // CountNode is an execution node
 type CountNode struct {
 	op        CountOp
-	controller *parser.TransformController
+	controller *transform.Controller
 }
