@@ -31,6 +31,6 @@ func (o CountOp) Node(controller *transform.Controller) parser.OpNode {
 
 // CountNode is an execution node
 type CountNode struct {
-	op        CountOp
+	op         CountOp
 	controller *transform.Controller
 }
