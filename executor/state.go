@@ -19,6 +19,7 @@ type ExecutionState struct {
 	storage    storage.Storage
 }
 
+// CreateSource creates a source node
 func CreateSource(ID parser.NodeID, params SourceParams, storage storage.Storage) (parser.Source, *transform.Controller) {
 	controller := &transform.Controller{ID: ID}
 	return params.Node(controller, storage), controller
@@ -30,12 +31,13 @@ func CreateTransform(ID parser.NodeID, params TransformParams) (parser.OpNode, *
 	return params.Node(controller), controller
 }
 
-
+// TransformParams are defined by transforms
 type TransformParams interface {
 	parser.Params
 	Node(controller *transform.Controller) parser.OpNode
 }
 
+// SourceParams are defined by sources
 type SourceParams interface {
 	parser.Params
 	Node(controller *transform.Controller, storage storage.Storage) parser.Source
