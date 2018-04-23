@@ -46,7 +46,6 @@ func TestWithoutSources(t *testing.T) {
 	assert.Error(t, err)
 }
 
-
 func TestOnlySources(t *testing.T) {
 	fetchTransform := parser.NewTransformFromOperation(functions.FetchOp{}, 1)
 	transforms := parser.Nodes{fetchTransform}
@@ -83,4 +82,5 @@ func TestMultipleSources(t *testing.T) {
 	state, err := GenerateExecutionState(p, nil)
 	assert.NoError(t, err)
 	require.Len(t, state.sources, 2)
+	assert.Contains(t, state.String(), "sources")
 }

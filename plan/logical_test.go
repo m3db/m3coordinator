@@ -62,6 +62,7 @@ func TestSingleParentMultiChild(t *testing.T) {
 func TestMultiParent(t *testing.T) {
 	fetchTransform1 := parser.NewTransformFromOperation(functions.FetchOp{}, 1)
 	fetchTransform2 := parser.NewTransformFromOperation(functions.FetchOp{}, 2)
+	// TODO: change this to a real multi parent operation such as asPercent
 	countTransform := parser.NewTransformFromOperation(functions.CountOp{}, 3)
 
 	transforms := parser.Nodes{fetchTransform1, fetchTransform2, countTransform}

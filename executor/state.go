@@ -119,7 +119,7 @@ func (s *ExecutionState) Execute(ctx context.Context) error {
 
 // String representation of the state
 func (s *ExecutionState) String() string {
-	return fmt.Sprintf("plan : %s\nsources: %s\nresult: %s", s.plan, s.sources, s.resultNode)
+	return fmt.Sprintf("plan: %s\nsources: %s\nresult: %s", s.plan, s.sources, s.resultNode)
 }
 
 type sourceRequest struct {
