@@ -23,8 +23,10 @@ package functions
 import (
 	"fmt"
 
+	"github.com/m3db/m3coordinator/executor"
 	"github.com/m3db/m3coordinator/executor/transform"
 	"github.com/m3db/m3coordinator/parser"
+	"github.com/m3db/m3coordinator/storage"
 )
 
 // CountType counts number of elements in the vector
@@ -45,7 +47,7 @@ func (o CountOp) String() string {
 }
 
 // Node creates an execution node
-func (o CountOp) Node(controller *transform.Controller) parser.OpNode {
+func (o CountOp) Node(controller *transform.Controller) executor.OpNode {
 	return &CountNode{op: o, controller: controller}
 }
 
@@ -53,4 +55,28 @@ func (o CountOp) Node(controller *transform.Controller) parser.OpNode {
 type CountNode struct {
 	op         CountOp
 	controller *transform.Controller
+}
+
+func (c *CountNode) Process(ID parser.NodeID, block storage.Block) error {
+	builder, err := c.controller.BlockBuilder(block.Meta())
+	if err != nil {
+		return err
+	}
+
+	stepIter := block.StepIter()
+	index := 0
+	for stepIter.Next() {
+		step := stepIter.Current()
+		defer step.Free()
+		values := step.Values()
+		sum := 0.0
+		for _, value := range values {
+			sum += value
+		}
+
+		builder.AppendValue(index, sum)
+		index++
+	}
+
+	return c.controller.Process(builder.Build())
 }

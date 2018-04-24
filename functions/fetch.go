@@ -79,8 +79,13 @@ func (n *FetchNode) Execute(ctx context.Context) error {
 	}
 
 	for _, block := range blockResult.Blocks {
-		n.controller.
+		err := n.controller.Process(block)
+		// Fail on first error
+		if err != nil {
+			return err
+		}
 
 	}
-	return fmt.Errorf("not implemented")
+
+	return nil
 }

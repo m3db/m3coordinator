@@ -8,8 +8,7 @@ import (
 )
 
 type Block interface {
-	Bounds() Bounds
-	Tags() models.Tags // Common tags across different series
+	Meta() BlockMetadata
 	StepIter() StepIter
 	SeriesIter() SeriesIter
 	SeriesMeta() []SeriesMeta
@@ -50,4 +49,10 @@ type StepIter interface {
 type Step interface {
 	Time() time.Time
 	Values() []float64
+	Free()
+}
+
+type BlockMetadata struct {
+	Bounds Bounds
+	Tags   models.Tags // Common tags across different series
 }

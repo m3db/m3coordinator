@@ -37,7 +37,7 @@ import (
 type ExecutionState struct {
 	plan       plan.PhysicalPlan
 	sources    []parser.Source
-	resultNode parser.OpNode
+	resultNode OpNode
 	storage    storage.Storage
 }
 
@@ -48,15 +48,20 @@ func CreateSource(ID parser.NodeID, params SourceParams, storage storage.Storage
 }
 
 // CreateTransform creates a transform node which works on functions and contains state
-func CreateTransform(ID parser.NodeID, params TransformParams) (parser.OpNode, *transform.Controller) {
+func CreateTransform(ID parser.NodeID, params TransformParams) (OpNode, *transform.Controller) {
 	controller := &transform.Controller{ID: ID}
 	return params.Node(controller), controller
+}
+
+// OpNode represents the execution node
+type OpNode interface {
+	Process(ID parser.NodeID, block storage.Block) error
 }
 
 // TransformParams are defined by transforms
 type TransformParams interface {
 	parser.Params
-	Node(controller *transform.Controller) parser.OpNode
+	Node(controller *transform.Controller) OpNode
 }
 
 // SourceParams are defined by sources
