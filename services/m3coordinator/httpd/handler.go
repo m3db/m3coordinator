@@ -30,6 +30,7 @@ import (
 	"github.com/m3db/m3coordinator/executor"
 	"github.com/m3db/m3coordinator/services/m3coordinator/config"
 	"github.com/m3db/m3coordinator/services/m3coordinator/handler"
+	"github.com/m3db/m3coordinator/services/m3coordinator/handler/prometheus/remote"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/util/logging"
 
@@ -85,13 +86,13 @@ func NewHandler(storage storage.Storage, engine *executor.Engine, clusterClient 
 func (h *Handler) RegisterRoutes() {
 	logged := withResponseTimeLogging
 
-	promReadHandler := handler.NewPromReadHandler(h.engine)
-	h.lazyHandlers.promRead = promReadHandler.(*handler.PromReadHandler)
-	h.Router.HandleFunc(handler.PromReadURL, logged(promReadHandler).ServeHTTP).Methods("POST")
+	promReadHandler := remote.NewPromReadHandler(h.engine)
+	h.lazyHandlers.promRead = promReadHandler.(*remote.PromReadHandler)
+	h.Router.HandleFunc(remote.PromReadURL, logged(promReadHandler).ServeHTTP).Methods("POST")
 
-	promWriteHandler := handler.NewPromWriteHandler(h.storage)
-	h.lazyHandlers.promWrite = promWriteHandler.(*handler.PromWriteHandler)
-	h.Router.HandleFunc(handler.PromWriteURL, logged(promWriteHandler).ServeHTTP).Methods("POST")
+	promWriteHandler := remote.NewPromWriteHandler(h.storage)
+	h.lazyHandlers.promWrite = promWriteHandler.(*remote.PromWriteHandler)
+	h.Router.HandleFunc(remote.PromWriteURL, logged(promWriteHandler).ServeHTTP).Methods("POST")
 
 	searchHandler := handler.NewSearchHandler(h.storage)
 	h.lazyHandlers.search = searchHandler.(*handler.SearchHandler)
