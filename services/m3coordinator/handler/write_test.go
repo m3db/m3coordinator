@@ -85,7 +85,7 @@ func TestPromWriteParsing(t *testing.T) {
 	logging.InitWithCores(nil)
 
 	storage := local.NewStorage(nil, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
-	promWrite := &PromWriteHandler{Store: storage}
+	promWrite := &PromWriteHandler{store: storage}
 
 	req, _ := http.NewRequest("POST", PromWriteURL, generatePromWriteBody(t))
 
@@ -102,7 +102,7 @@ func TestPromWrite(t *testing.T) {
 	session.EXPECT().Write(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
 	storage := local.NewStorage(session, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
-	promWrite := &PromWriteHandler{Store: storage}
+	promWrite := &PromWriteHandler{store: storage}
 
 	req, _ := http.NewRequest("POST", PromWriteURL, generatePromWriteBody(t))
 

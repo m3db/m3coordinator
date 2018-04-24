@@ -42,19 +42,19 @@ const (
 
 // SearchHandler represents a handler for the search endpoint
 type SearchHandler struct {
-	Store storage.Storage
+	store storage.Storage
 }
 
 // NewSearchHandler returns a new instance of handler
 func NewSearchHandler(storage storage.Storage) http.Handler {
-	return &SearchHandler{Store: storage}
+	return &SearchHandler{store: storage}
 }
 
 func (h *SearchHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logger := logging.WithContext(r.Context())
 
 	// Allow handler to be set up before M3DB is initialized
-	if h.Store == nil {
+	if h.store == nil {
 		WriteUninitializedResponse(w, logger)
 		return
 	}
@@ -113,11 +113,16 @@ func (h *SearchHandler) parseURLParams(r *http.Request) *storage.FetchOptions {
 }
 
 func (h *SearchHandler) search(ctx context.Context, query *storage.FetchQuery, opts *storage.FetchOptions) (*storage.SearchResults, error) {
-	return h.Store.FetchTags(ctx, query, opts)
+	return h.store.FetchTags(ctx, query, opts)
 }
 
 func newFetchOptions(limit int) storage.FetchOptions {
 	return storage.FetchOptions{
 		Limit: limit,
 	}
+}
+
+// SetStore sets the store of the handler
+func (h *SearchHandler) SetStore(store storage.Storage) {
+	h.store = store
 }

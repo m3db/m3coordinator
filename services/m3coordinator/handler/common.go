@@ -93,7 +93,7 @@ func ParseRequestParams(r *http.Request) (*RequestParams, error) {
 	return &params, nil
 }
 
-// WriteJSONResponse writes a generic to the ResponseWriter
+// WriteJSONResponse writes generic data to the ResponseWriter
 func WriteJSONResponse(w http.ResponseWriter, data interface{}, logger *zap.Logger) {
 	jsonData, err := json.Marshal(data)
 	if err != nil {

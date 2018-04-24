@@ -46,6 +46,7 @@ func FromIdentTagsToTags(identTags ident.Tags) models.Tags {
 	tags := make(models.Tags, len(identTags))
 	for _, identTag := range identTags {
 		tags[identTag.Name.String()] = identTag.Value.String()
+		identTag.Finalize()
 	}
 	return tags
 }

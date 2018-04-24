@@ -51,7 +51,7 @@ type Handler struct {
 	engine        *executor.Engine
 	clusterClient m3clusterClient.Client
 	config        config.Configuration
-	LazyHandlers  lazyLoadHandlers
+	lazyHandlers  lazyLoadHandlers
 }
 
 // lazyLoadHandlers are handlers that get activated lazily once M3DB is instantiated
@@ -86,15 +86,15 @@ func (h *Handler) RegisterRoutes() {
 	logged := withResponseTimeLogging
 
 	promReadHandler := handler.NewPromReadHandler(h.engine)
-	h.LazyHandlers.promRead = promReadHandler.(*handler.PromReadHandler)
+	h.lazyHandlers.promRead = promReadHandler.(*handler.PromReadHandler)
 	h.Router.HandleFunc(handler.PromReadURL, logged(promReadHandler).ServeHTTP).Methods("POST")
 
 	promWriteHandler := handler.NewPromWriteHandler(h.storage)
-	h.LazyHandlers.promWrite = promWriteHandler.(*handler.PromWriteHandler)
+	h.lazyHandlers.promWrite = promWriteHandler.(*handler.PromWriteHandler)
 	h.Router.HandleFunc(handler.PromWriteURL, logged(promWriteHandler).ServeHTTP).Methods("POST")
 
 	searchHandler := handler.NewSearchHandler(h.storage)
-	h.LazyHandlers.search = searchHandler.(*handler.SearchHandler)
+	h.lazyHandlers.search = searchHandler.(*handler.SearchHandler)
 	h.Router.HandleFunc(handler.SearchURL, logged(searchHandler).ServeHTTP).Methods("POST")
 
 	h.registerProfileEndpoints()
@@ -140,7 +140,7 @@ func withResponseTimeLogging(next http.Handler) http.Handler {
 
 // LoadLazyHandlers initializes LazyHandlers post-M3DB setup
 func (h *Handler) LoadLazyHandlers(storage storage.Storage, engine *executor.Engine) {
-	h.LazyHandlers.promRead.Engine = engine
-	h.LazyHandlers.promWrite.Store = storage
-	h.LazyHandlers.search.Store = storage
+	h.lazyHandlers.promRead.SetEngine(engine)
+	h.lazyHandlers.promWrite.SetStore(storage)
+	h.lazyHandlers.search.SetStore(storage)
 }

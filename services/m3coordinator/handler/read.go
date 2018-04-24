@@ -42,12 +42,12 @@ const (
 
 // PromReadHandler represents a handler for prometheus read endpoint.
 type PromReadHandler struct {
-	Engine *executor.Engine
+	engine *executor.Engine
 }
 
 // NewPromReadHandler returns a new instance of handler.
 func NewPromReadHandler(engine *executor.Engine) http.Handler {
-	return &PromReadHandler{Engine: engine}
+	return &PromReadHandler{engine: engine}
 }
 
 func (h *PromReadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +55,7 @@ func (h *PromReadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logger := logging.WithContext(ctx)
 
 	// Allow handler to be set up before M3DB is initialized
-	if h.Engine == nil {
+	if h.engine == nil {
 		WriteUninitializedResponse(w, logger)
 		return
 	}
@@ -138,7 +138,7 @@ func (h *PromReadHandler) read(reqCtx context.Context, w http.ResponseWriter, r 
 	abortCh, closingCh := CloseWatcher(ctx, w)
 	opts.AbortCh = abortCh
 
-	go h.Engine.Execute(ctx, query, opts, closingCh, results)
+	go h.engine.Execute(ctx, query, opts, closingCh, results)
 
 	promResults := make([]*prompb.QueryResult, 0, 1)
 	for result := range results {
@@ -183,4 +183,9 @@ func CloseWatcher(ctx context.Context, w http.ResponseWriter) (<-chan bool, <-ch
 	}
 
 	return doneChan, closing
+}
+
+// SetEngine sets the engine of the handler
+func (h *PromReadHandler) SetEngine(engine *executor.Engine) {
+	h.engine = engine
 }
