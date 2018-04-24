@@ -67,8 +67,20 @@ func (o FetchOp) Node(controller *transform.Controller, storage storage.Storage,
 
 // Execute runs the fetch node operation
 func (n *FetchNode) Execute(ctx context.Context) error {
-	n.storage.FetchBlocks(ctx, &storage.FetchQuery{
+	startTime := n.now.Add(-1 * n.op.Offset)
+	endTime := startTime.Add(n.op.Range)
+	blockResult, err := n.storage.FetchBlocks(ctx, &storage.FetchQuery{
+		Start:       startTime,
+		End:         endTime,
 		TagMatchers: n.op.Matchers,
 	}, &storage.FetchOptions{})
+	if err != nil {
+		return err
+	}
+
+	for _, block := range blockResult.Blocks {
+		n.controller.
+
+	}
 	return fmt.Errorf("not implemented")
 }

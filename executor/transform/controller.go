@@ -22,6 +22,7 @@ package transform
 
 import (
 	"github.com/m3db/m3coordinator/parser"
+	"github.com/m3db/m3coordinator/storage"
 )
 
 // Controller controls the caching and forwarding the request to downstream.
@@ -33,4 +34,11 @@ type Controller struct {
 // AddTransform adds a dependent transformation to the controller
 func (t *Controller) AddTransform(node parser.OpNode) {
 	t.transforms = append(t.transforms, node)
+}
+
+// AddTransform adds a dependent transformation to the controller
+func (t *Controller) Process(block storage.Block) {
+	for _, ts := range t.transforms {
+		ts.
+	}
 }
