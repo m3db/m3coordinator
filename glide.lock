@@ -1,5 +1,5 @@
 hash: a15db92df8a81d848f94a51ae99c5bae03f61196b86fdb59ac7be1a58e62735b
-updated: 2018-04-17T14:44:49.556946-04:00
+updated: 2018-04-24T01:03:10.800055-04:00
 imports:
 - name: github.com/alecthomas/template
   version: a0175ee3bccc567396460bf5acd36800cb10c49c
@@ -62,11 +62,13 @@ imports:
 - name: github.com/golang/protobuf
   version: 1e59b77b52bf8e4b449a57e6f79f21226d571845
   subpackages:
+  - jsonpb
   - proto
   - protoc-gen-go/descriptor
   - ptypes
   - ptypes/any
   - ptypes/duration
+  - ptypes/struct
   - ptypes/timestamp
 - name: github.com/golang/snappy
   version: 553a641470496b2327abcac10b36396bd98e45c9
