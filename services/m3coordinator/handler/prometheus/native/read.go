@@ -125,5 +125,4 @@ func (h *PromReadHandler) read(reqCtx context.Context, w http.ResponseWriter, re
 
 	// todo(braskin): implement query execution
 	return nil, nil
-
 }

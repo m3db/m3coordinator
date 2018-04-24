@@ -29,7 +29,7 @@ import (
 	"github.com/m3db/m3coordinator/executor"
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/services/m3coordinator/config"
-	"github.com/m3db/m3coordinator/services/m3coordinator/handler"
+	"github.com/m3db/m3coordinator/services/m3coordinator/handler/prometheus/remote"
 	"github.com/m3db/m3coordinator/storage/local"
 	"github.com/m3db/m3coordinator/util/logging"
 
@@ -42,7 +42,7 @@ import (
 func TestPromReadGet(t *testing.T) {
 	logging.InitWithCores(nil)
 
-	req, _ := http.NewRequest("GET", handler.PromReadURL, nil)
+	req, _ := http.NewRequest("GET", remote.PromReadURL, nil)
 	res := httptest.NewRecorder()
 	storage := local.NewStorage(nil, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
 
@@ -56,7 +56,7 @@ func TestPromReadGet(t *testing.T) {
 func TestPromReadPost(t *testing.T) {
 	logging.InitWithCores(nil)
 
-	req, _ := http.NewRequest("POST", handler.PromReadURL, nil)
+	req, _ := http.NewRequest("POST", remote.PromReadURL, nil)
 	res := httptest.NewRecorder()
 	storage := local.NewStorage(nil, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
 
