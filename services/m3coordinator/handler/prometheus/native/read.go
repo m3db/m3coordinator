@@ -26,6 +26,7 @@ import (
 	"net/http"
 
 	"github.com/m3db/m3coordinator/executor"
+	"github.com/m3db/m3coordinator/parser/promql"
 	"github.com/m3db/m3coordinator/services/m3coordinator/handler"
 	"github.com/m3db/m3coordinator/services/m3coordinator/handler/prometheus"
 	"github.com/m3db/m3coordinator/ts"
@@ -36,7 +37,7 @@ import (
 )
 
 const (
-	// PromReadURL is the url for prom read handler
+	// PromReadURL is the url for native prom read handler
 	PromReadURL = "/api/v1/prom/native/read"
 )
 
@@ -45,12 +46,13 @@ type PromReadHandler struct {
 	engine *executor.Engine
 }
 
+// ReadResponse is the response that gets returned to the user
 type ReadResponse struct {
 	Results []*ts.Series `json:"results,omitempty"`
 }
 
-// NewNativePromReadHandler returns a new instance of handler.
-func NewNativePromReadHandler(engine *executor.Engine) http.Handler {
+// NewPromReadHandler returns a new instance of handler.
+func NewPromReadHandler(engine *executor.Engine) http.Handler {
 	return &PromReadHandler{engine: engine}
 }
 
@@ -113,7 +115,15 @@ func (h *PromReadHandler) read(reqCtx context.Context, w http.ResponseWriter, re
 
 	opts := &executor.EngineOptions{}
 	// Detect clients closing connections
-	abortCh, closingCh := handler.CloseWatcher(ctx, w)
+	abortCh, _ := handler.CloseWatcher(ctx, w)
 	opts.AbortCh = abortCh
+
+	_, err := promql.Parse(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// todo(braskin): implement query execution
+	return nil, nil
 
 }
