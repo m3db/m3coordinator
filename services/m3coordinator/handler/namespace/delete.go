@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package handler
+package namespace
 
 import (
 	"context"
@@ -29,6 +29,7 @@ import (
 	"net/http"
 
 	"github.com/m3db/m3coordinator/generated/proto/admin"
+	"github.com/m3db/m3coordinator/services/m3coordinator/handler"
 	"github.com/m3db/m3coordinator/util/logging"
 
 	m3clusterClient "github.com/m3db/m3cluster/client"
@@ -38,68 +39,68 @@ import (
 )
 
 const (
-	// NamespaceDeleteURL is the url for the placement delete handler (with the POST method).
-	NamespaceDeleteURL = "/namespace/delete"
+	// DeleteURL is the url for the placement delete handler (with the POST method).
+	DeleteURL = "/namespace/delete"
 )
 
 var (
 	errNamespaceNotFound = errors.New("unable to find a namespace with specified name")
 )
 
-// namespaceDeleteHandler represents a handler for placement delete endpoint.
-type namespaceDeleteHandler AdminHandler
+// deleteHandler represents a handler for placement delete endpoint.
+type deleteHandler Handler
 
-// NewNamespaceDeleteHandler returns a new instance of handler.
-func NewNamespaceDeleteHandler(clusterClient m3clusterClient.Client) http.Handler {
-	return &namespaceDeleteHandler{
+// NewDeleteHandler returns a new instance of handler.
+func NewDeleteHandler(clusterClient m3clusterClient.Client) http.Handler {
+	return &deleteHandler{
 		clusterClient: clusterClient,
 	}
 }
 
-func (h *namespaceDeleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *deleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := logging.WithContext(ctx)
 
 	req, rErr := h.parseRequest(r)
 	if rErr != nil {
-		Error(w, rErr.Error(), rErr.Code())
+		handler.Error(w, rErr.Error(), rErr.Code())
 		return
 	}
 
-	err := h.namespaceDelete(ctx, req)
+	err := h.delete(ctx, req)
 	if err != nil {
 		logger.Error("unable to delete namespace", zap.Any("error", err))
 
 		if err == errNamespaceNotFound {
-			Error(w, err, http.StatusBadRequest)
+			handler.Error(w, err, http.StatusBadRequest)
 		} else {
-			Error(w, err, http.StatusInternalServerError)
+			handler.Error(w, err, http.StatusInternalServerError)
 		}
 	}
 }
 
-func (h *namespaceDeleteHandler) parseRequest(r *http.Request) (*admin.NamespaceDeleteRequest, *ParseError) {
+func (h *deleteHandler) parseRequest(r *http.Request) (*admin.NamespaceDeleteRequest, *handler.ParseError) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		return nil, NewParseError(err, http.StatusBadRequest)
+		return nil, handler.NewParseError(err, http.StatusBadRequest)
 	}
 	defer r.Body.Close()
 
 	deleteReq := new(admin.NamespaceDeleteRequest)
 	if err := json.Unmarshal(body, deleteReq); err != nil {
-		return nil, NewParseError(err, http.StatusBadRequest)
+		return nil, handler.NewParseError(err, http.StatusBadRequest)
 	}
 
 	return deleteReq, nil
 }
 
-func (h *namespaceDeleteHandler) namespaceDelete(ctx context.Context, r *admin.NamespaceDeleteRequest) error {
+func (h *deleteHandler) delete(ctx context.Context, r *admin.NamespaceDeleteRequest) error {
 	kv, err := h.clusterClient.KV()
 	if err != nil {
 		return err
 	}
 
-	currentMetadata, err := currentNamespaceMetadata(kv)
+	currentMetadata, err := Metadata(kv)
 	if err != nil {
 		return err
 	}

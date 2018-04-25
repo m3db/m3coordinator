@@ -18,21 +18,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package handler
+package placement
 
 import (
-	"fmt"
-
 	"github.com/m3db/m3coordinator/services/m3coordinator/config"
 
 	m3clusterClient "github.com/m3db/m3cluster/client"
 	"github.com/m3db/m3cluster/generated/proto/placementpb"
-	"github.com/m3db/m3cluster/kv"
 	"github.com/m3db/m3cluster/placement"
 	"github.com/m3db/m3cluster/services"
 	"github.com/m3db/m3cluster/shard"
-	nsproto "github.com/m3db/m3db/generated/proto/namespace"
-	"github.com/m3db/m3db/storage/namespace"
 )
 
 const (
@@ -44,13 +39,10 @@ const (
 
 	// DefaultServiceZone is the default service ID zone
 	DefaultServiceZone = "embedded"
-
-	// M3DBNodeNamespacesKey is the KV key that holds namespaces
-	M3DBNodeNamespacesKey = "m3db.node.namespaces"
 )
 
-// AdminHandler represents a generic handler for admin endpoints.
-type AdminHandler struct {
+// Handler represents a generic handler for placement endpoints.
+type Handler struct {
 	clusterClient m3clusterClient.Client
 	config        config.Configuration
 }
@@ -110,28 +102,4 @@ func ConvertInstancesProto(instancesProto []*placementpb.Instance) ([]placement.
 	}
 
 	return res, nil
-}
-
-func currentNamespaceMetadata(store kv.Store) ([]namespace.Metadata, error) {
-	value, err := store.Get(M3DBNodeNamespacesKey)
-
-	if err != nil {
-		if err == kv.ErrNotFound {
-			return []namespace.Metadata{}, nil
-		}
-
-		return nil, err
-	}
-
-	var protoRegistry nsproto.Registry
-	if err := value.Unmarshal(&protoRegistry); err != nil {
-		return nil, fmt.Errorf("unable to parse value, err: %v", err)
-	}
-
-	nsMap, err := namespace.FromProto(protoRegistry)
-	if err != nil {
-		return nil, err
-	}
-
-	return nsMap.Metadatas(), nil
 }

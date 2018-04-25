@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package handler
+package namespace
 
 import (
 	"io/ioutil"
@@ -37,7 +37,7 @@ import (
 
 func TestNamespaceDeleteHandlerNotFound(t *testing.T) {
 	mockClient, mockKV, _ := SetupNamespaceTest(t)
-	handler := NewNamespaceDeleteHandler(mockClient)
+	deleteHandler := NewDeleteHandler(mockClient)
 
 	w := httptest.NewRecorder()
 	jsonInput := `{"name": "not-present"}`
@@ -46,7 +46,7 @@ func TestNamespaceDeleteHandlerNotFound(t *testing.T) {
 	require.NotNil(t, req)
 
 	mockKV.EXPECT().Get(M3DBNodeNamespacesKey).Return(nil, kv.ErrNotFound)
-	handler.ServeHTTP(w, req)
+	deleteHandler.ServeHTTP(w, req)
 
 	resp := w.Result()
 	body, _ := ioutil.ReadAll(resp.Body)
@@ -56,7 +56,7 @@ func TestNamespaceDeleteHandlerNotFound(t *testing.T) {
 
 func TestNamespaceDeleteHandlerDeleteAll(t *testing.T) {
 	mockClient, mockKV, ctrl := SetupNamespaceTest(t)
-	handler := NewNamespaceDeleteHandler(mockClient)
+	deleteHandler := NewDeleteHandler(mockClient)
 
 	w := httptest.NewRecorder()
 	jsonInput := `{"name": "testNamespace"}`
@@ -105,7 +105,7 @@ func TestNamespaceDeleteHandlerDeleteAll(t *testing.T) {
 	mockKV.EXPECT().Get(M3DBNodeNamespacesKey).Return(mockValue, nil)
 	mockKV.EXPECT().Delete(M3DBNodeNamespacesKey).Return(nil, nil)
 	mockKV.EXPECT().Set(M3DBNodeNamespacesKey, gomock.Any()).Return(1, nil)
-	handler.ServeHTTP(w, req)
+	deleteHandler.ServeHTTP(w, req)
 
 	resp := w.Result()
 	body, _ := ioutil.ReadAll(resp.Body)
@@ -115,7 +115,7 @@ func TestNamespaceDeleteHandlerDeleteAll(t *testing.T) {
 
 func TestNamespaceDeleteHandler(t *testing.T) {
 	mockClient, mockKV, ctrl := SetupNamespaceTest(t)
-	handler := NewNamespaceDeleteHandler(mockClient)
+	deleteHandler := NewDeleteHandler(mockClient)
 
 	w := httptest.NewRecorder()
 	jsonInput := `{"name": "testNamespace"}`
@@ -164,7 +164,7 @@ func TestNamespaceDeleteHandler(t *testing.T) {
 	mockKV.EXPECT().Get(M3DBNodeNamespacesKey).Return(mockValue, nil)
 	mockKV.EXPECT().Delete(M3DBNodeNamespacesKey).Return(nil, nil)
 	mockKV.EXPECT().Set(M3DBNodeNamespacesKey, gomock.Any()).Return(1, nil)
-	handler.ServeHTTP(w, req)
+	deleteHandler.ServeHTTP(w, req)
 
 	resp := w.Result()
 	body, _ := ioutil.ReadAll(resp.Body)

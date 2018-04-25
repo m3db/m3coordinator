@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package handler
+package namespace
 
 import (
 	"io/ioutil"
@@ -36,7 +36,7 @@ import (
 
 func TestNamespaceAddHandler(t *testing.T) {
 	mockClient, mockKV, _ := SetupNamespaceTest(t)
-	handler := NewNamespaceAddHandler(mockClient)
+	addHandler := NewAddHandler(mockClient)
 	w := httptest.NewRecorder()
 
 	jsonInput := `
@@ -55,7 +55,7 @@ func TestNamespaceAddHandler(t *testing.T) {
 
 	mockKV.EXPECT().Get(M3DBNodeNamespacesKey).Return(nil, kv.ErrNotFound)
 	mockKV.EXPECT().Set(M3DBNodeNamespacesKey, gomock.Not(nil)).Return(1, nil)
-	handler.ServeHTTP(w, req)
+	addHandler.ServeHTTP(w, req)
 
 	resp := w.Result()
 	body, _ := ioutil.ReadAll(resp.Body)

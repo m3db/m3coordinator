@@ -30,6 +30,8 @@ import (
 	"github.com/m3db/m3coordinator/executor"
 	"github.com/m3db/m3coordinator/services/m3coordinator/config"
 	"github.com/m3db/m3coordinator/services/m3coordinator/handler"
+	"github.com/m3db/m3coordinator/services/m3coordinator/handler/namespace"
+	"github.com/m3db/m3coordinator/services/m3coordinator/handler/placement"
 	"github.com/m3db/m3coordinator/services/m3coordinator/handler/prometheus/native"
 	"github.com/m3db/m3coordinator/services/m3coordinator/handler/prometheus/remote"
 	"github.com/m3db/m3coordinator/storage"
@@ -107,24 +109,24 @@ func (h *Handler) RegisterRoutes() {
 	h.registerProfileEndpoints()
 
 	if h.clusterClient != nil {
-		h.Router.HandleFunc(handler.PlacementInitURL, logged(handler.NewPlacementInitHandler(h.clusterClient)).ServeHTTP).Methods("POST")
+		h.Router.HandleFunc(placement.InitURL, logged(placement.NewInitHandler(h.clusterClient, h.config)).ServeHTTP).Methods("POST")
 
-		h.Router.HandleFunc(handler.PlacementGetURL, logged(handler.NewPlacementGetHandler(h.clusterClient)).ServeHTTP).Methods("GET")
-		h.Router.HandleFunc(handler.PlacementGetHTTPMethodURL, logged(handler.NewPlacementGetHandler(h.clusterClient)).ServeHTTP).Methods("GET")
+		h.Router.HandleFunc(placement.GetURL, logged(placement.NewGetHandler(h.clusterClient, h.config)).ServeHTTP).Methods("GET")
+		h.Router.HandleFunc(placement.GetHTTPMethodURL, logged(placement.NewGetHandler(h.clusterClient, h.config)).ServeHTTP).Methods("GET")
 
-		h.Router.HandleFunc(handler.PlacementDeleteURL, logged(handler.NewPlacementDeleteHandler(h.clusterClient)).ServeHTTP).Methods("POST")
-		h.Router.HandleFunc(handler.PlacementDeleteHTTPMethodURL, logged(handler.NewPlacementDeleteHandler(h.clusterClient)).ServeHTTP).Methods("DELETE")
+		h.Router.HandleFunc(placement.DeleteURL, logged(placement.NewDeleteHandler(h.clusterClient, h.config)).ServeHTTP).Methods("POST")
+		h.Router.HandleFunc(placement.DeleteHTTPMethodURL, logged(placement.NewDeleteHandler(h.clusterClient, h.config)).ServeHTTP).Methods("DELETE")
 
-		h.Router.HandleFunc(handler.PlacementAddURL, logged(handler.NewPlacementAddHandler(h.clusterClient)).ServeHTTP).Methods("POST")
+		h.Router.HandleFunc(placement.AddURL, logged(placement.NewAddHandler(h.clusterClient, h.config)).ServeHTTP).Methods("POST")
 
-		h.Router.HandleFunc(handler.PlacementRemoveURL, logged(handler.NewPlacementRemoveHandler(h.clusterClient)).ServeHTTP).Methods("POST")
+		h.Router.HandleFunc(placement.RemoveURL, logged(placement.NewRemoveHandler(h.clusterClient, h.config)).ServeHTTP).Methods("POST")
 
-		h.Router.HandleFunc(handler.NamespaceGetURL, logged(handler.NewNamespaceGetHandler(h.clusterClient)).ServeHTTP).Methods("GET")
-		h.Router.HandleFunc(handler.NamespaceGetHTTPMethodURL, logged(handler.NewNamespaceGetHandler(h.clusterClient)).ServeHTTP).Methods("GET")
+		h.Router.HandleFunc(namespace.GetURL, logged(namespace.NewGetHandler(h.clusterClient)).ServeHTTP).Methods("GET")
+		h.Router.HandleFunc(namespace.GetHTTPMethodURL, logged(namespace.NewGetHandler(h.clusterClient)).ServeHTTP).Methods("GET")
 
-		h.Router.HandleFunc(handler.NamespaceAddURL, logged(handler.NewNamespaceAddHandler(h.clusterClient)).ServeHTTP).Methods("POST")
+		h.Router.HandleFunc(namespace.AddURL, logged(namespace.NewAddHandler(h.clusterClient)).ServeHTTP).Methods("POST")
 
-		h.Router.HandleFunc(handler.NamespaceDeleteURL, logged(handler.NewNamespaceDeleteHandler(h.clusterClient)).ServeHTTP).Methods("POST")
+		h.Router.HandleFunc(namespace.DeleteURL, logged(namespace.NewDeleteHandler(h.clusterClient)).ServeHTTP).Methods("POST")
 	}
 }
 

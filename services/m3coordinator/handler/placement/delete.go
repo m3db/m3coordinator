@@ -18,12 +18,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package handler
+package placement
 
 import (
 	"context"
 	"net/http"
 
+	"github.com/m3db/m3coordinator/services/m3coordinator/config"
+	"github.com/m3db/m3coordinator/services/m3coordinator/handler"
 	"github.com/m3db/m3coordinator/util/logging"
 
 	m3clusterClient "github.com/m3db/m3cluster/client"
@@ -32,34 +34,35 @@ import (
 )
 
 const (
-	// PlacementDeleteURL is the url for the placement delete handler (with the POST method).
-	PlacementDeleteURL = "/placement/delete"
+	// DeleteURL is the url for the placement delete handler (with the POST method).
+	DeleteURL = "/placement/delete"
 
-	// PlacementDeleteHTTPMethodURL is the url for the placement delete handler (with the DELETE method).
-	PlacementDeleteHTTPMethodURL = "/placement"
+	// DeleteHTTPMethodURL is the url for the placement delete handler (with the DELETE method).
+	DeleteHTTPMethodURL = "/placement"
 )
 
-// PlacementDeleteHandler represents a handler for placement delete endpoint.
-type placementDeleteHandler AdminHandler
+// deleteHandler represents a handler for placement delete endpoint.
+type deleteHandler Handler
 
-// NewPlacementDeleteHandler returns a new instance of handler.
-func NewPlacementDeleteHandler(clusterClient m3clusterClient.Client) http.Handler {
-	return &placementDeleteHandler{
+// NewDeleteHandler returns a new instance of handler.
+func NewDeleteHandler(clusterClient m3clusterClient.Client, cfg config.Configuration) http.Handler {
+	return &deleteHandler{
 		clusterClient: clusterClient,
+		config:        cfg,
 	}
 }
 
-func (h *placementDeleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *deleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := logging.WithContext(ctx)
 
-	if err := h.placementDelete(ctx); err != nil {
+	if err := h.delete(ctx); err != nil {
 		logger.Error("unable to delete placement", zap.Any("error", err))
-		Error(w, err, http.StatusInternalServerError)
+		handler.Error(w, err, http.StatusInternalServerError)
 	}
 }
 
-func (h *placementDeleteHandler) placementDelete(ctx context.Context) error {
+func (h *deleteHandler) delete(ctx context.Context) error {
 	ps, err := PlacementService(h.clusterClient, h.config)
 	if err != nil {
 		return err

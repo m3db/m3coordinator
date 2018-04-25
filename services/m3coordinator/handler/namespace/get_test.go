@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package handler
+package namespace
 
 import (
 	"io/ioutil"
@@ -53,7 +53,7 @@ func SetupNamespaceTest(t *testing.T) (*client.MockClient, *kv.MockStore, *gomoc
 
 func TestNamespaceGetHandler(t *testing.T) {
 	mockClient, mockKV, ctrl := SetupNamespaceTest(t)
-	handler := NewNamespaceGetHandler(mockClient)
+	getHandler := NewGetHandler(mockClient)
 
 	// Test no namespace
 	w := httptest.NewRecorder()
@@ -62,7 +62,7 @@ func TestNamespaceGetHandler(t *testing.T) {
 	require.NotNil(t, req)
 
 	mockKV.EXPECT().Get(M3DBNodeNamespacesKey).Return(nil, kv.ErrNotFound)
-	handler.ServeHTTP(w, req)
+	getHandler.ServeHTTP(w, req)
 
 	resp := w.Result()
 	body, _ := ioutil.ReadAll(resp.Body)
@@ -99,7 +99,7 @@ func TestNamespaceGetHandler(t *testing.T) {
 	mockValue.EXPECT().Unmarshal(gomock.Any()).Return(nil).SetArg(0, registry)
 
 	mockKV.EXPECT().Get(M3DBNodeNamespacesKey).Return(mockValue, nil)
-	handler.ServeHTTP(w, req)
+	getHandler.ServeHTTP(w, req)
 
 	resp = w.Result()
 	body, _ = ioutil.ReadAll(resp.Body)

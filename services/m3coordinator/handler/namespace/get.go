@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package handler
+package namespace
 
 import (
 	"context"
@@ -26,6 +26,7 @@ import (
 	"net/http"
 
 	"github.com/m3db/m3coordinator/generated/proto/admin"
+	"github.com/m3db/m3coordinator/services/m3coordinator/handler"
 	"github.com/m3db/m3coordinator/util/logging"
 
 	m3clusterClient "github.com/m3db/m3cluster/client"
@@ -35,31 +36,31 @@ import (
 )
 
 const (
-	// NamespaceGetURL is the url for the placement get handler (with the GET method).
-	NamespaceGetURL = "/namespace/get"
+	// GetURL is the url for the placement get handler (with the GET method).
+	GetURL = "/namespace/get"
 
-	// NamespaceGetHTTPMethodURL is the url for the placement get handler (with the GET method).
-	NamespaceGetHTTPMethodURL = "/namespace"
+	// GetHTTPMethodURL is the url for the placement get handler (with the GET method).
+	GetHTTPMethodURL = "/namespace"
 )
 
-// namespaceGetHandler represents a handler for placement get endpoint.
-type namespaceGetHandler AdminHandler
+// getHandler represents a handler for placement get endpoint.
+type getHandler Handler
 
-// NewNamespaceGetHandler returns a new instance of handler.
-func NewNamespaceGetHandler(clusterClient m3clusterClient.Client) http.Handler {
-	return &namespaceGetHandler{
+// NewGetHandler returns a new instance of handler.
+func NewGetHandler(clusterClient m3clusterClient.Client) http.Handler {
+	return &getHandler{
 		clusterClient: clusterClient,
 	}
 }
 
-func (h *namespaceGetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *getHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := logging.WithContext(ctx)
-	nsRegistry, err := h.namespaceGet(ctx)
+	nsRegistry, err := h.get(ctx)
 
 	if err != nil {
 		logger.Error("unable to get namespace", zap.Any("error", err))
-		Error(w, err, http.StatusInternalServerError)
+		handler.Error(w, err, http.StatusInternalServerError)
 		return
 	}
 
@@ -67,10 +68,10 @@ func (h *namespaceGetHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		Registry: &nsRegistry,
 	}
 
-	WriteProtoMsgJSONResponse(w, resp, logger)
+	handler.WriteProtoMsgJSONResponse(w, resp, logger)
 }
 
-func (h *namespaceGetHandler) namespaceGet(ctx context.Context) (nsproto.Registry, error) {
+func (h *getHandler) get(ctx context.Context) (nsproto.Registry, error) {
 	var emptyReg = nsproto.Registry{}
 	store, err := h.clusterClient.KV()
 	if err != nil {

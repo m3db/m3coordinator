@@ -18,39 +18,48 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package handler
+package namespace
 
 import (
-	"errors"
-	"net/http"
-	"net/http/httptest"
-	"testing"
+	"fmt"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	m3clusterClient "github.com/m3db/m3cluster/client"
+	"github.com/m3db/m3cluster/kv"
+	nsproto "github.com/m3db/m3db/generated/proto/namespace"
+	"github.com/m3db/m3db/storage/namespace"
 )
 
-func TestPlacementDeleteHandler(t *testing.T) {
-	mockClient, mockPlacementService := SetupPlacementTest(t)
-	handler := NewPlacementDeleteHandler(mockClient)
+const (
+	// M3DBNodeNamespacesKey is the KV key that holds namespaces
+	M3DBNodeNamespacesKey = "m3db.node.namespaces"
+)
 
-	// Test delete success
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest("POST", "/placement/delete", nil)
-	require.NotNil(t, req)
-	mockPlacementService.EXPECT().Delete()
-	handler.ServeHTTP(w, req)
+// Handler represents a generic handler for namespace endpoints.
+type Handler struct {
+	clusterClient m3clusterClient.Client
+}
 
-	resp := w.Result()
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
+// Metadata returns the current metadata in the given store
+func Metadata(store kv.Store) ([]namespace.Metadata, error) {
+	value, err := store.Get(M3DBNodeNamespacesKey)
 
-	// Test delete error
-	w = httptest.NewRecorder()
-	req = httptest.NewRequest("POST", "/placement/delete", nil)
-	require.NotNil(t, req)
-	mockPlacementService.EXPECT().Delete().Return(errors.New("error"))
-	handler.ServeHTTP(w, req)
+	if err != nil {
+		if err == kv.ErrNotFound {
+			return []namespace.Metadata{}, nil
+		}
 
-	resp = w.Result()
-	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+		return nil, err
+	}
+
+	var protoRegistry nsproto.Registry
+	if err := value.Unmarshal(&protoRegistry); err != nil {
+		return nil, fmt.Errorf("unable to parse value, err: %v", err)
+	}
+
+	nsMap, err := namespace.FromProto(protoRegistry)
+	if err != nil {
+		return nil, err
+	}
+
+	return nsMap.Metadatas(), nil
 }
