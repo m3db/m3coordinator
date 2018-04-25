@@ -58,7 +58,7 @@ func (h *PromReadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Allow handler to be set up before M3DB is initialized
 	if h.engine == nil {
-		WriteUninitializedResponse(w, logger)
+		handler.WriteUninitializedResponse(w, logger)
 		return
 	}
 
@@ -71,7 +71,7 @@ func (h *PromReadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	params, err := prometheus.ParseRequestParams(r)
 	if err != nil {
-		Error(w, err, http.StatusBadRequest)
+		handler.Error(w, err, http.StatusBadRequest)
 		return
 	}
 
@@ -153,4 +153,9 @@ func (h *PromReadHandler) read(reqCtx context.Context, w http.ResponseWriter, r 
 	}
 
 	return promResults, nil
+}
+
+// SetEngine sets the engine of the handler
+func (h *PromReadHandler) SetEngine(engine *executor.Engine) {
+	h.engine = engine
 }

@@ -126,3 +126,8 @@ func (h *PromReadHandler) read(reqCtx context.Context, w http.ResponseWriter, re
 	// todo(braskin): implement query execution
 	return nil, nil
 }
+
+// SetEngine sets the engine of the handler
+func (h *PromReadHandler) SetEngine(engine *executor.Engine) {
+	h.engine = engine
+}

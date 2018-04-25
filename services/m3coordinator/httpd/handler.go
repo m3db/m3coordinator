@@ -58,9 +58,10 @@ type Handler struct {
 
 // lazyLoadHandlers are handlers that get activated lazily once M3DB is instantiated
 type lazyLoadHandlers struct {
-	promRead  *handler.PromReadHandler
-	promWrite *handler.PromWriteHandler
-	search    *handler.SearchHandler
+	promRemoteRead  *remote.PromReadHandler
+	promRemoteWrite *remote.PromWriteHandler
+	promNativeRead  *native.PromReadHandler
+	search          *handler.SearchHandler
 }
 
 // NewHandler returns a new instance of handler with routes.
@@ -88,15 +89,15 @@ func (h *Handler) RegisterRoutes() {
 	logged := withResponseTimeLogging
 
 	promRemoteReadHandler := remote.NewPromReadHandler(h.engine)
-	h.lazyHandlers.promRead = promReadHandler.(*remote.PromReadHandler)
+	h.lazyHandlers.promRemoteRead = promRemoteReadHandler.(*remote.PromReadHandler)
 	h.Router.HandleFunc(remote.PromReadURL, logged(promRemoteReadHandler).ServeHTTP).Methods("POST")
 
 	promRemoteWriteHandler := remote.NewPromWriteHandler(h.storage)
-	h.lazyHandlers.promWrite = promWriteHandler.(*remote.PromWriteHandler)
+	h.lazyHandlers.promRemoteWrite = promRemoteWriteHandler.(*remote.PromWriteHandler)
 	h.Router.HandleFunc(remote.PromWriteURL, logged(promRemoteWriteHandler).ServeHTTP).Methods("POST")
 
 	promNativeReadHandler := native.NewPromReadHandler(h.engine)
-	h.lazyHandlers.promRead = promReadHandler.(*native.PromReadHandler)
+	h.lazyHandlers.promNativeRead = promNativeReadHandler.(*native.PromReadHandler)
 	h.Router.HandleFunc(native.PromReadURL, logged(promNativeReadHandler).ServeHTTP).Methods("POST")
 
 	searchHandler := handler.NewSearchHandler(h.storage)
@@ -146,7 +147,8 @@ func withResponseTimeLogging(next http.Handler) http.Handler {
 
 // LoadLazyHandlers initializes LazyHandlers post-M3DB setup
 func (h *Handler) LoadLazyHandlers(storage storage.Storage, engine *executor.Engine) {
-	h.lazyHandlers.promRead.SetEngine(engine)
-	h.lazyHandlers.promWrite.SetStore(storage)
+	h.lazyHandlers.promRemoteRead.SetEngine(engine)
+	h.lazyHandlers.promRemoteWrite.SetStore(storage)
+	h.lazyHandlers.promNativeRead.SetEngine(engine)
 	h.lazyHandlers.search.SetStore(storage)
 }

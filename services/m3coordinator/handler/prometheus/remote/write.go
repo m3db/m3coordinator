@@ -57,7 +57,7 @@ func (h *PromWriteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Allow handler to be set up before M3DB is initialized
 	if h.store == nil {
-		WriteUninitializedResponse(w, logger)
+		handler.WriteUninitializedResponse(w, logger)
 		return
 	}
 
