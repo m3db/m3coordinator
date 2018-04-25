@@ -129,6 +129,7 @@ type QueryResult struct {
 	Err         error
 }
 
+// BlockResult is the result from a block query
 type BlockResult struct {
 	Blocks []Block
 }

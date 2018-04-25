@@ -7,26 +7,25 @@ import (
 	"github.com/m3db/m3coordinator/ts"
 )
 
+// Block represents a group of series across a time bound
 type Block interface {
 	Meta() BlockMetadata
 	StepIter() StepIter
 	SeriesIter() SeriesIter
 	SeriesMeta() []SeriesMeta
 	StepMeta() []StepMeta
-	Id() BlockId // Block number
 }
 
-type BlockId struct {
-	Id int64 // Order of the block
-}
-
+// SeriesMeta is metadata data for the series
 type SeriesMeta struct {
 	Tags models.Tags
 }
 
+// StepMeta is metadata data for a single time step
 type StepMeta struct {
 }
 
+// Bounds are the time bounds
 type Bounds struct {
 	start    time.Time
 	end      time.Time
@@ -52,6 +51,7 @@ type Step interface {
 	Free()
 }
 
+// BlockMetadata is metadata for a block
 type BlockMetadata struct {
 	Bounds Bounds
 	Tags   models.Tags // Common tags across different series

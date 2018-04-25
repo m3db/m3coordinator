@@ -57,6 +57,7 @@ type CountNode struct {
 	controller *transform.Controller
 }
 
+// Process the block
 func (c *CountNode) Process(ID parser.NodeID, block storage.Block) error {
 	builder, err := c.controller.BlockBuilder(block.Meta())
 	if err != nil {
@@ -67,13 +68,13 @@ func (c *CountNode) Process(ID parser.NodeID, block storage.Block) error {
 	index := 0
 	for stepIter.Next() {
 		step := stepIter.Current()
-		defer step.Free()
 		values := step.Values()
 		sum := 0.0
 		for _, value := range values {
 			sum += value
 		}
 
+		step.Free()
 		builder.AppendValue(index, sum)
 		index++
 	}

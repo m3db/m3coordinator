@@ -39,7 +39,7 @@ func (t *Controller) AddTransform(node executor.OpNode) {
 	t.transforms = append(t.transforms, node)
 }
 
-// AddTransform adds a dependent transformation to the controller
+// Process performs processing on the underlying transforms
 func (t *Controller) Process(block storage.Block) error {
 	for _, ts := range t.transforms {
 		err := ts.Process(t.ID, block)
@@ -51,11 +51,12 @@ func (t *Controller) Process(block storage.Block) error {
 	return nil
 }
 
-// Block returns a new block
+// BlockBuilder returns a BlockBuilder instance with associated metadata
 func (t *Controller) BlockBuilder(blockMeta storage.BlockMetadata) (BlockBuilder, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
+// BlockBuilder builds a new block
 type BlockBuilder interface {
 	AppendValue(index int, value float64)
 	Build() storage.Block
