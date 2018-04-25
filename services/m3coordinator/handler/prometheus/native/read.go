@@ -58,17 +58,24 @@ func NewPromReadHandler(engine *executor.Engine) http.Handler {
 }
 
 func (h *PromReadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	params, err := prometheus.ParseRequestParams(r)
 	ctx := r.Context()
 	logger := logging.WithContext(ctx)
-	if err != nil {
-		handler.Error(w, err, http.StatusBadRequest)
+
+	// Allow handler to be set up before M3DB is initialized
+	if h.engine == nil {
+		handler.WriteUninitializedResponse(w, logger)
 		return
 	}
 
 	req, rErr := h.parseRequest(r)
 	if rErr != nil {
 		handler.Error(w, rErr.Error(), rErr.Code())
+		return
+	}
+
+	params, err := prometheus.ParseRequestParams(r)
+	if err != nil {
+		handler.Error(w, err, http.StatusBadRequest)
 		return
 	}
 
