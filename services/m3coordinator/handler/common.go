@@ -24,18 +24,12 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"time"
 
 	"github.com/m3db/m3coordinator/util/logging"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"go.uber.org/zap"
-)
-
-const (
-	maxTimeout     = time.Minute
-	defaultTimeout = time.Second * 15
 )
 
 // WriteJSONResponse writes generic data to the ResponseWriter

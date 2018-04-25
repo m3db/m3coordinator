@@ -55,12 +55,10 @@ func ParseRequestParams(r *http.Request) (*RequestParams, error) {
 		duration, err := time.ParseDuration(timeout)
 		if err != nil {
 			return nil, fmt.Errorf("%s: invalid 'timeout': %v", handler.ErrInvalidParams, err)
-
 		}
 
 		if duration > maxTimeout {
 			return nil, fmt.Errorf("%s: invalid 'timeout': greater than %v", handler.ErrInvalidParams, maxTimeout)
-
 		}
 
 		params.Timeout = duration
