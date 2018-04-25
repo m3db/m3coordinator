@@ -21,7 +21,6 @@
 package placement
 
 import (
-	"context"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -58,7 +57,7 @@ func (h *initHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	placement, err := h.init(ctx, req)
+	placement, err := h.init(req)
 	if err != nil {
 		logger.Error("unable to initialize placement", zap.Any("error", err))
 		handler.Error(w, err, http.StatusInternalServerError)
@@ -84,6 +83,7 @@ func (h *initHandler) parseRequest(r *http.Request) (*admin.PlacementInitRequest
 	if err != nil {
 		return nil, handler.NewParseError(err, http.StatusBadRequest)
 	}
+
 	defer r.Body.Close()
 
 	initReq := new(admin.PlacementInitRequest)
@@ -94,7 +94,7 @@ func (h *initHandler) parseRequest(r *http.Request) (*admin.PlacementInitRequest
 	return initReq, nil
 }
 
-func (h *initHandler) init(ctx context.Context, r *admin.PlacementInitRequest) (placement.Placement, error) {
+func (h *initHandler) init(r *admin.PlacementInitRequest) (placement.Placement, error) {
 	instances, err := ConvertInstancesProto(r.Instances)
 	if err != nil {
 		return nil, err

@@ -41,7 +41,6 @@ type Handler struct {
 // Metadata returns the current metadata in the given store
 func Metadata(store kv.Store) ([]namespace.Metadata, error) {
 	value, err := store.Get(M3DBNodeNamespacesKey)
-
 	if err != nil {
 		if err == kv.ErrNotFound {
 			return []namespace.Metadata{}, nil

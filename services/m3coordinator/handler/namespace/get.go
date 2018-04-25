@@ -21,7 +21,6 @@
 package namespace
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 
@@ -53,7 +52,7 @@ func NewGetHandler(store kv.Store) http.Handler {
 func (h *getHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := logging.WithContext(ctx)
-	nsRegistry, err := h.get(ctx)
+	nsRegistry, err := h.get()
 
 	if err != nil {
 		logger.Error("unable to get namespace", zap.Any("error", err))
@@ -68,9 +67,8 @@ func (h *getHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	handler.WriteProtoMsgJSONResponse(w, resp, logger)
 }
 
-func (h *getHandler) get(ctx context.Context) (nsproto.Registry, error) {
+func (h *getHandler) get() (nsproto.Registry, error) {
 	var emptyReg = nsproto.Registry{}
-
 	value, err := h.store.Get(M3DBNodeNamespacesKey)
 
 	if err == kv.ErrNotFound {

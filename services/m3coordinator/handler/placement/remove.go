@@ -21,7 +21,6 @@
 package placement
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
@@ -63,7 +62,7 @@ func (h *removeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	placement, err := h.remove(ctx, req)
+	placement, err := h.remove(req)
 	if err != nil {
 		logger.Error("unable to remove placement", zap.Any("error", err))
 		handler.Error(w, err, http.StatusInternalServerError)
@@ -89,6 +88,7 @@ func (h *removeHandler) parseRequest(r *http.Request) (*admin.PlacementRemoveReq
 	if err != nil {
 		return nil, handler.NewParseError(err, http.StatusBadRequest)
 	}
+
 	defer r.Body.Close()
 
 	removeReq := new(admin.PlacementRemoveRequest)
@@ -99,7 +99,7 @@ func (h *removeHandler) parseRequest(r *http.Request) (*admin.PlacementRemoveReq
 	return removeReq, nil
 }
 
-func (h *removeHandler) remove(ctx context.Context, r *admin.PlacementRemoveRequest) (placement.Placement, error) {
+func (h *removeHandler) remove(r *admin.PlacementRemoveRequest) (placement.Placement, error) {
 	if len(r.InstanceIds) == 0 {
 		return nil, errMissingInstanceIds
 	}

@@ -37,6 +37,8 @@ import (
 func TestNamespaceAddHandler(t *testing.T) {
 	mockKV, _ := SetupNamespaceTest(t)
 	addHandler := NewAddHandler(mockKV)
+
+	// Error case where required fields are not set
 	w := httptest.NewRecorder()
 
 	jsonInput := `
@@ -44,8 +46,6 @@ func TestNamespaceAddHandler(t *testing.T) {
 			"name": "testNamespace",
 			"retention_period": "48h",
 			"block_size": "2h",
-			"buffer_future": "10m",
-			"buffer_past": "5m",
 			"needs_fileset_cleanup": false
 		}
 	`
@@ -59,6 +59,36 @@ func TestNamespaceAddHandler(t *testing.T) {
 
 	resp := w.Result()
 	body, _ := ioutil.ReadAll(resp.Body)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	assert.Equal(t, "all attributes must be set\n", string(body))
+
+	// Test good case. Note: there is no way to tell the difference between a boolean
+	// being false and it not being set by a user.
+	w = httptest.NewRecorder()
+
+	jsonInput = `
+		{
+            "name": "testNamespace",
+            "retention_period": "48h",
+            "block_size": "2h",
+            "buffer_future": "10m",
+            "buffer_past": "10m",
+            "block_data_expiry": true,
+            "block_data_expiry_period": "4h",
+            "needs_bootstrap": true,
+            "needs_fileset_cleanup": false
+		}
+	`
+
+	req = httptest.NewRequest("POST", "/namespace/add", strings.NewReader(jsonInput))
+	require.NotNil(t, req)
+
+	mockKV.EXPECT().Get(M3DBNodeNamespacesKey).Return(nil, kv.ErrNotFound)
+	mockKV.EXPECT().Set(M3DBNodeNamespacesKey, gomock.Not(nil)).Return(1, nil)
+	addHandler.ServeHTTP(w, req)
+
+	resp = w.Result()
+	body, _ = ioutil.ReadAll(resp.Body)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.Equal(t, "{\"registry\":{\"namespaces\":{\"testNamespace\":{\"bootstrapEnabled\":false,\"flushEnabled\":false,\"writesToCommitLog\":false,\"cleanupEnabled\":false,\"repairEnabled\":false,\"retentionOptions\":{\"retentionPeriodNanos\":\"172800000000000\",\"blockSizeNanos\":\"7200000000000\",\"bufferFutureNanos\":\"600000000000\",\"bufferPastNanos\":\"300000000000\",\"blockDataExpiry\":false,\"blockDataExpiryAfterNotAccessPeriodNanos\":\"300000000000\"},\"snapshotEnabled\":true}}}}", string(body))
 }

@@ -21,7 +21,6 @@
 package placement
 
 import (
-	"context"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -58,7 +57,7 @@ func (h *addHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	placement, err := h.add(ctx, req)
+	placement, err := h.add(req)
 	if err != nil {
 		logger.Error("unable to add placement", zap.Any("error", err))
 		handler.Error(w, err, http.StatusInternalServerError)
@@ -84,6 +83,7 @@ func (h *addHandler) parseRequest(r *http.Request) (*admin.PlacementAddRequest, 
 	if err != nil {
 		return nil, handler.NewParseError(err, http.StatusBadRequest)
 	}
+
 	defer r.Body.Close()
 
 	addReq := new(admin.PlacementAddRequest)
@@ -94,7 +94,7 @@ func (h *addHandler) parseRequest(r *http.Request) (*admin.PlacementAddRequest, 
 	return addReq, nil
 }
 
-func (h *addHandler) add(ctx context.Context, r *admin.PlacementAddRequest) (placement.Placement, error) {
+func (h *addHandler) add(r *admin.PlacementAddRequest) (placement.Placement, error) {
 	instances, err := ConvertInstancesProto(r.Instances)
 	if err != nil {
 		return nil, err

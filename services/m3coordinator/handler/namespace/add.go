@@ -21,7 +21,6 @@
 package namespace
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -50,7 +49,7 @@ const (
 )
 
 var (
-	errMissingNamespaceName = errors.New("must specify namespace name")
+	errMissingRequiredField = errors.New("all attributes must be set")
 )
 
 // addHandler represents a handler for placement add endpoint.
@@ -72,7 +71,7 @@ func (h *addHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	nsRegistry, err := h.add(ctx, req)
+	nsRegistry, err := h.add(req)
 	if err != nil {
 		logger.Error("unable to get namespace", zap.Any("error", err))
 		handler.Error(w, err, http.StatusInternalServerError)
@@ -90,6 +89,7 @@ func (h *addHandler) parseRequest(r *http.Request) (*admin.NamespaceAddRequest, 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		return nil, handler.NewParseError(err, http.StatusBadRequest)
+
 	}
 	defer r.Body.Close()
 
@@ -98,10 +98,15 @@ func (h *addHandler) parseRequest(r *http.Request) (*admin.NamespaceAddRequest, 
 		return nil, handler.NewParseError(err, http.StatusBadRequest)
 	}
 
+	if addReq.Name == "" || addReq.RetentionPeriod == "" || addReq.BlockSize == "" || addReq.BufferFuture == "" ||
+		addReq.BufferPast == "" || addReq.BlockDataExpiryPeriod == "" {
+		return nil, handler.NewParseError(errMissingRequiredField, http.StatusBadRequest)
+	}
+
 	return addReq, nil
 }
 
-func (h *addHandler) add(ctx context.Context, r *admin.NamespaceAddRequest) (nsproto.Registry, error) {
+func (h *addHandler) add(r *admin.NamespaceAddRequest) (nsproto.Registry, error) {
 	var emptyReg = nsproto.Registry{}
 
 	currentMetadata, err := Metadata(h.store)
@@ -129,31 +134,31 @@ func (h *addHandler) add(ctx context.Context, r *admin.NamespaceAddRequest) (nsp
 }
 
 func metadataFromRequest(r *admin.NamespaceAddRequest) (namespace.Metadata, error) {
-	// Explicitly check existence of name. Other required fields are `time.Duration`s,
-	// which will fail to parse as such on empty string.
-	if r.Name == "" {
-		return nil, errMissingNamespaceName
-	}
 	blockSize, err := time.ParseDuration(r.BlockSize)
 	if err != nil {
 		return nil, err
 	}
+
 	retentionPeriod, err := time.ParseDuration(r.RetentionPeriod)
 	if err != nil {
 		return nil, err
 	}
+
 	bufferFuture, err := time.ParseDuration(r.BufferFuture)
 	if err != nil {
 		return nil, err
 	}
+
 	bufferPast, err := time.ParseDuration(r.BufferPast)
 	if err != nil {
 		return nil, err
 	}
+
 	blockDataExpiryPeriodStr := r.BlockDataExpiryPeriod
 	if blockDataExpiryPeriodStr == "" {
 		blockDataExpiryPeriodStr = defaultBlockDataExpiryPeriodStr
 	}
+
 	blockDataExpiryPeriod, err := time.ParseDuration(blockDataExpiryPeriodStr)
 	if err != nil {
 		return nil, err

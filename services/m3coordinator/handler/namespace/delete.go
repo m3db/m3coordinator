@@ -21,7 +21,6 @@
 package namespace
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -65,10 +64,9 @@ func (h *deleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.delete(ctx, req)
+	err := h.delete(req)
 	if err != nil {
 		logger.Error("unable to delete namespace", zap.Any("error", err))
-
 		if err == errNamespaceNotFound {
 			handler.Error(w, err, http.StatusBadRequest)
 		} else {
@@ -82,6 +80,7 @@ func (h *deleteHandler) parseRequest(r *http.Request) (*admin.NamespaceDeleteReq
 	if err != nil {
 		return nil, handler.NewParseError(err, http.StatusBadRequest)
 	}
+
 	defer r.Body.Close()
 
 	deleteReq := new(admin.NamespaceDeleteRequest)
@@ -92,28 +91,26 @@ func (h *deleteHandler) parseRequest(r *http.Request) (*admin.NamespaceDeleteReq
 	return deleteReq, nil
 }
 
-func (h *deleteHandler) delete(ctx context.Context, r *admin.NamespaceDeleteRequest) error {
-	currentMetadata, err := Metadata(h.store)
+func (h *deleteHandler) delete(r *admin.NamespaceDeleteRequest) error {
+	metadatas, err := Metadata(h.store)
 	if err != nil {
 		return err
 	}
 
-	newMds := []namespace.Metadata{}
-	found := false
-	for _, md := range currentMetadata {
+	mdIdx := -1
+	for idx, md := range metadatas {
 		if md.ID().String() == r.Name {
-			found = true
-			continue
+			mdIdx = idx
+			break
 		}
-		newMds = append(newMds, md)
 	}
 
-	if !found {
+	if mdIdx == -1 {
 		return errNamespaceNotFound
 	}
 
-	// If metadatas are empty, remove the key
-	if len(newMds) == 0 {
+	// If we are going to delete the last remaining metadata, remove the key
+	if len(metadatas) == 1 {
 		if _, err = h.store.Delete(M3DBNodeNamespacesKey); err != nil {
 			return fmt.Errorf("unable to delete kv key: %v", err)
 		}
@@ -121,8 +118,12 @@ func (h *deleteHandler) delete(ctx context.Context, r *admin.NamespaceDeleteRequ
 		return nil
 	}
 
+	// Replace the index where we found the metadata with the last element, then truncate
+	metadatas[mdIdx] = metadatas[len(metadatas)-1]
+	metadatas = metadatas[:len(metadatas)-1]
+
 	// Update namespace map and set kv
-	nsMap, err := namespace.NewMap(newMds)
+	nsMap, err := namespace.NewMap(metadatas)
 	if err != nil {
 		return fmt.Errorf("unable to delete kv key: %v", err)
 	}
