@@ -29,6 +29,7 @@ import (
 	"github.com/m3db/m3coordinator/executor"
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/services/m3coordinator/config"
+	"github.com/m3db/m3coordinator/services/m3coordinator/handler/prometheus/native"
 	"github.com/m3db/m3coordinator/services/m3coordinator/handler/prometheus/remote"
 	"github.com/m3db/m3coordinator/storage/local"
 	"github.com/m3db/m3coordinator/util/logging"
@@ -39,7 +40,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestPromReadGet(t *testing.T) {
+func TestPromRemoteReadGet(t *testing.T) {
 	logging.InitWithCores(nil)
 
 	req, _ := http.NewRequest("GET", remote.PromReadURL, nil)
@@ -53,10 +54,38 @@ func TestPromReadGet(t *testing.T) {
 	require.Equal(t, res.Code, http.StatusMethodNotAllowed, "GET method not defined")
 }
 
-func TestPromReadPost(t *testing.T) {
+func TestPromRemoteReadPost(t *testing.T) {
 	logging.InitWithCores(nil)
 
 	req, _ := http.NewRequest("POST", remote.PromReadURL, nil)
+	res := httptest.NewRecorder()
+	storage := local.NewStorage(nil, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
+
+	h, err := NewHandler(storage, executor.NewEngine(storage), nil, config.Configuration{})
+	require.NoError(t, err, "unable to setup handler")
+	h.RegisterRoutes()
+	h.Router.ServeHTTP(res, req)
+	require.Equal(t, res.Code, http.StatusBadRequest, "Empty request")
+}
+
+func TestPromNativeReadGet(t *testing.T) {
+	logging.InitWithCores(nil)
+
+	req, _ := http.NewRequest("GET", native.PromReadURL, nil)
+	res := httptest.NewRecorder()
+	storage := local.NewStorage(nil, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
+
+	h, err := NewHandler(storage, executor.NewEngine(storage), nil, config.Configuration{})
+	require.NoError(t, err, "unable to setup handler")
+	h.RegisterRoutes()
+	h.Router.ServeHTTP(res, req)
+	require.Equal(t, res.Code, http.StatusMethodNotAllowed, "GET method not defined")
+}
+
+func TestPromNativeReadPost(t *testing.T) {
+	logging.InitWithCores(nil)
+
+	req, _ := http.NewRequest("POST", native.PromReadURL, nil)
 	res := httptest.NewRecorder()
 	storage := local.NewStorage(nil, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
 

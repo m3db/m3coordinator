@@ -23,6 +23,7 @@ package native
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/m3db/m3coordinator/executor"
@@ -124,7 +125,7 @@ func (h *PromReadHandler) read(reqCtx context.Context, w http.ResponseWriter, re
 	}
 
 	// todo(braskin): implement query execution
-	return nil, nil
+	return nil, errors.New("not implemented")
 }
 
 // SetEngine sets the engine of the handler

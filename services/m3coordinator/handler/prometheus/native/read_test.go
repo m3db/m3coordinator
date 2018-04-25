@@ -22,6 +22,7 @@ package native
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -31,6 +32,7 @@ import (
 	"github.com/m3db/m3coordinator/executor"
 	"github.com/m3db/m3coordinator/mocks"
 	"github.com/m3db/m3coordinator/policy/resolver"
+	"github.com/m3db/m3coordinator/services/m3coordinator/handler/prometheus"
 	"github.com/m3db/m3coordinator/storage/local"
 	"github.com/m3db/m3coordinator/tsdb"
 	"github.com/m3db/m3coordinator/util/logging"
@@ -82,4 +84,16 @@ func TestPromReadParsing(t *testing.T) {
 	r, err := promRead.parseRequest(req)
 	require.Nil(t, err, "unable to parse request")
 	require.Equal(t, promQuery, r)
+}
+
+func TestPromReadNotImplemented(t *testing.T) {
+	logging.InitWithCores(nil)
+	storage := local.NewStorage(nil, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
+	promRead := &PromReadHandler{engine: executor.NewEngine(storage)}
+	req, _ := http.NewRequest("POST", PromReadURL, generatePromReadBody(t))
+
+	r, parseErr := promRead.parseRequest(req)
+	require.Nil(t, parseErr, "unable to parse request")
+	_, err := promRead.read(context.TODO(), httptest.NewRecorder(), r, &prometheus.RequestParams{Timeout: time.Hour})
+	require.NotNil(t, err, "not implemented")
 }
