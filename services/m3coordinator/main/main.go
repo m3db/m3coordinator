@@ -103,7 +103,11 @@ func main() {
 	if err != nil {
 		logger.Fatal("unable to set up handlers", zap.Any("error", err))
 	}
-	handler.RegisterRoutes()
+
+	err = handler.RegisterRoutes()
+	if err != nil {
+		logger.Fatal("unable to register routes for handler", zap.Any("error", err))
+	}
 
 	logger.Info("starting server", zap.String("address", flags.listenAddress))
 	go http.ListenAndServe(flags.listenAddress, handler.Router)

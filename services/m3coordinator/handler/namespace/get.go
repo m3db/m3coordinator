@@ -29,7 +29,6 @@ import (
 	"github.com/m3db/m3coordinator/services/m3coordinator/handler"
 	"github.com/m3db/m3coordinator/util/logging"
 
-	m3clusterClient "github.com/m3db/m3cluster/client"
 	"github.com/m3db/m3cluster/kv"
 	nsproto "github.com/m3db/m3db/generated/proto/namespace"
 	"go.uber.org/zap"
@@ -47,10 +46,8 @@ const (
 type getHandler Handler
 
 // NewGetHandler returns a new instance of handler.
-func NewGetHandler(clusterClient m3clusterClient.Client) http.Handler {
-	return &getHandler{
-		clusterClient: clusterClient,
-	}
+func NewGetHandler(store kv.Store) http.Handler {
+	return &getHandler{store: store}
 }
 
 func (h *getHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -73,12 +70,9 @@ func (h *getHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h *getHandler) get(ctx context.Context) (nsproto.Registry, error) {
 	var emptyReg = nsproto.Registry{}
-	store, err := h.clusterClient.KV()
-	if err != nil {
-		return emptyReg, err
-	}
 
-	value, err := store.Get(M3DBNodeNamespacesKey)
+	value, err := h.store.Get(M3DBNodeNamespacesKey)
+
 	if err == kv.ErrNotFound {
 		// Having no namespace should not be treated as an error
 		return emptyReg, nil
@@ -91,5 +85,6 @@ func (h *getHandler) get(ctx context.Context) (nsproto.Registry, error) {
 	if err := value.Unmarshal(&protoRegistry); err != nil {
 		return emptyReg, fmt.Errorf("failed to parse namespace version %v: %v", value.Version(), err)
 	}
+
 	return protoRegistry, nil
 }

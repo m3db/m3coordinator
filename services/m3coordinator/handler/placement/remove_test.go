@@ -29,15 +29,14 @@ import (
 	"testing"
 
 	"github.com/m3db/m3cluster/placement"
-	"github.com/m3db/m3coordinator/services/m3coordinator/config"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestPlacementRemoveHandler(t *testing.T) {
-	mockClient, mockPlacementService := SetupPlacementTest(t)
-	handler := NewRemoveHandler(mockClient, config.Configuration{})
+	mockPlacementService := SetupPlacementTest(t)
+	handler := NewRemoveHandler(mockPlacementService)
 
 	// Test remove success
 	w := httptest.NewRecorder()

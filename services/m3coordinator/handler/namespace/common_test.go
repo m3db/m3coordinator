@@ -21,9 +21,82 @@
 package namespace
 
 import (
+	"errors"
 	"testing"
+
+	"github.com/m3db/m3coordinator/util/logging"
+
+	"github.com/m3db/m3cluster/kv"
+	nsproto "github.com/m3db/m3db/generated/proto/namespace"
+
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMetadata(t *testing.T) {
+	logging.InitWithCores(nil)
 
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockKV := kv.NewMockStore(ctrl)
+	require.NotNil(t, mockKV)
+
+	// Test KV get error
+	mockKV.EXPECT().Get(M3DBNodeNamespacesKey).Return(nil, errors.New("unable to get key"))
+	meta, err := Metadata(mockKV)
+	assert.Nil(t, meta)
+	assert.EqualError(t, err, "unable to get key")
+
+	// Test empty namespace
+	mockKV.EXPECT().Get(M3DBNodeNamespacesKey).Return(nil, kv.ErrNotFound)
+	meta, err = Metadata(mockKV)
+	assert.NotNil(t, meta)
+	assert.Equal(t, 0, len(meta))
+	assert.NoError(t, err)
+
+	registry := nsproto.Registry{
+		Namespaces: map[string]*nsproto.NamespaceOptions{
+			"metrics-ns1": &nsproto.NamespaceOptions{
+				NeedsBootstrap:      true,
+				NeedsFlush:          true,
+				WritesToCommitLog:   false,
+				NeedsFilesetCleanup: false,
+				NeedsRepair:         false,
+				RetentionOptions: &nsproto.RetentionOptions{
+					RetentionPeriodNanos:                     200000000000,
+					BlockSizeNanos:                           100000000000,
+					BufferFutureNanos:                        3000000000,
+					BufferPastNanos:                          4000000000,
+					BlockDataExpiry:                          true,
+					BlockDataExpiryAfterNotAccessPeriodNanos: 5000000000,
+				},
+			},
+			"metrics-ns2": &nsproto.NamespaceOptions{
+				NeedsBootstrap:      true,
+				NeedsFlush:          true,
+				WritesToCommitLog:   true,
+				NeedsFilesetCleanup: true,
+				NeedsRepair:         false,
+				RetentionOptions: &nsproto.RetentionOptions{
+					RetentionPeriodNanos:                     400000000000,
+					BlockSizeNanos:                           300000000000,
+					BufferFutureNanos:                        8000000000,
+					BufferPastNanos:                          9000000000,
+					BlockDataExpiry:                          false,
+					BlockDataExpiryAfterNotAccessPeriodNanos: 10000000000,
+				},
+			},
+		},
+	}
+	mockMetaValue := kv.NewMockValue(ctrl)
+	mockMetaValue.EXPECT().Unmarshal(gomock.Not(nil)).Return(nil).SetArg(0, registry)
+
+	// Test namespaces
+	mockKV.EXPECT().Get(M3DBNodeNamespacesKey).Return(mockMetaValue, nil)
+	meta, err = Metadata(mockKV)
+	assert.NotNil(t, meta)
+	assert.Equal(t, 2, len(meta))
+	assert.NoError(t, err)
 }

@@ -21,15 +21,12 @@
 package placement
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/m3db/m3coordinator/generated/proto/admin"
-	"github.com/m3db/m3coordinator/services/m3coordinator/config"
 	"github.com/m3db/m3coordinator/services/m3coordinator/handler"
 	"github.com/m3db/m3coordinator/util/logging"
 
-	m3clusterClient "github.com/m3db/m3cluster/client"
 	"github.com/m3db/m3cluster/placement"
 
 	"go.uber.org/zap"
@@ -47,18 +44,15 @@ const (
 type getHandler Handler
 
 // NewGetHandler returns a new instance of handler.
-func NewGetHandler(clusterClient m3clusterClient.Client, cfg config.Configuration) http.Handler {
-	return &getHandler{
-		clusterClient: clusterClient,
-		config:        cfg,
-	}
+func NewGetHandler(service placement.Service) http.Handler {
+	return &getHandler{service: service}
 }
 
 func (h *getHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := logging.WithContext(ctx)
 
-	placement, version, err := h.get(ctx)
+	placement, version, err := h.service.Placement()
 	if err != nil {
 		// An error from `get` signifies "key not found", meaning there is
 		// no placement and as such, should not be treated as an actual error to
@@ -80,13 +74,4 @@ func (h *getHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	handler.WriteProtoMsgJSONResponse(w, resp, logger)
-}
-
-func (h *getHandler) get(ctx context.Context) (placement.Placement, int, error) {
-	ps, err := PlacementService(h.clusterClient, h.config)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return ps.Placement()
 }

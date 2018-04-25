@@ -28,8 +28,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/m3db/m3coordinator/services/m3coordinator/config"
-
 	"github.com/m3db/m3cluster/generated/proto/placementpb"
 	"github.com/m3db/m3cluster/placement"
 
@@ -39,8 +37,8 @@ import (
 )
 
 func TestPlacementInitHandler(t *testing.T) {
-	mockClient, mockPlacementService := SetupPlacementTest(t)
-	handler := NewInitHandler(mockClient, config.Configuration{})
+	mockPlacementService := SetupPlacementTest(t)
+	handler := NewInitHandler(mockPlacementService)
 
 	// Test placement init success
 	w := httptest.NewRecorder()

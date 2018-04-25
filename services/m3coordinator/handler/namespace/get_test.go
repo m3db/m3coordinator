@@ -28,7 +28,6 @@ import (
 
 	"github.com/m3db/m3coordinator/util/logging"
 
-	"github.com/m3db/m3cluster/client"
 	"github.com/m3db/m3cluster/kv"
 	nsproto "github.com/m3db/m3db/generated/proto/namespace"
 
@@ -37,23 +36,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func SetupNamespaceTest(t *testing.T) (*client.MockClient, *kv.MockStore, *gomock.Controller) {
+func SetupNamespaceTest(t *testing.T) (*kv.MockStore, *gomock.Controller) {
 	logging.InitWithCores(nil)
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	mockClient := client.NewMockClient(ctrl)
-	require.NotNil(t, mockClient)
+
 	mockKV := kv.NewMockStore(ctrl)
 	require.NotNil(t, mockKV)
-	mockClient.EXPECT().KV().Return(mockKV, nil).AnyTimes()
 
-	return mockClient, mockKV, ctrl
+	return mockKV, ctrl
 }
 
 func TestNamespaceGetHandler(t *testing.T) {
-	mockClient, mockKV, ctrl := SetupNamespaceTest(t)
-	getHandler := NewGetHandler(mockClient)
+	mockKV, ctrl := SetupNamespaceTest(t)
+	getHandler := NewGetHandler(mockKV)
 
 	// Test no namespace
 	w := httptest.NewRecorder()

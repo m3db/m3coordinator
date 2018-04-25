@@ -87,7 +87,7 @@ func NewHandler(storage storage.Storage, engine *executor.Engine, clusterClient 
 }
 
 // RegisterRoutes registers all http routes.
-func (h *Handler) RegisterRoutes() {
+func (h *Handler) RegisterRoutes() error {
 	logged := withResponseTimeLogging
 
 	promRemoteReadHandler := remote.NewPromReadHandler(h.engine)
@@ -109,25 +109,37 @@ func (h *Handler) RegisterRoutes() {
 	h.registerProfileEndpoints()
 
 	if h.clusterClient != nil {
-		h.Router.HandleFunc(placement.InitURL, logged(placement.NewInitHandler(h.clusterClient, h.config)).ServeHTTP).Methods("POST")
+		service, err := placement.Service(h.clusterClient, h.config)
+		if err != nil {
+			return err
+		}
 
-		h.Router.HandleFunc(placement.GetURL, logged(placement.NewGetHandler(h.clusterClient, h.config)).ServeHTTP).Methods("GET")
-		h.Router.HandleFunc(placement.GetHTTPMethodURL, logged(placement.NewGetHandler(h.clusterClient, h.config)).ServeHTTP).Methods("GET")
+		h.Router.HandleFunc(placement.InitURL, logged(placement.NewInitHandler(service)).ServeHTTP).Methods("POST")
 
-		h.Router.HandleFunc(placement.DeleteURL, logged(placement.NewDeleteHandler(h.clusterClient, h.config)).ServeHTTP).Methods("POST")
-		h.Router.HandleFunc(placement.DeleteHTTPMethodURL, logged(placement.NewDeleteHandler(h.clusterClient, h.config)).ServeHTTP).Methods("DELETE")
+		h.Router.HandleFunc(placement.GetURL, logged(placement.NewGetHandler(service)).ServeHTTP).Methods("GET")
+		h.Router.HandleFunc(placement.GetHTTPMethodURL, logged(placement.NewGetHandler(service)).ServeHTTP).Methods("GET")
 
-		h.Router.HandleFunc(placement.AddURL, logged(placement.NewAddHandler(h.clusterClient, h.config)).ServeHTTP).Methods("POST")
+		h.Router.HandleFunc(placement.DeleteURL, logged(placement.NewDeleteHandler(service)).ServeHTTP).Methods("POST")
+		h.Router.HandleFunc(placement.DeleteHTTPMethodURL, logged(placement.NewDeleteHandler(service)).ServeHTTP).Methods("DELETE")
 
-		h.Router.HandleFunc(placement.RemoveURL, logged(placement.NewRemoveHandler(h.clusterClient, h.config)).ServeHTTP).Methods("POST")
+		h.Router.HandleFunc(placement.AddURL, logged(placement.NewAddHandler(service)).ServeHTTP).Methods("POST")
 
-		h.Router.HandleFunc(namespace.GetURL, logged(namespace.NewGetHandler(h.clusterClient)).ServeHTTP).Methods("GET")
-		h.Router.HandleFunc(namespace.GetHTTPMethodURL, logged(namespace.NewGetHandler(h.clusterClient)).ServeHTTP).Methods("GET")
+		h.Router.HandleFunc(placement.RemoveURL, logged(placement.NewRemoveHandler(service)).ServeHTTP).Methods("POST")
 
-		h.Router.HandleFunc(namespace.AddURL, logged(namespace.NewAddHandler(h.clusterClient)).ServeHTTP).Methods("POST")
+		store, err := h.clusterClient.KV()
+		if err != nil {
+			return err
+		}
 
-		h.Router.HandleFunc(namespace.DeleteURL, logged(namespace.NewDeleteHandler(h.clusterClient)).ServeHTTP).Methods("POST")
+		h.Router.HandleFunc(namespace.GetURL, logged(namespace.NewGetHandler(store)).ServeHTTP).Methods("GET")
+		h.Router.HandleFunc(namespace.GetHTTPMethodURL, logged(namespace.NewGetHandler(store)).ServeHTTP).Methods("GET")
+
+		h.Router.HandleFunc(namespace.AddURL, logged(namespace.NewAddHandler(store)).ServeHTTP).Methods("POST")
+
+		h.Router.HandleFunc(namespace.DeleteURL, logged(namespace.NewDeleteHandler(store)).ServeHTTP).Methods("POST")
 	}
+
+	return nil
 }
 
 // Endpoints useful for profiling the service

@@ -36,8 +36,8 @@ import (
 )
 
 func TestNamespaceDeleteHandlerNotFound(t *testing.T) {
-	mockClient, mockKV, _ := SetupNamespaceTest(t)
-	deleteHandler := NewDeleteHandler(mockClient)
+	mockKV, _ := SetupNamespaceTest(t)
+	deleteHandler := NewDeleteHandler(mockKV)
 
 	w := httptest.NewRecorder()
 	jsonInput := `{"name": "not-present"}`
@@ -55,8 +55,8 @@ func TestNamespaceDeleteHandlerNotFound(t *testing.T) {
 }
 
 func TestNamespaceDeleteHandlerDeleteAll(t *testing.T) {
-	mockClient, mockKV, ctrl := SetupNamespaceTest(t)
-	deleteHandler := NewDeleteHandler(mockClient)
+	mockKV, ctrl := SetupNamespaceTest(t)
+	deleteHandler := NewDeleteHandler(mockKV)
 
 	w := httptest.NewRecorder()
 	jsonInput := `{"name": "testNamespace"}`
@@ -114,8 +114,8 @@ func TestNamespaceDeleteHandlerDeleteAll(t *testing.T) {
 }
 
 func TestNamespaceDeleteHandler(t *testing.T) {
-	mockClient, mockKV, ctrl := SetupNamespaceTest(t)
-	deleteHandler := NewDeleteHandler(mockClient)
+	mockKV, ctrl := SetupNamespaceTest(t)
+	deleteHandler := NewDeleteHandler(mockKV)
 
 	w := httptest.NewRecorder()
 	jsonInput := `{"name": "testNamespace"}`

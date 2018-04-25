@@ -21,14 +21,12 @@
 package placement
 
 import (
-	"context"
 	"net/http"
 
-	"github.com/m3db/m3coordinator/services/m3coordinator/config"
 	"github.com/m3db/m3coordinator/services/m3coordinator/handler"
 	"github.com/m3db/m3coordinator/util/logging"
 
-	m3clusterClient "github.com/m3db/m3cluster/client"
+	"github.com/m3db/m3cluster/placement"
 
 	"go.uber.org/zap"
 )
@@ -45,28 +43,16 @@ const (
 type deleteHandler Handler
 
 // NewDeleteHandler returns a new instance of handler.
-func NewDeleteHandler(clusterClient m3clusterClient.Client, cfg config.Configuration) http.Handler {
-	return &deleteHandler{
-		clusterClient: clusterClient,
-		config:        cfg,
-	}
+func NewDeleteHandler(service placement.Service) http.Handler {
+	return &deleteHandler{service: service}
 }
 
 func (h *deleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := logging.WithContext(ctx)
 
-	if err := h.delete(ctx); err != nil {
+	if err := h.service.Delete(); err != nil {
 		logger.Error("unable to delete placement", zap.Any("error", err))
 		handler.Error(w, err, http.StatusInternalServerError)
 	}
-}
-
-func (h *deleteHandler) delete(ctx context.Context) error {
-	ps, err := PlacementService(h.clusterClient, h.config)
-	if err != nil {
-		return err
-	}
-
-	return ps.Delete()
 }

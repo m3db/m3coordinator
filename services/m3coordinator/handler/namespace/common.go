@@ -23,7 +23,6 @@ package namespace
 import (
 	"fmt"
 
-	m3clusterClient "github.com/m3db/m3cluster/client"
 	"github.com/m3db/m3cluster/kv"
 	nsproto "github.com/m3db/m3db/generated/proto/namespace"
 	"github.com/m3db/m3db/storage/namespace"
@@ -36,7 +35,7 @@ const (
 
 // Handler represents a generic handler for namespace endpoints.
 type Handler struct {
-	clusterClient m3clusterClient.Client
+	store kv.Store
 }
 
 // Metadata returns the current metadata in the given store

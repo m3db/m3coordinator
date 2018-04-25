@@ -35,8 +35,8 @@ import (
 )
 
 func TestNamespaceAddHandler(t *testing.T) {
-	mockClient, mockKV, _ := SetupNamespaceTest(t)
-	addHandler := NewAddHandler(mockClient)
+	mockKV, _ := SetupNamespaceTest(t)
+	addHandler := NewAddHandler(mockKV)
 	w := httptest.NewRecorder()
 
 	jsonInput := `

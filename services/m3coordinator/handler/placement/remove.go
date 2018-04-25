@@ -28,11 +28,9 @@ import (
 	"net/http"
 
 	"github.com/m3db/m3coordinator/generated/proto/admin"
-	"github.com/m3db/m3coordinator/services/m3coordinator/config"
 	"github.com/m3db/m3coordinator/services/m3coordinator/handler"
 	"github.com/m3db/m3coordinator/util/logging"
 
-	m3clusterClient "github.com/m3db/m3cluster/client"
 	"github.com/m3db/m3cluster/placement"
 
 	"go.uber.org/zap"
@@ -51,11 +49,8 @@ var (
 type removeHandler Handler
 
 // NewRemoveHandler returns a new instance of handler.
-func NewRemoveHandler(clusterClient m3clusterClient.Client, cfg config.Configuration) http.Handler {
-	return &removeHandler{
-		clusterClient: clusterClient,
-		config:        cfg,
-	}
+func NewRemoveHandler(service placement.Service) http.Handler {
+	return &removeHandler{service: service}
 }
 
 func (h *removeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -109,12 +104,7 @@ func (h *removeHandler) remove(ctx context.Context, r *admin.PlacementRemoveRequ
 		return nil, errMissingInstanceIds
 	}
 
-	ps, err := PlacementService(h.clusterClient, h.config)
-	if err != nil {
-		return nil, err
-	}
-
-	newPlacement, err := ps.RemoveInstances(r.InstanceIds)
+	newPlacement, err := h.service.RemoveInstances(r.InstanceIds)
 	if err != nil {
 		return nil, err
 	}

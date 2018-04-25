@@ -29,7 +29,6 @@ import (
 	"testing"
 
 	"github.com/m3db/m3cluster/placement"
-	"github.com/m3db/m3coordinator/services/m3coordinator/config"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -37,8 +36,8 @@ import (
 )
 
 func TestPlacementAddHandler(t *testing.T) {
-	mockClient, mockPlacementService := SetupPlacementTest(t)
-	handler := NewAddHandler(mockClient, config.Configuration{})
+	mockPlacementService := SetupPlacementTest(t)
+	handler := NewAddHandler(mockPlacementService)
 
 	// Test add failure
 	w := httptest.NewRecorder()

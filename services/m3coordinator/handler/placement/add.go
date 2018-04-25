@@ -27,11 +27,9 @@ import (
 	"net/http"
 
 	"github.com/m3db/m3coordinator/generated/proto/admin"
-	"github.com/m3db/m3coordinator/services/m3coordinator/config"
 	"github.com/m3db/m3coordinator/services/m3coordinator/handler"
 	"github.com/m3db/m3coordinator/util/logging"
 
-	m3clusterClient "github.com/m3db/m3cluster/client"
 	"github.com/m3db/m3cluster/placement"
 
 	"go.uber.org/zap"
@@ -46,11 +44,8 @@ const (
 type addHandler Handler
 
 // NewAddHandler returns a new instance of handler.
-func NewAddHandler(clusterClient m3clusterClient.Client, cfg config.Configuration) http.Handler {
-	return &addHandler{
-		clusterClient: clusterClient,
-		config:        cfg,
-	}
+func NewAddHandler(service placement.Service) http.Handler {
+	return &addHandler{service: service}
 }
 
 func (h *addHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -100,17 +95,12 @@ func (h *addHandler) parseRequest(r *http.Request) (*admin.PlacementAddRequest, 
 }
 
 func (h *addHandler) add(ctx context.Context, r *admin.PlacementAddRequest) (placement.Placement, error) {
-	ps, err := PlacementService(h.clusterClient, h.config)
-	if err != nil {
-		return nil, err
-	}
-
 	instances, err := ConvertInstancesProto(r.Instances)
 	if err != nil {
 		return nil, err
 	}
 
-	newPlacement, _, err := ps.AddInstances(instances)
+	newPlacement, _, err := h.service.AddInstances(instances)
 	if err != nil {
 		return nil, err
 	}

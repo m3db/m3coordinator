@@ -26,14 +26,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/m3db/m3coordinator/services/m3coordinator/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestPlacementDeleteHandler(t *testing.T) {
-	mockClient, mockPlacementService := SetupPlacementTest(t)
-	handler := NewDeleteHandler(mockClient, config.Configuration{})
+	mockPlacementService := SetupPlacementTest(t)
+	handler := NewDeleteHandler(mockPlacementService)
 
 	// Test delete success
 	w := httptest.NewRecorder()

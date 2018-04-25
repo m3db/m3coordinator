@@ -27,40 +27,30 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/m3db/m3coordinator/services/m3coordinator/config"
 	"github.com/m3db/m3coordinator/util/logging"
 
-	"github.com/m3db/m3cluster/client"
 	"github.com/m3db/m3cluster/generated/proto/placementpb"
 	"github.com/m3db/m3cluster/placement"
-	"github.com/m3db/m3cluster/services"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func SetupPlacementTest(t *testing.T) (*client.MockClient, *placement.MockService) {
+func SetupPlacementTest(t *testing.T) *placement.MockService {
 	logging.InitWithCores(nil)
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	mockClient := client.NewMockClient(ctrl)
-	require.NotNil(t, mockClient)
-	mockServices := services.NewMockServices(ctrl)
-	require.NotNil(t, mockServices)
 	mockPlacementService := placement.NewMockService(ctrl)
 	require.NotNil(t, mockPlacementService)
 
-	mockServices.EXPECT().PlacementService(gomock.Not(nil), gomock.Not(nil)).Return(mockPlacementService, nil).AnyTimes()
-	mockClient.EXPECT().Services(gomock.Not(nil)).Return(mockServices, nil).AnyTimes()
-
-	return mockClient, mockPlacementService
+	return mockPlacementService
 }
 
 func TestPlacementGetHandler(t *testing.T) {
-	mockClient, mockPlacementService := SetupPlacementTest(t)
-	handler := NewGetHandler(mockClient, config.Configuration{})
+	mockPlacementService := SetupPlacementTest(t)
+	handler := NewGetHandler(mockPlacementService)
 
 	// Test successful get
 	w := httptest.NewRecorder()

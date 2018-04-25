@@ -43,12 +43,11 @@ const (
 
 // Handler represents a generic handler for placement endpoints.
 type Handler struct {
-	clusterClient m3clusterClient.Client
-	config        config.Configuration
+	service placement.Service
 }
 
-// PlacementService gets a placement service from an m3cluster client
-func PlacementService(clusterClient m3clusterClient.Client, cfg config.Configuration) (placement.Service, error) {
+// Service gets a placement service from m3cluster client
+func Service(clusterClient m3clusterClient.Client, cfg config.Configuration) (placement.Service, error) {
 	cs, err := clusterClient.Services(services.NewOverrideOptions())
 	if err != nil {
 		return nil, err
