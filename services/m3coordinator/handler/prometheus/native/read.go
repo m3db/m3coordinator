@@ -44,8 +44,9 @@ const (
 )
 
 var (
-	errBatchQuery   = errors.New("batch queries are currently not supported")
-	errNoQueryFound = errors.New("no query found")
+	errBatchQuery    = errors.New("batch queries are currently not supported")
+	errNoQueryFound  = errors.New("no query found")
+	errNoTargetFound = errors.New("no target found")
 )
 
 // PromReadHandler represents a handler for prometheus read endpoint.
@@ -113,7 +114,11 @@ func (h *PromReadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PromReadHandler) parseRequest(r *http.Request) (string, *handler.ParseError) {
-	targetQueries := r.URL.Query()[targetQuery]
+	targetQueries, ok := r.URL.Query()[targetQuery]
+	if !ok {
+		return "", handler.NewParseError(errNoTargetFound, http.StatusBadRequest)
+	}
+
 	// NB(braskin): currently, we only support one query at a time
 	if len(targetQueries) > 1 {
 		return "", handler.NewParseError(errBatchQuery, http.StatusBadRequest)
