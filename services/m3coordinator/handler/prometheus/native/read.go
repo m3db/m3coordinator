@@ -33,13 +33,19 @@ import (
 	"github.com/m3db/m3coordinator/ts"
 	"github.com/m3db/m3coordinator/util/logging"
 
-	"github.com/golang/snappy"
 	"go.uber.org/zap"
 )
 
 const (
 	// PromReadURL is the url for native prom read handler
 	PromReadURL = "/api/v1/prom/native/read"
+
+	targetQuery = "target"
+)
+
+var (
+	errBatchQuery   = errors.New("batch queries are currently not supported")
+	errNoQueryFound = errors.New("no query found")
 )
 
 // PromReadHandler represents a handler for prometheus read endpoint.
@@ -49,7 +55,7 @@ type PromReadHandler struct {
 
 // ReadResponse is the response that gets returned to the user
 type ReadResponse struct {
-	Results []*ts.Series `json:"results,omitempty"`
+	Results []ts.Series `json:"results,omitempty"`
 }
 
 // NewPromReadHandler returns a new instance of handler.
@@ -98,26 +104,29 @@ func (h *PromReadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Content-Encoding", "snappy")
 
-	compressed := snappy.Encode(nil, data)
-	if _, err := w.Write(compressed); err != nil {
-		logger.Error("unable to encode read results to snappy", zap.Any("err", err))
+	if _, err := w.Write(data); err != nil {
+		logger.Error("unable to write results", zap.Any("err", err))
 		handler.Error(w, err, http.StatusInternalServerError)
 		return
 	}
 }
 
 func (h *PromReadHandler) parseRequest(r *http.Request) (string, *handler.ParseError) {
-	reqBuf, err := prometheus.ParsePromRequest(r)
-	if err != nil {
-		return "", err
+	targetQueries := r.URL.Query()[targetQuery]
+	// NB(braskin): currently, we only support one query at a time
+	if len(targetQueries) > 1 {
+		return "", handler.NewParseError(errBatchQuery, http.StatusBadRequest)
 	}
 
-	return string(reqBuf), nil
+	if len(targetQueries) == 0 {
+		return "", handler.NewParseError(errNoQueryFound, http.StatusBadRequest)
+	}
+
+	return string(targetQueries[0]), nil
 }
 
-func (h *PromReadHandler) read(reqCtx context.Context, w http.ResponseWriter, req string, params *prometheus.RequestParams) ([]*ts.Series, error) {
+func (h *PromReadHandler) read(reqCtx context.Context, w http.ResponseWriter, req string, params *prometheus.RequestParams) ([]ts.Series, error) {
 	ctx, cancel := context.WithTimeout(reqCtx, params.Timeout)
 	defer cancel()
 

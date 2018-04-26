@@ -98,7 +98,7 @@ func (h *Handler) RegisterRoutes() {
 
 	promNativeReadHandler := native.NewPromReadHandler(h.engine)
 	h.lazyHandlers.promNativeRead = promNativeReadHandler.(*native.PromReadHandler)
-	h.Router.HandleFunc(native.PromReadURL, logged(promNativeReadHandler).ServeHTTP).Methods("POST")
+	h.Router.HandleFunc(native.PromReadURL, logged(promNativeReadHandler).ServeHTTP).Methods("GET")
 
 	searchHandler := handler.NewSearchHandler(h.storage)
 	h.lazyHandlers.search = searchHandler.(*handler.SearchHandler)

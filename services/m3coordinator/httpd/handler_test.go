@@ -79,7 +79,7 @@ func TestPromNativeReadGet(t *testing.T) {
 	require.NoError(t, err, "unable to setup handler")
 	h.RegisterRoutes()
 	h.Router.ServeHTTP(res, req)
-	require.Equal(t, res.Code, http.StatusMethodNotAllowed, "GET method not defined")
+	require.Equal(t, res.Code, http.StatusBadRequest, "Empty request")
 }
 
 func TestPromNativeReadPost(t *testing.T) {
@@ -93,5 +93,5 @@ func TestPromNativeReadPost(t *testing.T) {
 	require.NoError(t, err, "unable to setup handler")
 	h.RegisterRoutes()
 	h.Router.ServeHTTP(res, req)
-	require.Equal(t, res.Code, http.StatusBadRequest, "Empty request")
+	require.Equal(t, res.Code, http.StatusMethodNotAllowed, "POST method not defined")
 }
