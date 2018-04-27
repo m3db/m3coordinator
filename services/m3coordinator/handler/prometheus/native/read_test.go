@@ -78,7 +78,7 @@ func TestPromReadEndpoint(t *testing.T) {
 	logging.InitWithCores(nil)
 	ctrl := gomock.NewController(t)
 	// No calls expected on session object
-	req, _ := http.NewRequest("POST", PromReadURL, nil)
+	req, _ := http.NewRequest("GET", createURL().String(), nil)
 	res := httptest.NewRecorder()
 	session := client.NewMockSession(ctrl)
 	mockResolver := mocks.NewMockPolicyResolver(gomock.NewController(t))
@@ -88,7 +88,7 @@ func TestPromReadEndpoint(t *testing.T) {
 	promRead := &PromReadHandler{engine: engine}
 
 	promRead.ServeHTTP(res, req)
-	require.Equal(t, "no target found\n", res.Body.String())
+	require.Equal(t, "not implemented\n", res.Body.String())
 }
 
 func createURL() *bytes.Buffer {
