@@ -30,14 +30,17 @@ import (
 	"time"
 
 	"github.com/m3db/m3coordinator/executor"
+	"github.com/m3db/m3coordinator/mocks"
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/services/m3coordinator/handler/prometheus"
 	"github.com/m3db/m3coordinator/storage/local"
 	"github.com/m3db/m3coordinator/util/logging"
 
+	"github.com/m3db/m3db/client"
 	"github.com/m3db/m3metrics/policy"
 	xtime "github.com/m3db/m3x/time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -68,6 +71,24 @@ func TestPromReadNotImplemented(t *testing.T) {
 	require.Nil(t, parseErr, "unable to parse request")
 	_, err := promRead.read(context.TODO(), httptest.NewRecorder(), r, &prometheus.RequestParams{Timeout: time.Hour})
 	require.NotNil(t, err, "not implemented")
+}
+
+// NB(braskin): will replace this test once the server actually returns something
+func TestPromReadEndpoint(t *testing.T) {
+	logging.InitWithCores(nil)
+	ctrl := gomock.NewController(t)
+	// No calls expected on session object
+	req, _ := http.NewRequest("POST", PromReadURL, nil)
+	res := httptest.NewRecorder()
+	session := client.NewMockSession(ctrl)
+	mockResolver := mocks.NewMockPolicyResolver(gomock.NewController(t))
+
+	storage := local.NewStorage(session, "metrics", mockResolver)
+	engine := executor.NewEngine(storage)
+	promRead := &PromReadHandler{engine: engine}
+
+	promRead.ServeHTTP(res, req)
+	require.Equal(t, "no target found\n", res.Body.String())
 }
 
 func createURL() *bytes.Buffer {
