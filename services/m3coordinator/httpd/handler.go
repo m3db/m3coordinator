@@ -55,15 +55,6 @@ type Handler struct {
 	engine        *executor.Engine
 	clusterClient m3clusterClient.Client
 	config        config.Configuration
-	lazyHandlers  lazyLoadHandlers
-}
-
-// lazyLoadHandlers are handlers that get activated lazily once M3DB is instantiated
-type lazyLoadHandlers struct {
-	promRemoteRead  *remote.PromReadHandler
-	promRemoteWrite *remote.PromWriteHandler
-	promNativeRead  *native.PromReadHandler
-	search          *handler.SearchHandler
 }
 
 // NewHandler returns a new instance of handler with routes.
@@ -90,21 +81,10 @@ func NewHandler(storage storage.Storage, engine *executor.Engine, clusterClient 
 func (h *Handler) RegisterRoutes() error {
 	logged := withResponseTimeLogging
 
-	promRemoteReadHandler := remote.NewPromReadHandler(h.engine)
-	h.lazyHandlers.promRemoteRead = promRemoteReadHandler.(*remote.PromReadHandler)
-	h.Router.HandleFunc(remote.PromReadURL, logged(promRemoteReadHandler).ServeHTTP).Methods("POST")
-
-	promRemoteWriteHandler := remote.NewPromWriteHandler(h.storage)
-	h.lazyHandlers.promRemoteWrite = promRemoteWriteHandler.(*remote.PromWriteHandler)
-	h.Router.HandleFunc(remote.PromWriteURL, logged(promRemoteWriteHandler).ServeHTTP).Methods("POST")
-
-	promNativeReadHandler := native.NewPromReadHandler(h.engine)
-	h.lazyHandlers.promNativeRead = promNativeReadHandler.(*native.PromReadHandler)
-	h.Router.HandleFunc(native.PromReadURL, logged(promNativeReadHandler).ServeHTTP).Methods("GET")
-
-	searchHandler := handler.NewSearchHandler(h.storage)
-	h.lazyHandlers.search = searchHandler.(*handler.SearchHandler)
-	h.Router.HandleFunc(handler.SearchURL, logged(searchHandler).ServeHTTP).Methods("POST")
+	h.Router.HandleFunc(remote.PromReadURL, logged(remote.NewPromReadHandler(h.engine)).ServeHTTP).Methods("POST")
+	h.Router.HandleFunc(remote.PromWriteURL, logged(remote.NewPromWriteHandler(h.storage)).ServeHTTP).Methods("POST")
+	h.Router.HandleFunc(native.PromReadURL, logged(native.NewPromReadHandler(h.engine)).ServeHTTP).Methods("GET")
+	h.Router.HandleFunc(handler.SearchURL, logged(handler.NewSearchHandler(h.storage)).ServeHTTP).Methods("POST")
 
 	h.registerProfileEndpoints()
 
@@ -161,12 +141,4 @@ func withResponseTimeLogging(next http.Handler) http.Handler {
 			logger.Info("finished handling request", zap.Time("time", endTime), zap.Duration("response", d), zap.String("url", r.URL.RequestURI()))
 		}
 	})
-}
-
-// LoadLazyHandlers initializes LazyHandlers post-M3DB setup
-func (h *Handler) LoadLazyHandlers(storage storage.Storage, engine *executor.Engine) {
-	h.lazyHandlers.promRemoteRead.SetEngine(engine)
-	h.lazyHandlers.promRemoteWrite.SetStore(storage)
-	h.lazyHandlers.promNativeRead.SetEngine(engine)
-	h.lazyHandlers.search.SetStore(storage)
 }
