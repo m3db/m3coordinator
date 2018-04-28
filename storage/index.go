@@ -21,15 +21,16 @@
 package storage
 
 import (
+	xerrors "github.com/m3db/m3coordinator/errors"
 	"github.com/m3db/m3coordinator/models"
 
 	"github.com/m3db/m3db/storage/index"
-	"github.com/m3db/m3ninx/index/segment"
+	"github.com/m3db/m3ninx/idx"
 	"github.com/m3db/m3x/ident"
 )
 
 // FromM3IdentToMetric converts an M3 ident metric to a coordinator metric
-func FromM3IdentToMetric(identNamespace, identID ident.ID, iterTags ident.Tags) *models.Metric {
+func FromM3IdentToMetric(identNamespace, identID ident.ID, iterTags ident.TagIterator) *models.Metric {
 	namespace := identNamespace.String()
 	id := identID.String()
 	tags := FromIdentTagsToTags(iterTags)
@@ -42,9 +43,11 @@ func FromM3IdentToMetric(identNamespace, identID ident.ID, iterTags ident.Tags) 
 }
 
 // FromIdentTagsToTags converts ident tags to coordinator tags
-func FromIdentTagsToTags(identTags ident.Tags) models.Tags {
-	tags := make(models.Tags, len(identTags))
-	for _, identTag := range identTags {
+func FromIdentTagsToTags(identTags ident.TagIterator) models.Tags {
+	tags := make(models.Tags, identTags.Remaining())
+	for identTags.Next() {
+		identTag := identTags.Current()
+
 		tags[identTag.Name.String()] = identTag.Value.String()
 		identTag.Finalize()
 	}
@@ -61,23 +64,31 @@ func FetchOptionsToM3Options(fetchOptions *FetchOptions, fetchQuery *FetchQuery)
 }
 
 // FetchQueryToM3Query converts an m3coordinator fetch query to an M3 query
-func FetchQueryToM3Query(fetchQuery *FetchQuery) index.Query {
-	var indexQuery index.Query
-	segQuery := segment.Query{
-		Filters:     MatchersToFilters(fetchQuery.TagMatchers),
-		Conjunction: segment.AndConjunction, // NB (braskin): & is the only conjunction supported currently
+func FetchQueryToM3Query(fetchQuery *FetchQuery) (index.Query, error) {
+	queries, err := MatchersToQueries(fetchQuery.TagMatchers)
+	if err != nil {
+		return index.Query{}, err
 	}
-	indexQuery.Query = segQuery
 
-	return indexQuery
+	query, err := idx.NewConjunctionQuery(queries...)
+	if err != nil {
+		return index.Query{}, err
+	}
+
+	var indexQuery index.Query
+	indexQuery.Query = query
+
+	return indexQuery, nil
 }
 
-// MatchersToFilters converts matchers to M3 filters
-func MatchersToFilters(matchers models.Matchers) []segment.Filter {
+// MatchersToQueries converts matchers to M3 filters
+func MatchersToQueries(matchers models.Matchers) ([]idx.Query, error) {
 	var (
-		filters []segment.Filter
+		queries []idx.Query
 		negate  bool
 		regexp  bool
+		query   idx.Query
+		err     error
 	)
 
 	for _, matcher := range matchers {
@@ -88,12 +99,23 @@ func MatchersToFilters(matchers models.Matchers) []segment.Filter {
 			regexp = true
 		}
 
-		filters = append(filters, segment.Filter{
-			FieldName:        []byte(matcher.Name),
-			FieldValueFilter: []byte(matcher.Value),
-			Negate:           negate,
-			Regexp:           regexp,
-		})
+		if regexp {
+			query, err = idx.NewRegexpQuery([]byte(matcher.Name), []byte(matcher.Value))
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			query = idx.NewTermQuery([]byte(matcher.Name), []byte(matcher.Value))
+		}
+
+		if negate {
+			// TODO: implement this when idx supports this
+			// query = idx.NewNegateQuery(query)
+			return nil, xerrors.ErrNotImplemented
+		}
+
+		queries = append(queries, query)
 	}
-	return filters
+
+	return queries, nil
 }

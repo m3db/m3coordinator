@@ -115,9 +115,13 @@ func (s *localStorage) FetchTags(ctx context.Context, query *storage.FetchQuery,
 	default:
 	}
 
-	m3query := storage.FetchQueryToM3Query(query)
+	m3query, err := storage.FetchQueryToM3Query(query)
+	if err != nil {
+		return nil, err
+	}
+
 	opts := storage.FetchOptionsToM3Options(options, query)
-	results, err := s.session.FetchTaggedIDs(m3query, opts)
+	results, err := s.session.FetchTaggedIDs(ident.StringID(s.namespace), m3query, opts)
 	if err != nil {
 		return nil, err
 	}
