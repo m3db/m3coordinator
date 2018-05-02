@@ -92,7 +92,7 @@ func (h *deleteHandler) parseRequest(r *http.Request) (*admin.NamespaceDeleteReq
 }
 
 func (h *deleteHandler) delete(r *admin.NamespaceDeleteRequest) error {
-	metadatas, err := Metadata(h.store)
+	metadatas, version, err := Metadata(h.store)
 	if err != nil {
 		return err
 	}
@@ -109,15 +109,6 @@ func (h *deleteHandler) delete(r *admin.NamespaceDeleteRequest) error {
 		return errNamespaceNotFound
 	}
 
-	// If we are going to delete the last remaining metadata, remove the key
-	if len(metadatas) == 1 {
-		if _, err = h.store.Delete(M3DBNodeNamespacesKey); err != nil {
-			return fmt.Errorf("unable to delete kv key: %v", err)
-		}
-
-		return nil
-	}
-
 	// Replace the index where we found the metadata with the last element, then truncate
 	metadatas[mdIdx] = metadatas[len(metadatas)-1]
 	metadatas = metadatas[:len(metadatas)-1]
@@ -125,13 +116,13 @@ func (h *deleteHandler) delete(r *admin.NamespaceDeleteRequest) error {
 	// Update namespace map and set kv
 	nsMap, err := namespace.NewMap(metadatas)
 	if err != nil {
-		return fmt.Errorf("unable to delete kv key: %v", err)
+		return fmt.Errorf("failed to delete namespace: %v", err)
 	}
 
 	protoRegistry := namespace.ToProto(nsMap)
-	_, err = h.store.Set(M3DBNodeNamespacesKey, protoRegistry)
+	_, err = h.store.CheckAndSet(M3DBNodeNamespacesKey, version, protoRegistry)
 	if err != nil {
-		return fmt.Errorf("unable to update kv: %v", err)
+		return fmt.Errorf("failed to delete namespace: %v", err)
 	}
 
 	return nil

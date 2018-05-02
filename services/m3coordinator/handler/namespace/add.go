@@ -28,6 +28,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/m3db/m3coordinator/functions"
 	"github.com/m3db/m3coordinator/generated/proto/admin"
 	"github.com/m3db/m3coordinator/services/m3coordinator/handler"
 	"github.com/m3db/m3coordinator/util/logging"
@@ -98,8 +99,8 @@ func (h *addHandler) parseRequest(r *http.Request) (*admin.NamespaceAddRequest, 
 		return nil, handler.NewParseError(err, http.StatusBadRequest)
 	}
 
-	if addReq.Name == "" || addReq.RetentionPeriod == "" || addReq.BlockSize == "" || addReq.BufferFuture == "" ||
-		addReq.BufferPast == "" || addReq.BlockDataExpiryPeriod == "" {
+	if functions.HasEmptyString(addReq.Name, addReq.RetentionPeriod, addReq.BlockSize, addReq.BufferFuture,
+		addReq.BufferPast, addReq.BlockDataExpiryPeriod) {
 		return nil, handler.NewParseError(errMissingRequiredField, http.StatusBadRequest)
 	}
 
@@ -109,7 +110,7 @@ func (h *addHandler) parseRequest(r *http.Request) (*admin.NamespaceAddRequest, 
 func (h *addHandler) add(r *admin.NamespaceAddRequest) (nsproto.Registry, error) {
 	var emptyReg = nsproto.Registry{}
 
-	currentMetadata, err := Metadata(h.store)
+	currentMetadata, version, err := Metadata(h.store)
 	if err != nil {
 		return emptyReg, err
 	}
@@ -125,9 +126,9 @@ func (h *addHandler) add(r *admin.NamespaceAddRequest) (nsproto.Registry, error)
 	}
 
 	protoRegistry := namespace.ToProto(nsMap)
-	version, err := h.store.Set(M3DBNodeNamespacesKey, protoRegistry)
+	_, err = h.store.CheckAndSet(M3DBNodeNamespacesKey, version, protoRegistry)
 	if err != nil {
-		return emptyReg, fmt.Errorf("failed to add namespace version %v: %v", version, err)
+		return emptyReg, fmt.Errorf("failed to add namespace: %v", err)
 	}
 
 	return *protoRegistry, nil

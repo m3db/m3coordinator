@@ -18,46 +18,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package namespace
+package functions
 
-import (
-	"fmt"
-
-	"github.com/m3db/m3cluster/kv"
-	nsproto "github.com/m3db/m3db/generated/proto/namespace"
-	"github.com/m3db/m3db/storage/namespace"
-)
-
-const (
-	// M3DBNodeNamespacesKey is the KV key that holds namespaces
-	M3DBNodeNamespacesKey = "m3db.node.namespaces"
-)
-
-// Handler represents a generic handler for namespace endpoints.
-type Handler struct {
-	store kv.Store
-}
-
-// Metadata returns the current metadata in the given store and its version
-func Metadata(store kv.Store) ([]namespace.Metadata, int, error) {
-	value, err := store.Get(M3DBNodeNamespacesKey)
-	if err != nil {
-		if err == kv.ErrNotFound {
-			return []namespace.Metadata{}, -1, nil
+// HasEmptyString returns whether there are any empty strings in given strings
+func HasEmptyString(strs ...string) bool {
+	for _, str := range strs {
+		if str == "" {
+			return true
 		}
-
-		return nil, -1, err
 	}
-
-	var protoRegistry nsproto.Registry
-	if err := value.Unmarshal(&protoRegistry); err != nil {
-		return nil, -1, fmt.Errorf("unable to parse value, err: %v", err)
-	}
-
-	nsMap, err := namespace.FromProto(protoRegistry)
-	if err != nil {
-		return nil, -1, err
-	}
-
-	return nsMap.Metadatas(), value.Version(), nil
+	return false
 }

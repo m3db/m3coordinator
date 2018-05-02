@@ -101,10 +101,11 @@ func TestNamespaceDeleteHandlerDeleteAll(t *testing.T) {
 
 	mockValue := kv.NewMockValue(ctrl)
 	mockValue.EXPECT().Unmarshal(gomock.Any()).Return(nil).SetArg(0, registry)
+	mockValue.EXPECT().Version().Return(0)
 
 	mockKV.EXPECT().Get(M3DBNodeNamespacesKey).Return(mockValue, nil)
 	mockKV.EXPECT().Delete(M3DBNodeNamespacesKey).Return(nil, nil)
-	mockKV.EXPECT().Set(M3DBNodeNamespacesKey, gomock.Any()).Return(1, nil)
+	mockKV.EXPECT().CheckAndSet(M3DBNodeNamespacesKey, gomock.Any(), gomock.Any()).Return(1, nil)
 	deleteHandler.ServeHTTP(w, req)
 
 	resp := w.Result()
@@ -160,10 +161,11 @@ func TestNamespaceDeleteHandler(t *testing.T) {
 
 	mockValue := kv.NewMockValue(ctrl)
 	mockValue.EXPECT().Unmarshal(gomock.Any()).Return(nil).SetArg(0, registry)
+	mockValue.EXPECT().Version().Return(0)
 
 	mockKV.EXPECT().Get(M3DBNodeNamespacesKey).Return(mockValue, nil)
 	mockKV.EXPECT().Delete(M3DBNodeNamespacesKey).Return(nil, nil)
-	mockKV.EXPECT().Set(M3DBNodeNamespacesKey, gomock.Any()).Return(1, nil)
+	mockKV.EXPECT().CheckAndSet(M3DBNodeNamespacesKey, gomock.Any(), gomock.Any()).Return(1, nil)
 	deleteHandler.ServeHTTP(w, req)
 
 	resp := w.Result()
