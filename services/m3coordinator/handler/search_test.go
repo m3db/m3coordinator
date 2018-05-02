@@ -100,6 +100,8 @@ func generateTagIterator(ctrl *gomock.Controller) ident.TagIterator {
 	mockTagIterator.EXPECT().Next().Return(true).MaxTimes(1)
 	mockTagIterator.EXPECT().Current().Return(generateTag())
 	mockTagIterator.EXPECT().Next().Return(false)
+	mockTagIterator.EXPECT().Err().Return(nil)
+	mockTagIterator.EXPECT().Close()
 
 	return mockTagIterator
 }

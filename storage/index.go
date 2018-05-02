@@ -30,28 +30,38 @@ import (
 )
 
 // FromM3IdentToMetric converts an M3 ident metric to a coordinator metric
-func FromM3IdentToMetric(identNamespace, identID ident.ID, iterTags ident.TagIterator) *models.Metric {
+func FromM3IdentToMetric(identNamespace, identID ident.ID, iterTags ident.TagIterator) (*models.Metric, error) {
 	namespace := identNamespace.String()
 	id := identID.String()
-	tags := FromIdentTagsToTags(iterTags)
+	tags, err := FromIdentTagsToTags(iterTags)
+	if err != nil {
+		return nil, err
+	}
 
 	return &models.Metric{
 		ID:        id,
 		Namespace: namespace,
 		Tags:      tags,
-	}
+	}, nil
 }
 
 // FromIdentTagsToTags converts ident tags to coordinator tags
-func FromIdentTagsToTags(identTags ident.TagIterator) models.Tags {
+func FromIdentTagsToTags(identTags ident.TagIterator) (models.Tags, error) {
 	tags := make(models.Tags, identTags.Remaining())
+
 	for identTags.Next() {
 		identTag := identTags.Current()
 
 		tags[identTag.Name.String()] = identTag.Value.String()
-		identTag.Finalize()
 	}
-	return tags
+
+	defer identTags.Close()
+
+	if err := identTags.Err(); err != nil {
+		return nil, err
+	}
+
+	return tags, nil
 }
 
 // FetchOptionsToM3Options converts a set of coordinator options to M3 options
@@ -75,16 +85,15 @@ func FetchQueryToM3Query(fetchQuery *FetchQuery) (index.Query, error) {
 		return index.Query{}, err
 	}
 
-	var indexQuery index.Query
-	indexQuery.Query = query
-
-	return indexQuery, nil
+	return index.Query{
+		Query: query,
+	}, nil
 }
 
 // MatchersToQueries converts matchers to M3 filters
 func MatchersToQueries(matchers models.Matchers) ([]idx.Query, error) {
 	var (
-		queries []idx.Query
+		queries = make([]idx.Query, 0, len(matchers))
 		negate  bool
 		regexp  bool
 		query   idx.Query
