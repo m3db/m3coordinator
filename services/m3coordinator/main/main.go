@@ -103,7 +103,7 @@ func main() {
 		logger.Fatal("unable to create m3db client", zap.Any("error", err))
 	}
 
-	session := m3db.NewAsyncSession(m3dbClient, nil)
+	session, _ := m3db.NewAsyncSession(m3dbClient)
 
 	fanoutStorage, storageCleanup := setupStorages(logger, session, flags)
 	defer storageCleanup()
