@@ -113,21 +113,21 @@ func (s *Session) FetchIDs(namespace ident.ID, ids ident.Iterator, startInclusiv
 }
 
 // FetchTagged resolves the provided query to known IDs, and fetches the data for them.
-func (s *Session) FetchTagged(q index.Query, opts index.QueryOptions) (results encoding.SeriesIterators, exhaustive bool, err error) {
+func (s *Session) FetchTagged(namespace ident.ID, q index.Query, opts index.QueryOptions) (results encoding.SeriesIterators, exhaustive bool, err error) {
 	if s.err != nil {
 		return nil, false, s.err
 	}
 
-	return s.session.FetchTagged(q, opts)
+	return s.session.FetchTagged(namespace, q, opts)
 }
 
 // FetchTaggedIDs resolves the provided query to known IDs.
-func (s *Session) FetchTaggedIDs(q index.Query, opts index.QueryOptions) (index.QueryResults, error) {
+func (s *Session) FetchTaggedIDs(namespace ident.ID, q index.Query, opts index.QueryOptions) (index.QueryResults, error) {
 	if s.err != nil {
 		return index.QueryResults{}, s.err
 	}
 
-	return s.session.FetchTaggedIDs(q, opts)
+	return s.session.FetchTaggedIDs(namespace, q, opts)
 }
 
 // ShardID returns the given shard for an ID for callers

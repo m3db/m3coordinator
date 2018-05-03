@@ -26,6 +26,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/m3db/m3x/ident"
+
 	"github.com/golang/mock/gomock"
 	"github.com/m3db/m3coordinator/util/logging"
 	"github.com/m3db/m3db/client"
@@ -33,6 +35,10 @@ import (
 	xtime "github.com/m3db/m3x/time"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+)
+
+var (
+	namespace = ident.StringID("test-namespace")
 )
 
 func SetupAsyncSessionTest(t *testing.T) (*client.MockClient, *client.MockSession) {
@@ -84,12 +90,12 @@ func TestAsyncSessionUninitialized(t *testing.T) {
 	asyncSession := NewSession(mockClient, nil)
 	require.NotNil(t, asyncSession)
 
-	results, exhaustive, err := asyncSession.FetchTagged(index.Query{}, index.QueryOptions{})
+	results, exhaustive, err := asyncSession.FetchTagged(namespace, index.Query{}, index.QueryOptions{})
 	assert.Nil(t, results)
 	assert.Equal(t, false, exhaustive)
 	assert.Equal(t, err, errSessionUninitialized)
 
-	_, err = asyncSession.FetchTaggedIDs(index.Query{}, index.QueryOptions{})
+	_, err = asyncSession.FetchTaggedIDs(namespace, index.Query{}, index.QueryOptions{})
 	assert.Equal(t, err, errSessionUninitialized)
 
 	id, err := asyncSession.ShardID(nil)
@@ -126,12 +132,12 @@ func TestAsyncSessionInitialized(t *testing.T) {
 	_, err = asyncSession.FetchIDs(nil, nil, time.Now(), time.Now())
 	assert.NoError(t, err)
 
-	mockSession.EXPECT().FetchTagged(gomock.Any(), gomock.Any()).Return(nil, false, nil)
-	_, _, err = asyncSession.FetchTagged(index.Query{}, index.QueryOptions{})
+	mockSession.EXPECT().FetchTagged(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, false, nil)
+	_, _, err = asyncSession.FetchTagged(namespace, index.Query{}, index.QueryOptions{})
 	assert.NoError(t, err)
 
-	mockSession.EXPECT().FetchTaggedIDs(gomock.Any(), gomock.Any()).Return(index.QueryResults{}, nil)
-	_, err = asyncSession.FetchTaggedIDs(index.Query{}, index.QueryOptions{})
+	mockSession.EXPECT().FetchTaggedIDs(gomock.Any(), gomock.Any(), gomock.Any()).Return(index.QueryResults{}, nil)
+	_, err = asyncSession.FetchTaggedIDs(namespace, index.Query{}, index.QueryOptions{})
 	assert.NoError(t, err)
 
 	mockSession.EXPECT().ShardID(gomock.Any()).Return(uint32(0), nil)

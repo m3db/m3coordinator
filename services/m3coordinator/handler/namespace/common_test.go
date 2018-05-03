@@ -59,11 +59,11 @@ func TestMetadata(t *testing.T) {
 	registry := nsproto.Registry{
 		Namespaces: map[string]*nsproto.NamespaceOptions{
 			"metrics-ns1": &nsproto.NamespaceOptions{
-				NeedsBootstrap:      true,
-				NeedsFlush:          true,
-				WritesToCommitLog:   false,
-				NeedsFilesetCleanup: false,
-				NeedsRepair:         false,
+				BootstrapEnabled:  true,
+				FlushEnabled:      true,
+				WritesToCommitLog: false,
+				CleanupEnabled:    false,
+				RepairEnabled:     false,
 				RetentionOptions: &nsproto.RetentionOptions{
 					RetentionPeriodNanos:                     200000000000,
 					BlockSizeNanos:                           100000000000,
@@ -74,11 +74,11 @@ func TestMetadata(t *testing.T) {
 				},
 			},
 			"metrics-ns2": &nsproto.NamespaceOptions{
-				NeedsBootstrap:      true,
-				NeedsFlush:          true,
-				WritesToCommitLog:   true,
-				NeedsFilesetCleanup: true,
-				NeedsRepair:         false,
+				BootstrapEnabled:  true,
+				FlushEnabled:      true,
+				WritesToCommitLog: true,
+				CleanupEnabled:    true,
+				RepairEnabled:     false,
 				RetentionOptions: &nsproto.RetentionOptions{
 					RetentionPeriodNanos:                     400000000000,
 					BlockSizeNanos:                           300000000000,
