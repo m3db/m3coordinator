@@ -21,7 +21,8 @@
 package storage
 
 import (
-	xerrors "github.com/m3db/m3coordinator/errors"
+	"fmt"
+
 	"github.com/m3db/m3coordinator/models"
 
 	"github.com/m3db/m3db/storage/index"
@@ -33,7 +34,7 @@ import (
 func FromM3IdentToMetric(identNamespace, identID ident.ID, iterTags ident.TagIterator) (*models.Metric, error) {
 	namespace := identNamespace.String()
 	id := identID.String()
-	tags, err := FromIdentTagsToTags(iterTags)
+	tags, err := FromIdentTagIteratorToTags(iterTags)
 	if err != nil {
 		return nil, err
 	}
@@ -45,8 +46,8 @@ func FromM3IdentToMetric(identNamespace, identID ident.ID, iterTags ident.TagIte
 	}, nil
 }
 
-// FromIdentTagsToTags converts ident tags to coordinator tags
-func FromIdentTagsToTags(identTags ident.TagIterator) (models.Tags, error) {
+// FromIdentTagIteratorToTags converts ident tags to coordinator tags
+func FromIdentTagIteratorToTags(identTags ident.TagIterator) (models.Tags, error) {
 	tags := make(models.Tags, identTags.Remaining())
 
 	for identTags.Next() {
@@ -54,8 +55,6 @@ func FromIdentTagsToTags(identTags ident.TagIterator) (models.Tags, error) {
 
 		tags[identTag.Name.String()] = identTag.Value.String()
 	}
-
-	defer identTags.Close()
 
 	if err := identTags.Err(); err != nil {
 		return nil, err
@@ -75,56 +74,30 @@ func FetchOptionsToM3Options(fetchOptions *FetchOptions, fetchQuery *FetchQuery)
 
 // FetchQueryToM3Query converts an m3coordinator fetch query to an M3 query
 func FetchQueryToM3Query(fetchQuery *FetchQuery) (index.Query, error) {
-	queries, err := MatchersToQueries(fetchQuery.TagMatchers)
-	if err != nil {
-		return index.Query{}, err
+	matchers := fetchQuery.TagMatchers
+	idxQueries := make([]idx.Query, len(matchers))
+	var err error
+	for i, matcher := range matchers {
+		idxQueries[i], err = matcherToQuery(matcher)
+		if err != nil {
+			return index.Query{}, err
+		}
 	}
 
-	query, err := idx.NewConjunctionQuery(queries...)
-	if err != nil {
-		return index.Query{}, err
-	}
-
-	return index.Query{
-		Query: query,
-	}, nil
+	q, err := idx.NewConjunctionQuery(idxQueries...)
+	return index.Query{Query: q}, err
 }
 
-// MatchersToQueries converts matchers to M3 filters
-func MatchersToQueries(matchers models.Matchers) ([]idx.Query, error) {
-	var (
-		queries = make([]idx.Query, 0, len(matchers))
-		negate  bool
-		regexp  bool
-		query   idx.Query
-		err     error
-	)
+func matcherToQuery(matcher *models.Matcher) (idx.Query, error) {
+	switch matcher.Type {
+	case models.MatchRegexp:
+		return idx.NewRegexpQuery([]byte(matcher.Name), []byte(matcher.Value))
 
-	for _, matcher := range matchers {
-		if matcher.Type == models.MatchNotEqual || matcher.Type == models.MatchNotRegexp {
-			negate = true
-		}
-		if matcher.Type == models.MatchNotRegexp || matcher.Type == models.MatchRegexp {
-			regexp = true
-		}
+	case models.MatchEqual:
+		return idx.NewTermQuery([]byte(matcher.Name), []byte(matcher.Value)), nil
 
-		if regexp {
-			query, err = idx.NewRegexpQuery([]byte(matcher.Name), []byte(matcher.Value))
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			query = idx.NewTermQuery([]byte(matcher.Name), []byte(matcher.Value))
-		}
+	default:
+		return idx.Query{}, fmt.Errorf("unsupported query type %v", matcher)
 
-		if negate {
-			// TODO: implement this when idx supports this
-			// query = idx.NewNegateQuery(query)
-			return nil, xerrors.ErrNotImplemented
-		}
-
-		queries = append(queries, query)
 	}
-
-	return queries, nil
 }
