@@ -23,9 +23,13 @@ package namespace
 import (
 	"fmt"
 
+	"github.com/m3db/m3coordinator/util/logging"
+
 	"github.com/m3db/m3cluster/kv"
 	nsproto "github.com/m3db/m3db/generated/proto/namespace"
 	"github.com/m3db/m3db/storage/namespace"
+
+	"github.com/gorilla/mux"
 )
 
 const (
@@ -60,4 +64,16 @@ func Metadata(store kv.Store) ([]namespace.Metadata, int, error) {
 	}
 
 	return nsMap.Metadatas(), value.Version(), nil
+}
+
+// RegisterRoutes registers the namespace routes
+func RegisterRoutes(r *mux.Router, store kv.Store) {
+	logged := logging.WithResponseTimeLogging
+
+	r.HandleFunc(GetURL, logged(NewGetHandler(store)).ServeHTTP).Methods("GET")
+	r.HandleFunc(GetHTTPMethodURL, logged(NewGetHandler(store)).ServeHTTP).Methods("GET")
+
+	r.HandleFunc(AddURL, logged(NewAddHandler(store)).ServeHTTP).Methods("POST")
+
+	r.HandleFunc(DeleteURL, logged(NewDeleteHandler(store)).ServeHTTP).Methods("POST")
 }

@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package asyncsession
+package m3db
 
 import (
 	"errors"
@@ -40,18 +40,18 @@ var (
 	errSessionUninitialized = errors.New("M3DB session not yet initialized")
 )
 
-// Session is a thin wrapper around an M3DB session that does not block on initialization.
+// AsyncSession is a thin wrapper around an M3DB session that does not block on initialization.
 // Calls to methods while uninitialized will return an uninitialized error. The done channel
 // is to notify the caller that the session has finished _attempting_ to get initialized.
-type Session struct {
+type AsyncSession struct {
 	session client.Session
 	done    chan struct{}
 	err     error
 }
 
-// NewSession returns a new Session
-func NewSession(c client.Client, done chan struct{}) *Session {
-	asyncSession := &Session{
+// NewAsyncSession returns a new Session
+func NewAsyncSession(c client.Client, done chan struct{}) *AsyncSession {
+	asyncSession := &AsyncSession{
 		err:  errSessionUninitialized,
 		done: done,
 	}
@@ -77,7 +77,7 @@ func NewSession(c client.Client, done chan struct{}) *Session {
 }
 
 // Write value to the database for an ID
-func (s *Session) Write(namespace, id ident.ID, t time.Time, value float64, unit xtime.Unit, annotation []byte) error {
+func (s *AsyncSession) Write(namespace, id ident.ID, t time.Time, value float64, unit xtime.Unit, annotation []byte) error {
 	if s.err != nil {
 		return s.err
 	}
@@ -86,7 +86,7 @@ func (s *Session) Write(namespace, id ident.ID, t time.Time, value float64, unit
 }
 
 // WriteTagged value to the database for an ID and given tags.
-func (s *Session) WriteTagged(namespace, id ident.ID, tags ident.TagIterator, t time.Time, value float64, unit xtime.Unit, annotation []byte) error {
+func (s *AsyncSession) WriteTagged(namespace, id ident.ID, tags ident.TagIterator, t time.Time, value float64, unit xtime.Unit, annotation []byte) error {
 	if s.err != nil {
 		return s.err
 	}
@@ -95,7 +95,7 @@ func (s *Session) WriteTagged(namespace, id ident.ID, tags ident.TagIterator, t 
 }
 
 // Fetch values from the database for an ID
-func (s *Session) Fetch(namespace, id ident.ID, startInclusive, endExclusive time.Time) (encoding.SeriesIterator, error) {
+func (s *AsyncSession) Fetch(namespace, id ident.ID, startInclusive, endExclusive time.Time) (encoding.SeriesIterator, error) {
 	if s.err != nil {
 		return nil, s.err
 	}
@@ -104,7 +104,7 @@ func (s *Session) Fetch(namespace, id ident.ID, startInclusive, endExclusive tim
 }
 
 // FetchIDs values from the database for a set of IDs
-func (s *Session) FetchIDs(namespace ident.ID, ids ident.Iterator, startInclusive, endExclusive time.Time) (encoding.SeriesIterators, error) {
+func (s *AsyncSession) FetchIDs(namespace ident.ID, ids ident.Iterator, startInclusive, endExclusive time.Time) (encoding.SeriesIterators, error) {
 	if s.err != nil {
 		return nil, s.err
 	}
@@ -113,7 +113,7 @@ func (s *Session) FetchIDs(namespace ident.ID, ids ident.Iterator, startInclusiv
 }
 
 // FetchTagged resolves the provided query to known IDs, and fetches the data for them.
-func (s *Session) FetchTagged(namespace ident.ID, q index.Query, opts index.QueryOptions) (results encoding.SeriesIterators, exhaustive bool, err error) {
+func (s *AsyncSession) FetchTagged(namespace ident.ID, q index.Query, opts index.QueryOptions) (results encoding.SeriesIterators, exhaustive bool, err error) {
 	if s.err != nil {
 		return nil, false, s.err
 	}
@@ -122,7 +122,7 @@ func (s *Session) FetchTagged(namespace ident.ID, q index.Query, opts index.Quer
 }
 
 // FetchTaggedIDs resolves the provided query to known IDs.
-func (s *Session) FetchTaggedIDs(namespace ident.ID, q index.Query, opts index.QueryOptions) (index.QueryResults, error) {
+func (s *AsyncSession) FetchTaggedIDs(namespace ident.ID, q index.Query, opts index.QueryOptions) (index.QueryResults, error) {
 	if s.err != nil {
 		return index.QueryResults{}, s.err
 	}
@@ -133,7 +133,7 @@ func (s *Session) FetchTaggedIDs(namespace ident.ID, q index.Query, opts index.Q
 // ShardID returns the given shard for an ID for callers
 // to easily discern what shard is failing when operations
 // for given IDs begin failing
-func (s *Session) ShardID(id ident.ID) (uint32, error) {
+func (s *AsyncSession) ShardID(id ident.ID) (uint32, error) {
 	if s.err != nil {
 		return 0, s.err
 	}
@@ -142,7 +142,7 @@ func (s *Session) ShardID(id ident.ID) (uint32, error) {
 }
 
 // Close the session
-func (s *Session) Close() error {
+func (s *AsyncSession) Close() error {
 	if s.err != nil {
 		return s.err
 	}

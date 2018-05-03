@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package asyncsession
+package m3db
 
 import (
 	"errors"
@@ -26,13 +26,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/m3db/m3x/ident"
-
-	"github.com/golang/mock/gomock"
 	"github.com/m3db/m3coordinator/util/logging"
+
 	"github.com/m3db/m3db/client"
 	"github.com/m3db/m3db/storage/index"
+	"github.com/m3db/m3x/ident"
 	xtime "github.com/m3db/m3x/time"
+
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -62,7 +63,7 @@ func TestAsyncSessionError(t *testing.T) {
 
 	mockClient.EXPECT().NewSession().Return(nil, customErr)
 	done := make(chan struct{}, 1)
-	asyncSession := NewSession(mockClient, done)
+	asyncSession := NewAsyncSession(mockClient, done)
 	require.NotNil(t, asyncSession)
 	// Wait for session to be done initializing (which we mock to return an error)
 	<-done
@@ -87,7 +88,7 @@ func TestAsyncSessionUninitialized(t *testing.T) {
 
 	// Sleep one minute after a NewSession call to ensure we get an "uninitialized" error
 	mockClient.EXPECT().NewSession().Do(func() { time.Sleep(time.Minute) }).Return(nil, errors.New("some error"))
-	asyncSession := NewSession(mockClient, nil)
+	asyncSession := NewAsyncSession(mockClient, nil)
 	require.NotNil(t, asyncSession)
 
 	results, exhaustive, err := asyncSession.FetchTagged(namespace, index.Query{}, index.QueryOptions{})
@@ -111,7 +112,7 @@ func TestAsyncSessionInitialized(t *testing.T) {
 
 	mockClient.EXPECT().NewSession().Return(mockSession, nil)
 	done := make(chan struct{}, 1)
-	asyncSession := NewSession(mockClient, done)
+	asyncSession := NewAsyncSession(mockClient, done)
 	require.NotNil(t, asyncSession)
 	// Wait for session to be done initializing
 	<-done

@@ -28,9 +28,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/m3db/m3coordinator/functions"
 	"github.com/m3db/m3coordinator/generated/proto/admin"
 	"github.com/m3db/m3coordinator/services/m3coordinator/handler"
+	"github.com/m3db/m3coordinator/util"
 	"github.com/m3db/m3coordinator/util/logging"
 
 	"github.com/m3db/m3cluster/kv"
@@ -99,7 +99,7 @@ func (h *addHandler) parseRequest(r *http.Request) (*admin.NamespaceAddRequest, 
 		return nil, handler.NewParseError(err, http.StatusBadRequest)
 	}
 
-	if functions.HasEmptyString(addReq.Name, addReq.RetentionPeriod, addReq.BlockSize, addReq.BufferFuture,
+	if util.HasEmptyString(addReq.Name, addReq.RetentionPeriod, addReq.BlockSize, addReq.BufferFuture,
 		addReq.BufferPast, addReq.BlockDataExpiryPeriod) {
 		return nil, handler.NewParseError(errMissingRequiredField, http.StatusBadRequest)
 	}

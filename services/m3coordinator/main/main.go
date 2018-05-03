@@ -30,7 +30,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/m3db/m3coordinator/asyncsession"
 	"github.com/m3db/m3coordinator/executor"
 	"github.com/m3db/m3coordinator/policy/filter"
 	"github.com/m3db/m3coordinator/policy/resolver"
@@ -40,6 +39,7 @@ import (
 	"github.com/m3db/m3coordinator/storage/fanout"
 	"github.com/m3db/m3coordinator/storage/local"
 	"github.com/m3db/m3coordinator/storage/remote"
+	"github.com/m3db/m3coordinator/stores/m3db"
 	tsdbRemote "github.com/m3db/m3coordinator/tsdb/remote"
 	"github.com/m3db/m3coordinator/util/logging"
 
@@ -103,7 +103,7 @@ func main() {
 		logger.Fatal("unable to create m3db client", zap.Any("error", err))
 	}
 
-	session := asyncsession.NewSession(m3dbClient, nil)
+	session := m3db.NewAsyncSession(m3dbClient, nil)
 
 	fanoutStorage, storageCleanup := setupStorages(logger, session, flags)
 	defer storageCleanup()

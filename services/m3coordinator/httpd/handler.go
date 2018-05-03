@@ -22,10 +22,8 @@ package httpd
 
 import (
 	"log"
-	"net/http"
 	"net/http/pprof"
 	"os"
-	"time"
 
 	"github.com/m3db/m3coordinator/executor"
 	"github.com/m3db/m3coordinator/services/m3coordinator/config"
@@ -79,7 +77,7 @@ func NewHandler(storage storage.Storage, engine *executor.Engine, clusterClient 
 
 // RegisterRoutes registers all http routes.
 func (h *Handler) RegisterRoutes() error {
-	logged := withResponseTimeLogging
+	logged := logging.WithResponseTimeLogging
 
 	h.Router.HandleFunc(remote.PromReadURL, logged(remote.NewPromReadHandler(h.engine)).ServeHTTP).Methods("POST")
 	h.Router.HandleFunc(remote.PromWriteURL, logged(remote.NewPromWriteHandler(h.storage)).ServeHTTP).Methods("POST")
@@ -94,29 +92,14 @@ func (h *Handler) RegisterRoutes() error {
 			return err
 		}
 
-		h.Router.HandleFunc(placement.InitURL, logged(placement.NewInitHandler(service)).ServeHTTP).Methods("POST")
-
-		h.Router.HandleFunc(placement.GetURL, logged(placement.NewGetHandler(service)).ServeHTTP).Methods("GET")
-		h.Router.HandleFunc(placement.GetHTTPMethodURL, logged(placement.NewGetHandler(service)).ServeHTTP).Methods("GET")
-
-		h.Router.HandleFunc(placement.DeleteURL, logged(placement.NewDeleteHandler(service)).ServeHTTP).Methods("POST")
-		h.Router.HandleFunc(placement.DeleteHTTPMethodURL, logged(placement.NewDeleteHandler(service)).ServeHTTP).Methods("DELETE")
-
-		h.Router.HandleFunc(placement.AddURL, logged(placement.NewAddHandler(service)).ServeHTTP).Methods("POST")
-
-		h.Router.HandleFunc(placement.RemoveURL, logged(placement.NewRemoveHandler(service)).ServeHTTP).Methods("POST")
+		placement.RegisterRoutes(h.Router, service)
 
 		store, err := h.clusterClient.KV()
 		if err != nil {
 			return err
 		}
 
-		h.Router.HandleFunc(namespace.GetURL, logged(namespace.NewGetHandler(store)).ServeHTTP).Methods("GET")
-		h.Router.HandleFunc(namespace.GetHTTPMethodURL, logged(namespace.NewGetHandler(store)).ServeHTTP).Methods("GET")
-
-		h.Router.HandleFunc(namespace.AddURL, logged(namespace.NewAddHandler(store)).ServeHTTP).Methods("POST")
-
-		h.Router.HandleFunc(namespace.DeleteURL, logged(namespace.NewDeleteHandler(store)).ServeHTTP).Methods("POST")
+		namespace.RegisterRoutes(h.Router, store)
 	}
 
 	return nil
@@ -125,20 +108,4 @@ func (h *Handler) RegisterRoutes() error {
 // Endpoints useful for profiling the service
 func (h *Handler) registerProfileEndpoints() {
 	h.Router.HandleFunc(pprofURL, pprof.Profile)
-}
-
-func withResponseTimeLogging(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		startTime := time.Now()
-		rqCtx := logging.NewContextWithGeneratedID(r.Context())
-		logger := logging.WithContext(rqCtx)
-
-		// Propagate the context with the reqId
-		next.ServeHTTP(w, r.WithContext(rqCtx))
-		endTime := time.Now()
-		d := endTime.Sub(startTime)
-		if d > time.Second {
-			logger.Info("finished handling request", zap.Time("time", endTime), zap.Duration("response", d), zap.String("url", r.URL.RequestURI()))
-		}
-	})
 }

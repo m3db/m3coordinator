@@ -18,19 +18,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package functions
+package util
 
-import (
-	"testing"
-
-	"github.com/stretchr/testify/assert"
-)
-
-func TestHasEmptyString(t *testing.T) {
-	assert.Equal(t, false, HasEmptyString())
-	assert.Equal(t, true, HasEmptyString(""))
-	assert.Equal(t, false, HasEmptyString("q"))
-	assert.Equal(t, false, HasEmptyString("q", "w", "e"))
-	assert.Equal(t, true, HasEmptyString("q", "", "e"))
-	assert.Equal(t, true, HasEmptyString("q", "w", ""))
+// HasEmptyString returns whether there are any empty strings in given strings
+func HasEmptyString(strs ...string) bool {
+	for _, str := range strs {
+		if str == "" {
+			return true
+		}
+	}
+	return false
 }
