@@ -43,7 +43,7 @@ func TestExecute(t *testing.T) {
 	logging.InitWithCores(nil)
 	ctrl := gomock.NewController(t)
 	session := client.NewMockSession(ctrl)
-	session.EXPECT().Fetch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("dummy"))
+	session.EXPECT().FetchTagged(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, false, fmt.Errorf("dummy"))
 
 	// Results is closed by execute
 	results := make(chan *storage.QueryResult)

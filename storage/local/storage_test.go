@@ -29,13 +29,12 @@ import (
 	"github.com/m3db/m3coordinator/models"
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/storage"
+	"github.com/m3db/m3coordinator/test"
 	"github.com/m3db/m3coordinator/ts"
 	"github.com/m3db/m3coordinator/util/logging"
 
 	"github.com/m3db/m3db/client"
-	"github.com/m3db/m3db/encoding"
 	"github.com/m3db/m3db/storage/index"
-	m3ts "github.com/m3db/m3db/ts"
 	"github.com/m3db/m3metrics/policy"
 	xtime "github.com/m3db/m3x/time"
 
@@ -86,16 +85,6 @@ func newWriteQuery() *storage.WriteQuery {
 	}
 }
 
-func newMockSeriesIter(ctrl *gomock.Controller) encoding.SeriesIterator {
-	mockIter := encoding.NewMockSeriesIterator(ctrl)
-	mockIter.EXPECT().Next().Return(true).MaxTimes(1)
-	mockIter.EXPECT().Next().Return(false)
-	mockIter.EXPECT().Current().Return(m3ts.Datapoint{Timestamp: time.Now(), Value: 10}, xtime.Millisecond, nil)
-	mockIter.EXPECT().Close()
-
-	return mockIter
-}
-
 func setupLocalWrite(t *testing.T) storage.Storage {
 	setup()
 	ctrl := gomock.NewController(t)
@@ -122,7 +111,7 @@ func setupLocalRead(t *testing.T) storage.Storage {
 	setup()
 	ctrl := gomock.NewController(t)
 	session := client.NewMockSession(ctrl)
-	session.EXPECT().Fetch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(newMockSeriesIter(ctrl), nil)
+	session.EXPECT().FetchTagged(gomock.Any(), gomock.Any(), gomock.Any()).Return(test.NewMockSeriesIters(ctrl), true, nil)
 	store := NewStorage(session, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
 	return store
 }
@@ -132,7 +121,10 @@ func TestLocalRead(t *testing.T) {
 	searchReq := newFetchReq()
 	results, err := store.Fetch(context.TODO(), searchReq, &storage.FetchOptions{Limit: 100})
 	assert.NoError(t, err)
-	assert.Equal(t, models.Tags{"foo": "bar", "biz": "baz"}, results.SeriesList[0].Tags)
+	tags := make(models.Tags, 1)
+	generatedTag := test.GenerateTag()
+	tags[generatedTag.Name.String()] = generatedTag.Value.String()
+	assert.Equal(t, tags, results.SeriesList[0].Tags)
 }
 
 func setupLocalSearch(t *testing.T) storage.Storage {

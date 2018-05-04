@@ -38,7 +38,7 @@ import (
 	"github.com/m3db/m3coordinator/services/m3coordinator/handler/prometheus"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/storage/local"
-	"github.com/m3db/m3coordinator/tsdb"
+	"github.com/m3db/m3coordinator/test"
 	"github.com/m3db/m3coordinator/util/logging"
 
 	"github.com/m3db/m3db/client"
@@ -84,17 +84,12 @@ func setupServer(t *testing.T) *httptest.Server {
 	ctrl := gomock.NewController(t)
 	// No calls expected on session object
 	session := client.NewMockSession(ctrl)
+	session.EXPECT().FetchTagged(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, false, fmt.Errorf("not initialized"))
 	mockResolver := mocks.NewMockPolicyResolver(gomock.NewController(t))
-
-	mockResolver.EXPECT().Resolve(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Do(func(_, _, _, _ interface{}) {
-		time.Sleep(100 * time.Millisecond)
-	}).Return([]tsdb.FetchRequest{}, nil)
-
-	storage := local.NewStorage(session, "metrics", mockResolver)
+	storage := test.NewSlowStorage(local.NewStorage(session, "metrics", mockResolver), 10*time.Millisecond)
 	engine := executor.NewEngine(storage)
 	promRead := &PromReadHandler{engine: engine}
-
-	server := httptest.NewServer(promRead)
+	server := httptest.NewServer(test.NewSlowHandler(promRead, 10*time.Millisecond))
 	return server
 }
 
@@ -122,7 +117,7 @@ func TestPromReadStorageWithFetchError(t *testing.T) {
 	logging.InitWithCores(nil)
 	ctrl := gomock.NewController(t)
 	session := client.NewMockSession(ctrl)
-	session.EXPECT().Fetch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("unable to get data"))
+	session.EXPECT().FetchTagged(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, true, fmt.Errorf("unable to get data"))
 
 	storage := local.NewStorage(session, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
 	promRead := &PromReadHandler{engine: executor.NewEngine(storage)}

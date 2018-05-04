@@ -52,11 +52,6 @@ func NewStorage(session client.Session, namespace string, policyResolver resolve
 }
 
 func (s *localStorage) Fetch(ctx context.Context, query *storage.FetchQuery, options *storage.FetchOptions) (*storage.FetchResult, error) {
-	fetchReqs, err := s.policyResolver.Resolve(ctx, query.TagMatchers, query.Start, query.End)
-	if err != nil {
-		return nil, err
-	}
-
 	// Check if the query was interrupted.
 	select {
 	case <-ctx.Done():
@@ -66,40 +61,51 @@ func (s *localStorage) Fetch(ctx context.Context, query *storage.FetchQuery, opt
 	default:
 	}
 
-	req := fetchReqs[0]
-	reqRange := req.Ranges[0]
-	id := ident.StringID(req.ID)
+	m3query, err := storage.FetchQueryToM3Query(query)
+	if err != nil {
+		return nil, err
+	}
+
+	opts := storage.FetchOptionsToM3Options(options, query)
 	namespace := ident.StringID(s.namespace)
-	iter, err := s.session.Fetch(namespace, id, reqRange.Start, reqRange.End)
+	// TODO: Handle second return param
+	iters, _, err := s.session.FetchTagged(namespace, m3query, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	defer iter.Close()
+	defer iters.Close()
 
-	result := make([]ts.Datapoint, 0, initRawFetchAllocSize)
-	for iter.Next() {
-		dp, _, _ := iter.Current()
-		result = append(result, ts.Datapoint{Timestamp: dp.Timestamp, Value: dp.Value})
+	seriesList := make([]*ts.Series, iters.Len())
+	for i, iter := range iters.Iters() {
+		metric, err := storage.FromM3IdentToMetric(namespace, iter.ID(), iter.Tags())
+		if err != nil {
+			return nil, err
+		}
+
+		result := make([]ts.Datapoint, 0, initRawFetchAllocSize)
+		for iter.Next() {
+			dp, _, _ := iter.Current()
+			result = append(result, ts.Datapoint{Timestamp: dp.Timestamp, Value: dp.Value})
+		}
+
+		// TODO: Fix resolutions
+		if len(result) < 2 {
+			continue
+		}
+
+		millisPerStep := result[1].Timestamp.Sub(result[0].Timestamp).Nanoseconds() / int64(time.Millisecond)
+		values := ts.NewValues(ctx, int(millisPerStep), len(result))
+
+		// TODO: Figure out consolidation here
+		for i, v := range result {
+			values.SetValueAt(i, v.Value)
+		}
+
+		series := ts.NewSeries(ctx, metric.ID, query.Start, values, metric.Tags)
+		seriesList[i] = series
 	}
 
-	millisPerStep := int(reqRange.StoragePolicy.Resolution().Window / time.Millisecond)
-	values := ts.NewValues(ctx, millisPerStep, len(result))
-
-	// TODO: Figure out consolidation here
-	for i, v := range result {
-		values.SetValueAt(i, v.Value)
-	}
-
-	// TODO: Get the correct metric name
-	tags, err := query.TagMatchers.ToTags()
-	if err != nil {
-		return nil, err
-	}
-
-	series := ts.NewSeries(ctx, tags.ID(), reqRange.Start, values, tags)
-	seriesList := make([]*ts.Series, 1)
-	seriesList[0] = series
 	return &storage.FetchResult{
 		SeriesList: seriesList,
 	}, nil

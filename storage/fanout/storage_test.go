@@ -31,6 +31,7 @@ import (
 	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/storage/local"
+	"github.com/m3db/m3coordinator/test"
 	"github.com/m3db/m3coordinator/ts"
 	"github.com/m3db/m3coordinator/util/logging"
 
@@ -52,14 +53,14 @@ func filterFunc(output bool) filter.Storage {
 	}
 }
 
-func fakeIterator() encoding.SeriesIterator {
+func fakeIterator(t *testing.T) encoding.SeriesIterators {
 	id := ident.StringID("id")
 	namespace := ident.StringID("metrics")
-	return encoding.NewSeriesIterator(id, namespace, nil, time.Now(), time.Now(), nil, nil)
+	return encoding.NewSeriesIterators([]encoding.SeriesIterator{encoding.NewSeriesIterator(id, namespace, test.GenerateTagIterator(gomock.NewController(t)), time.Now(), time.Now(), nil, nil)}, nil)
 }
 
 type fetchResponse struct {
-	result encoding.SeriesIterator
+	result encoding.SeriesIterators
 	err    error
 }
 
@@ -78,8 +79,8 @@ func setupFanoutRead(t *testing.T, output bool, response ...*fetchResponse) stor
 	ctrl := gomock.NewController(t)
 	session1 := client.NewMockSession(ctrl)
 	session2 := client.NewMockSession(ctrl)
-	session1.EXPECT().Fetch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(response[0].result, response[0].err)
-	session2.EXPECT().Fetch(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(response[len(response)-1].result, response[len(response)-1].err)
+	session1.EXPECT().FetchTagged(gomock.Any(), gomock.Any(), gomock.Any()).Return(response[0].result, true, response[0].err)
+	session2.EXPECT().FetchTagged(gomock.Any(), gomock.Any(), gomock.Any()).Return(response[len(response)-1].result, true, response[len(response)-1].err)
 	session1.EXPECT().FetchTaggedIDs(gomock.Any(), gomock.Any(), gomock.Any()).Return(index.QueryResults{}, errors.ErrNotImplemented)
 	session2.EXPECT().FetchTaggedIDs(gomock.Any(), gomock.Any(), gomock.Any()).Return(index.QueryResults{}, errors.ErrNotImplemented)
 	stores := []storage.Storage{
@@ -121,7 +122,7 @@ func TestFanoutReadError(t *testing.T) {
 }
 
 func TestFanoutReadSuccess(t *testing.T) {
-	store := setupFanoutRead(t, true, &fetchResponse{result: fakeIterator()}, &fetchResponse{result: fakeIterator()})
+	store := setupFanoutRead(t, true, &fetchResponse{result: fakeIterator(t)}, &fetchResponse{result: fakeIterator(t)})
 	res, err := store.Fetch(context.TODO(), &storage.FetchQuery{}, &storage.FetchOptions{})
 	require.NoError(t, err, "no error on read")
 	assert.NotNil(t, res)
