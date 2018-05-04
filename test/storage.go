@@ -14,13 +14,13 @@ import (
 	"github.com/golang/mock/gomock"
 )
 
-// SlowHandler slows down a request by delay
+// slowStorage slows down a request by delay
 type slowStorage struct {
 	storage storage.Storage
 	delay   time.Duration
 }
 
-// NewSlowHandler creates a new slow handler
+// NewSlowStorage creates a new slow storage
 func NewSlowStorage(storage storage.Storage, delay time.Duration) storage.Storage {
 	return &slowStorage{storage: storage, delay: delay}
 }
@@ -44,6 +44,11 @@ func (s *slowStorage) Type() storage.Type {
 	return storage.TypeMultiDC
 }
 
+func (s *slowStorage) Close() error {
+	return nil
+}
+
+// GenerateTagIterator generates a new tag iterator
 func GenerateTagIterator(ctrl *gomock.Controller) ident.TagIterator {
 	mockTagIterator := ident.NewMockTagIterator(ctrl)
 	mockTagIterator.EXPECT().Remaining().Return(1)
@@ -56,6 +61,7 @@ func GenerateTagIterator(ctrl *gomock.Controller) ident.TagIterator {
 	return mockTagIterator
 }
 
+// GenerateTag generates a new tag
 func GenerateTag() ident.Tag {
 	return ident.Tag{
 		Name:  ident.StringID("foo"),
@@ -63,6 +69,7 @@ func GenerateTag() ident.Tag {
 	}
 }
 
+// NewMockSeriesIters generates a new mock series iters
 func NewMockSeriesIters(ctrl *gomock.Controller) encoding.SeriesIterators {
 	mockIter := encoding.NewMockSeriesIterator(ctrl)
 	mockIter.EXPECT().Next().Return(true).MaxTimes(2)

@@ -32,19 +32,14 @@ import (
 	"time"
 
 	"github.com/m3db/m3coordinator/models"
-	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/storage"
-	"github.com/m3db/m3coordinator/storage/local"
 	"github.com/m3db/m3coordinator/test"
+	"github.com/m3db/m3coordinator/test/local"
 	"github.com/m3db/m3coordinator/util/logging"
 
-	"github.com/m3db/m3db/client"
-	"github.com/m3db/m3db/storage/index"
-	"github.com/m3db/m3metrics/policy"
-	"github.com/m3db/m3x/ident"
-	xtime "github.com/m3db/m3x/time"
-
 	"github.com/golang/mock/gomock"
+	"github.com/m3db/m3db/storage/index"
+	"github.com/m3db/m3x/ident"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -103,10 +98,8 @@ func searchServer(t *testing.T) *SearchHandler {
 
 	mockTaggedIDsIter := generateTagIters(ctrl)
 
-	session := client.NewMockSession(ctrl)
+	storage, session := local.NewStorageAndSession(ctrl)
 	session.EXPECT().FetchTaggedIDs(gomock.Any(), gomock.Any(), gomock.Any()).Return(generateQueryResults(mockTaggedIDsIter), nil)
-
-	storage := local.NewStorage(session, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
 	search := &SearchHandler{store: storage}
 
 	return search

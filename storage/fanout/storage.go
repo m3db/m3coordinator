@@ -110,6 +110,16 @@ func (s *fanoutStorage) Type() storage.Type {
 	return storage.TypeMultiDC
 }
 
+func (s *fanoutStorage) Close() error {
+	for _, store := range s.stores {
+		if err := store.Close(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func filterStores(stores []storage.Storage, filterPolicy filter.Storage, query storage.Query) []storage.Storage {
 	filtered := make([]storage.Storage, 0)
 	for _, s := range stores {

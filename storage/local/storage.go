@@ -26,7 +26,6 @@ import (
 
 	"github.com/m3db/m3coordinator/errors"
 	"github.com/m3db/m3coordinator/models"
-	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/storage"
 	"github.com/m3db/m3coordinator/ts"
 	"github.com/m3db/m3coordinator/util/execution"
@@ -41,14 +40,14 @@ const (
 )
 
 type localStorage struct {
-	session        client.Session
-	namespace      string
-	policyResolver resolver.PolicyResolver
+	session    client.Session
+	namespace  ident.ID
+	resolution time.Duration
 }
 
 // NewStorage creates a new local Storage instance.
-func NewStorage(session client.Session, namespace string, policyResolver resolver.PolicyResolver) storage.Storage {
-	return &localStorage{session: session, namespace: namespace, policyResolver: policyResolver}
+func NewStorage(session client.Session, namespace string, resolution time.Duration) storage.Storage {
+	return &localStorage{session: session, namespace: ident.StringID(namespace), resolution: resolution}
 }
 
 func (s *localStorage) Fetch(ctx context.Context, query *storage.FetchQuery, options *storage.FetchOptions) (*storage.FetchResult, error) {
@@ -67,9 +66,8 @@ func (s *localStorage) Fetch(ctx context.Context, query *storage.FetchQuery, opt
 	}
 
 	opts := storage.FetchOptionsToM3Options(options, query)
-	namespace := ident.StringID(s.namespace)
 	// TODO: Handle second return param
-	iters, _, err := s.session.FetchTagged(namespace, m3query, opts)
+	iters, _, err := s.session.FetchTagged(s.namespace, m3query, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +76,7 @@ func (s *localStorage) Fetch(ctx context.Context, query *storage.FetchQuery, opt
 
 	seriesList := make([]*ts.Series, iters.Len())
 	for i, iter := range iters.Iters() {
-		metric, err := storage.FromM3IdentToMetric(namespace, iter.ID(), iter.Tags())
+		metric, err := storage.FromM3IdentToMetric(s.namespace, iter.ID(), iter.Tags())
 		if err != nil {
 			return nil, err
 		}
@@ -89,12 +87,7 @@ func (s *localStorage) Fetch(ctx context.Context, query *storage.FetchQuery, opt
 			result = append(result, ts.Datapoint{Timestamp: dp.Timestamp, Value: dp.Value})
 		}
 
-		// TODO: Fix resolutions
-		if len(result) < 2 {
-			continue
-		}
-
-		millisPerStep := result[1].Timestamp.Sub(result[0].Timestamp).Nanoseconds() / int64(time.Millisecond)
+		millisPerStep := s.resolution.Nanoseconds() / int64(time.Millisecond)
 		values := ts.NewValues(ctx, int(millisPerStep), len(result))
 
 		// TODO: Figure out consolidation here
@@ -126,11 +119,9 @@ func (s *localStorage) FetchTags(ctx context.Context, query *storage.FetchQuery,
 		return nil, err
 	}
 
-	id := ident.StringID(s.namespace)
 	opts := storage.FetchOptionsToM3Options(options, query)
 
-	results, err := s.session.FetchTaggedIDs(id, m3query, opts)
-	defer id.Finalize()
+	results, err := s.session.FetchTaggedIDs(s.namespace, m3query, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -187,8 +178,7 @@ func (w *writeRequest) Process(ctx context.Context) error {
 	common := w.writeRequestCommon
 	store := common.store
 	id := ident.StringID(common.id)
-	namespace := ident.StringID(store.namespace)
-	return store.session.Write(namespace, id, w.timestamp, w.value, common.unit, common.annotation)
+	return store.session.Write(store.namespace, id, w.timestamp, w.value, common.unit, common.annotation)
 }
 
 type writeRequestCommon struct {
@@ -210,4 +200,9 @@ func newWriteRequest(writeRequestCommon *writeRequestCommon, timestamp time.Time
 		timestamp:          timestamp,
 		value:              value,
 	}
+}
+
+func (s *localStorage) Close() error {
+	s.namespace.Finalize()
+	return nil
 }

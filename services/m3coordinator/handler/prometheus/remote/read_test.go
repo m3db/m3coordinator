@@ -33,17 +33,11 @@ import (
 
 	"github.com/m3db/m3coordinator/executor"
 	"github.com/m3db/m3coordinator/generated/proto/prompb"
-	"github.com/m3db/m3coordinator/mocks"
-	"github.com/m3db/m3coordinator/policy/resolver"
 	"github.com/m3db/m3coordinator/services/m3coordinator/handler/prometheus"
 	"github.com/m3db/m3coordinator/storage"
-	"github.com/m3db/m3coordinator/storage/local"
 	"github.com/m3db/m3coordinator/test"
+	"github.com/m3db/m3coordinator/test/local"
 	"github.com/m3db/m3coordinator/util/logging"
-
-	"github.com/m3db/m3db/client"
-	"github.com/m3db/m3metrics/policy"
-	xtime "github.com/m3db/m3x/time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/proto"
@@ -83,10 +77,9 @@ func setupServer(t *testing.T) *httptest.Server {
 	logging.InitWithCores(nil)
 	ctrl := gomock.NewController(t)
 	// No calls expected on session object
-	session := client.NewMockSession(ctrl)
+	lstore, session := local.NewStorageAndSession(ctrl)
 	session.EXPECT().FetchTagged(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, false, fmt.Errorf("not initialized"))
-	mockResolver := mocks.NewMockPolicyResolver(gomock.NewController(t))
-	storage := test.NewSlowStorage(local.NewStorage(session, "metrics", mockResolver), 10*time.Millisecond)
+	storage := test.NewSlowStorage(lstore, 10*time.Millisecond)
 	engine := executor.NewEngine(storage)
 	promRead := &PromReadHandler{engine: engine}
 	server := httptest.NewServer(test.NewSlowHandler(promRead, 10*time.Millisecond))
@@ -95,7 +88,8 @@ func setupServer(t *testing.T) *httptest.Server {
 
 func TestPromReadParsing(t *testing.T) {
 	logging.InitWithCores(nil)
-	storage := local.NewStorage(nil, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
+	ctrl := gomock.NewController(t)
+	storage, _ := local.NewStorageAndSession(ctrl)
 	promRead := &PromReadHandler{engine: executor.NewEngine(storage)}
 	req, _ := http.NewRequest("POST", PromReadURL, generatePromReadBody(t))
 
@@ -106,7 +100,8 @@ func TestPromReadParsing(t *testing.T) {
 
 func TestPromReadParsingBad(t *testing.T) {
 	logging.InitWithCores(nil)
-	storage := local.NewStorage(nil, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
+	ctrl := gomock.NewController(t)
+	storage, _ := local.NewStorageAndSession(ctrl)
 	promRead := &PromReadHandler{engine: executor.NewEngine(storage)}
 	req, _ := http.NewRequest("POST", PromReadURL, strings.NewReader("bad body"))
 	_, err := promRead.parseRequest(req)
@@ -116,10 +111,8 @@ func TestPromReadParsingBad(t *testing.T) {
 func TestPromReadStorageWithFetchError(t *testing.T) {
 	logging.InitWithCores(nil)
 	ctrl := gomock.NewController(t)
-	session := client.NewMockSession(ctrl)
+	storage, session := local.NewStorageAndSession(ctrl)
 	session.EXPECT().FetchTagged(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, true, fmt.Errorf("unable to get data"))
-
-	storage := local.NewStorage(session, "metrics", resolver.NewStaticResolver(policy.NewStoragePolicy(time.Second, xtime.Second, time.Hour*48)))
 	promRead := &PromReadHandler{engine: executor.NewEngine(storage)}
 	req := generatePromReadRequest()
 	_, err := promRead.read(context.TODO(), httptest.NewRecorder(), req, &prometheus.RequestParams{Timeout: time.Hour})
