@@ -22,45 +22,35 @@ package placement
 
 import (
 	"errors"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/gorilla/mux"
-	"github.com/m3db/m3cluster/placement"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestPlacementDeleteHandler(t *testing.T) {
+func TestPlacementDeleteAllHandler(t *testing.T) {
 	mockPlacementService := SetupPlacementTest(t)
-	handler := NewDeleteHandler(mockPlacementService)
+	handler := NewDeleteAllHandler(mockPlacementService)
 
-	// Test remove success
+	// Test delete success
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest("DELETE", "/placement/host1", nil)
-	req = mux.SetURLVars(req, map[string]string{"id": "host1"})
+	req := httptest.NewRequest("POST", "/placement/delete", nil)
 	require.NotNil(t, req)
-	mockPlacementService.EXPECT().RemoveInstances([]string{"host1"}).Return(placement.NewPlacement(), nil)
+	mockPlacementService.EXPECT().Delete()
 	handler.ServeHTTP(w, req)
 
 	resp := w.Result()
-	body, _ := ioutil.ReadAll(resp.Body)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	assert.Equal(t, "{\"placement\":{\"instances\":{},\"replicaFactor\":0,\"numShards\":0,\"isSharded\":false,\"cutoverTime\":\"0\",\"isMirrored\":false,\"maxShardSetId\":0},\"version\":0}", string(body))
 
-	// Test remove failure
+	// Test delete error
 	w = httptest.NewRecorder()
-	req = httptest.NewRequest("DELETE", "/placement/nope", nil)
-	req = mux.SetURLVars(req, map[string]string{"id": "nope"})
+	req = httptest.NewRequest("POST", "/placement/delete", nil)
 	require.NotNil(t, req)
-	mockPlacementService.EXPECT().RemoveInstances([]string{"nope"}).Return(placement.NewPlacement(), errors.New("ID does not exist"))
+	mockPlacementService.EXPECT().Delete().Return(errors.New("error"))
 	handler.ServeHTTP(w, req)
 
 	resp = w.Result()
-	body, _ = ioutil.ReadAll(resp.Body)
 	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
-	assert.Equal(t, "ID does not exist\n", string(body))
 }

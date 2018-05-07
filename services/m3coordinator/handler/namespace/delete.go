@@ -21,13 +21,11 @@
 package namespace
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 
-	"github.com/m3db/m3coordinator/generated/proto/admin"
+	"github.com/gorilla/mux"
 	"github.com/m3db/m3coordinator/services/m3coordinator/handler"
 	"github.com/m3db/m3coordinator/util/logging"
 
@@ -38,8 +36,12 @@ import (
 )
 
 const (
-	// DeleteURL is the url for the namespace delete handler (with the POST method).
-	DeleteURL = "/namespace/delete"
+	namespaceIDVar = "id"
+)
+
+var (
+	// DeleteURL is the url for the namespace delete handler (with the DELETE method).
+	DeleteURL = fmt.Sprintf("/namespace/{%s}", namespaceIDVar)
 )
 
 var (
@@ -57,14 +59,7 @@ func NewDeleteHandler(store kv.Store) http.Handler {
 func (h *deleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := logging.WithContext(ctx)
-
-	req, rErr := h.parseRequest(r)
-	if rErr != nil {
-		handler.Error(w, rErr.Error(), rErr.Code())
-		return
-	}
-
-	err := h.delete(req)
+	err := h.delete(mux.Vars(r)[namespaceIDVar])
 	if err != nil {
 		logger.Error("unable to delete namespace", zap.Any("error", err))
 		if err == errNamespaceNotFound {
@@ -75,23 +70,7 @@ func (h *deleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *deleteHandler) parseRequest(r *http.Request) (*admin.NamespaceDeleteRequest, *handler.ParseError) {
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return nil, handler.NewParseError(err, http.StatusBadRequest)
-	}
-
-	defer r.Body.Close()
-
-	deleteReq := new(admin.NamespaceDeleteRequest)
-	if err := json.Unmarshal(body, deleteReq); err != nil {
-		return nil, handler.NewParseError(err, http.StatusBadRequest)
-	}
-
-	return deleteReq, nil
-}
-
-func (h *deleteHandler) delete(r *admin.NamespaceDeleteRequest) error {
+func (h *deleteHandler) delete(id string) error {
 	metadatas, version, err := Metadata(h.store)
 	if err != nil {
 		return err
@@ -99,7 +78,7 @@ func (h *deleteHandler) delete(r *admin.NamespaceDeleteRequest) error {
 
 	mdIdx := -1
 	for idx, md := range metadatas {
-		if md.ID().String() == r.Name {
+		if md.ID().String() == id {
 			mdIdx = idx
 			break
 		}
@@ -112,6 +91,15 @@ func (h *deleteHandler) delete(r *admin.NamespaceDeleteRequest) error {
 	// Replace the index where we found the metadata with the last element, then truncate
 	metadatas[mdIdx] = metadatas[len(metadatas)-1]
 	metadatas = metadatas[:len(metadatas)-1]
+
+	// If metadatas are empty, remove the key
+	if len(metadatas) == 0 {
+		if _, err = h.store.Delete(M3DBNodeNamespacesKey); err != nil {
+			return fmt.Errorf("unable to delete kv key: %v", err)
+		}
+
+		return nil
+	}
 
 	// Update namespace map and set kv
 	nsMap, err := namespace.NewMap(metadatas)

@@ -23,7 +23,6 @@ package placement
 import (
 	"net/http"
 
-	"github.com/m3db/m3coordinator/generated/proto/admin"
 	"github.com/m3db/m3coordinator/services/m3coordinator/handler"
 	"github.com/m3db/m3coordinator/util/logging"
 
@@ -33,42 +32,24 @@ import (
 )
 
 const (
-	// GetURL is the url for the placement get handler (with the GET method).
-	GetURL = "/placement"
+	// DeleteAllURL is the url for the handler to delete all placements (with the DELETE method).
+	DeleteAllURL = "/placement"
 )
 
-// getHandler represents a handler for placement get endpoint.
-type getHandler Handler
+// deleteAllHandler represents a handler for the placement delete all endpoint.
+type deleteAllHandler Handler
 
-// NewGetHandler returns a new instance of handler.
-func NewGetHandler(service placement.Service) http.Handler {
-	return &getHandler{service: service}
+// NewDeleteAllHandler returns a new instance of handler.
+func NewDeleteAllHandler(service placement.Service) http.Handler {
+	return &deleteAllHandler{service: service}
 }
 
-func (h *getHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *deleteAllHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := logging.WithContext(ctx)
 
-	placement, version, err := h.service.Placement()
-	if err != nil {
-		// An error from `get` signifies "key not found", meaning there is
-		// no placement and as such, should not be treated as an actual error to
-		// the user.
-		w.Write([]byte("no placement found\n"))
-		return
-	}
-
-	placementProto, err := placement.Proto()
-	if err != nil {
-		logger.Error("unable to get placement protobuf", zap.Any("error", err))
+	if err := h.service.Delete(); err != nil {
+		logger.Error("unable to delete placement", zap.Any("error", err))
 		handler.Error(w, err, http.StatusInternalServerError)
-		return
 	}
-
-	resp := &admin.PlacementGetResponse{
-		Placement: placementProto,
-		Version:   int32(version),
-	}
-
-	handler.WriteProtoMsgJSONResponse(w, resp, logger)
 }

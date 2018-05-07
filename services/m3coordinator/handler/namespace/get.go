@@ -35,10 +35,7 @@ import (
 
 const (
 	// GetURL is the url for the namespace get handler (with the GET method).
-	GetURL = "/namespace/get"
-
-	// GetHTTPMethodURL is the url for the namespace get handler (with the GET method).
-	GetHTTPMethodURL = "/namespace"
+	GetURL = "/namespace"
 )
 
 // getHandler represents a handler for namespace get endpoint.

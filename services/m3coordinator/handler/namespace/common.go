@@ -71,9 +71,6 @@ func RegisterRoutes(r *mux.Router, store kv.Store) {
 	logged := logging.WithResponseTimeLogging
 
 	r.HandleFunc(GetURL, logged(NewGetHandler(store)).ServeHTTP).Methods("GET")
-	r.HandleFunc(GetHTTPMethodURL, logged(NewGetHandler(store)).ServeHTTP).Methods("GET")
-
 	r.HandleFunc(AddURL, logged(NewAddHandler(store)).ServeHTTP).Methods("POST")
-
-	r.HandleFunc(DeleteURL, logged(NewDeleteHandler(store)).ServeHTTP).Methods("POST")
+	r.HandleFunc(DeleteURL, logged(NewDeleteHandler(store)).ServeHTTP).Methods("DELETE")
 }

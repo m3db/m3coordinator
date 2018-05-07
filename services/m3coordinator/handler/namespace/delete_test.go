@@ -24,9 +24,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
+	"github.com/gorilla/mux"
 	"github.com/m3db/m3cluster/kv"
 	nsproto "github.com/m3db/m3db/generated/proto/namespace"
 
@@ -40,9 +40,8 @@ func TestNamespaceDeleteHandlerNotFound(t *testing.T) {
 	deleteHandler := NewDeleteHandler(mockKV)
 
 	w := httptest.NewRecorder()
-	jsonInput := `{"name": "not-present"}`
 
-	req := httptest.NewRequest("POST", "/namespace/delete", strings.NewReader(jsonInput))
+	req := httptest.NewRequest("DELETE", "/namespace/nope", nil)
 	require.NotNil(t, req)
 
 	mockKV.EXPECT().Get(M3DBNodeNamespacesKey).Return(nil, kv.ErrNotFound)
@@ -59,28 +58,13 @@ func TestNamespaceDeleteHandlerDeleteAll(t *testing.T) {
 	deleteHandler := NewDeleteHandler(mockKV)
 
 	w := httptest.NewRecorder()
-	jsonInput := `{"name": "testNamespace"}`
 
-	req := httptest.NewRequest("POST", "/namespace/delete", strings.NewReader(jsonInput))
+	req := httptest.NewRequest("DELETE", "/namespace/testNamespace", nil)
+	req = mux.SetURLVars(req, map[string]string{"id": "testNamespace"})
 	require.NotNil(t, req)
 
 	registry := nsproto.Registry{
 		Namespaces: map[string]*nsproto.NamespaceOptions{
-			"otherNamespace": &nsproto.NamespaceOptions{
-				BootstrapEnabled:  true,
-				FlushEnabled:      true,
-				WritesToCommitLog: true,
-				CleanupEnabled:    false,
-				RepairEnabled:     false,
-				RetentionOptions: &nsproto.RetentionOptions{
-					RetentionPeriodNanos:                     172800000000000,
-					BlockSizeNanos:                           7200000000000,
-					BufferFutureNanos:                        600000000000,
-					BufferPastNanos:                          600000000000,
-					BlockDataExpiry:                          true,
-					BlockDataExpiryAfterNotAccessPeriodNanos: 3600000000000,
-				},
-			},
 			"testNamespace": &nsproto.NamespaceOptions{
 				BootstrapEnabled:  true,
 				FlushEnabled:      true,
@@ -119,9 +103,9 @@ func TestNamespaceDeleteHandler(t *testing.T) {
 	deleteHandler := NewDeleteHandler(mockKV)
 
 	w := httptest.NewRecorder()
-	jsonInput := `{"name": "testNamespace"}`
 
-	req := httptest.NewRequest("POST", "/namespace/delete", strings.NewReader(jsonInput))
+	req := httptest.NewRequest("DELETE", "/namespace/testNamespace", nil)
+	req = mux.SetURLVars(req, map[string]string{"id": "testNamespace"})
 	require.NotNil(t, req)
 
 	registry := nsproto.Registry{

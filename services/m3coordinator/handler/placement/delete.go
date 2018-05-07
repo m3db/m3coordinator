@@ -21,8 +21,11 @@
 package placement
 
 import (
+	"fmt"
 	"net/http"
 
+	"github.com/gorilla/mux"
+	"github.com/m3db/m3coordinator/generated/proto/admin"
 	"github.com/m3db/m3coordinator/services/m3coordinator/handler"
 	"github.com/m3db/m3coordinator/util/logging"
 
@@ -32,11 +35,12 @@ import (
 )
 
 const (
-	// DeleteURL is the url for the placement delete handler (with the POST method).
-	DeleteURL = "/placement/delete"
+	placementIDVar = "id"
+)
 
-	// DeleteHTTPMethodURL is the url for the placement delete handler (with the DELETE method).
-	DeleteHTTPMethodURL = "/placement"
+var (
+	// DeleteURL is the url for the placement delete handler (with the DELETE method).
+	DeleteURL = fmt.Sprintf("/placement/{%s}", placementIDVar)
 )
 
 // deleteHandler represents a handler for placement delete endpoint.
@@ -51,8 +55,23 @@ func (h *deleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := logging.WithContext(ctx)
 
-	if err := h.service.Delete(); err != nil {
+	placement, err := h.service.RemoveInstances([]string{mux.Vars(r)[placementIDVar]})
+	if err != nil {
 		logger.Error("unable to delete placement", zap.Any("error", err))
 		handler.Error(w, err, http.StatusInternalServerError)
+		return
 	}
+
+	placementProto, err := placement.Proto()
+	if err != nil {
+		logger.Error("unable to get placement protobuf", zap.Any("error", err))
+		handler.Error(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	resp := &admin.PlacementGetResponse{
+		Placement: placementProto,
+	}
+
+	handler.WriteProtoMsgJSONResponse(w, resp, logger)
 }

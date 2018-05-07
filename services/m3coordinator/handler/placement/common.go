@@ -111,14 +111,8 @@ func RegisterRoutes(r *mux.Router, service placement.Service) {
 	logged := logging.WithResponseTimeLogging
 
 	r.HandleFunc(InitURL, logged(NewInitHandler(service)).ServeHTTP).Methods("POST")
-
 	r.HandleFunc(GetURL, logged(NewGetHandler(service)).ServeHTTP).Methods("GET")
-	r.HandleFunc(GetHTTPMethodURL, logged(NewGetHandler(service)).ServeHTTP).Methods("GET")
-
-	r.HandleFunc(DeleteURL, logged(NewDeleteHandler(service)).ServeHTTP).Methods("POST")
-	r.HandleFunc(DeleteHTTPMethodURL, logged(NewDeleteHandler(service)).ServeHTTP).Methods("DELETE")
-
+	r.HandleFunc(DeleteAllURL, logged(NewDeleteAllHandler(service)).ServeHTTP).Methods("DELETE")
 	r.HandleFunc(AddURL, logged(NewAddHandler(service)).ServeHTTP).Methods("POST")
-
-	r.HandleFunc(RemoveURL, logged(NewRemoveHandler(service)).ServeHTTP).Methods("POST")
+	r.HandleFunc(DeleteURL, logged(NewDeleteHandler(service)).ServeHTTP).Methods("DELETE")
 }
