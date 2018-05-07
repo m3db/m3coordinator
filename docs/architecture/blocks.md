@@ -52,12 +52,10 @@ Below is a visual representation of a set of `Blocks`. On top is the M3QL query 
 
 ## M3DB => M3Coordinator Blocks
 
-M3DB will return to M3Coordinator `SeriesBlocks` that contain a list of `SeriesIterators` for a given timeseries per namespace. We would convert that into a `ConslidatedBlockIterators` depending on the consolidation chosen. Each underlying `ConsolidatedBlockIterator` would have the same time duration. This means that the last block can span outside the `EndTime`. We would rely on the user of these blocks to perform the truncation.
+In order to convert M3DB blocks into M3Coordinator blocks, we need to consolidate across different namespaces. In short, M3DB namespaces are essentially different resolutions that metrics are stored at. For example, a metric might be stored at both 1min and 10min resolutions- meaning this metric is found in two namespaces.
 
-From `ConslidatedBlockIterators` per series, we will construct a `MultiSeriesBlock` that will contain a slice of `ConslidatedBlockIterators` for a given block as well as a `Start` and `End`. `MultiSeriesBlock` aligns the different series to their LCM.
+At a high level, M3DB returns to M3Coordinator `SeriesBlocks` that contain a list of `SeriesIterators` for a given timeseries per namespace. M3Coordinator then aligns the blocks across common time bounds before applying consolidation.
 
-This struct will then be used in either a `CompressedStepIterator` or a `CompressedSeriesIterator` depending on if the block needs to iterate through the values vertically or horizontally. These two structs will satisfy the `StepIter` interface or `SeriesIter` interface, respectively, to return a slice of values vertically at each timestamp (step) or horizontally at each timeseries (series).
+For example, let's say we have a query that returns two timeseries from two different namespaces- 1min and 10min. When we create the M3Coordinator `Block`, in order to accurately consolidate results from these two namespaces, we need to convert everything to have a 10min resolution. Otherwise it will not be possible to perform correctly apply functions.
 
-Below is a diagram of how this would look across multiple namespaces (i.e. different resolutions).
-
-![Consolidated Blocks](images/blocks.png)
+> Coming Soon: More documentation on how M3Coordinator applies consolidation.
