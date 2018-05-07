@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Uber Technologies, Inc.
+// Copyright (c) 2018 Uber Technologies, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -62,7 +62,8 @@ func TestAsyncSessionError(t *testing.T) {
 	expectedErrStr := fmt.Sprintf(errNewSessionFailFmt, customErr)
 
 	mockClient.EXPECT().NewSession().Return(nil, customErr)
-	asyncSession, done := NewAsyncSession(mockClient)
+	done := make(chan struct{}, 1)
+	asyncSession := NewAsyncSession(mockClient, done)
 	require.NotNil(t, asyncSession)
 	// Wait for session to be done initializing (which we mock to return an error)
 	<-done
@@ -87,7 +88,7 @@ func TestAsyncSessionUninitialized(t *testing.T) {
 
 	// Sleep one minute after a NewSession call to ensure we get an "uninitialized" error
 	mockClient.EXPECT().NewSession().Do(func() { time.Sleep(time.Minute) }).Return(nil, errors.New("some error"))
-	asyncSession, _ := NewAsyncSession(mockClient)
+	asyncSession := NewAsyncSession(mockClient, nil)
 	require.NotNil(t, asyncSession)
 
 	results, exhaustive, err := asyncSession.FetchTagged(namespace, index.Query{}, index.QueryOptions{})
@@ -110,7 +111,8 @@ func TestAsyncSessionInitialized(t *testing.T) {
 	mockClient, mockSession := SetupAsyncSessionTest(t)
 
 	mockClient.EXPECT().NewSession().Return(mockSession, nil)
-	asyncSession, done := NewAsyncSession(mockClient)
+	done := make(chan struct{}, 1)
+	asyncSession := NewAsyncSession(mockClient, done)
 	require.NotNil(t, asyncSession)
 	// Wait for session to be done initializing
 	<-done

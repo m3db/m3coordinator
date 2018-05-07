@@ -1,4 +1,4 @@
-// Copyright (c) 2016 Uber Technologies, Inc.
+// Copyright (c) 2018 Uber Technologies, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -45,21 +45,23 @@ var (
 // is to notify the caller that the session has finished _attempting_ to get initialized.
 type AsyncSession struct {
 	session client.Session
+	done    chan struct{}
 	err     error
 }
 
 // NewAsyncSession returns a new Session
-func NewAsyncSession(c client.Client) (*AsyncSession, chan struct{}) {
+func NewAsyncSession(c client.Client, done chan struct{}) *AsyncSession {
 	asyncSession := &AsyncSession{
-		err: errSessionUninitialized,
+		done: done,
+		err:  errSessionUninitialized,
 	}
 
-	done := make(chan struct{}, 1)
-
 	go func() {
-		defer func() {
-			done <- struct{}{}
-		}()
+		if asyncSession.done != nil {
+			defer func() {
+				asyncSession.done <- struct{}{}
+			}()
+		}
 
 		session, err := c.NewSession()
 		if err != nil {
@@ -71,7 +73,7 @@ func NewAsyncSession(c client.Client) (*AsyncSession, chan struct{}) {
 		asyncSession.err = nil
 	}()
 
-	return asyncSession, done
+	return asyncSession
 }
 
 // Write value to the database for an ID

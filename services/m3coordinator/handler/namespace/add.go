@@ -43,7 +43,7 @@ import (
 )
 
 const (
-	// AddURL is the url for the placement add handler (with the POST method).
+	// AddURL is the url for the namespace add handler (with the POST method).
 	AddURL = "/namespace/add"
 
 	defaultBlockDataExpiryPeriodStr = "5m"
@@ -53,7 +53,7 @@ var (
 	errMissingRequiredField = errors.New("all attributes must be set")
 )
 
-// addHandler represents a handler for placement add endpoint.
+// addHandler represents a handler for namespace add endpoint.
 type addHandler Handler
 
 // NewAddHandler returns a new instance of handler.

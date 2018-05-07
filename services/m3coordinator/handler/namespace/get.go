@@ -34,14 +34,14 @@ import (
 )
 
 const (
-	// GetURL is the url for the placement get handler (with the GET method).
+	// GetURL is the url for the namespace get handler (with the GET method).
 	GetURL = "/namespace/get"
 
-	// GetHTTPMethodURL is the url for the placement get handler (with the GET method).
+	// GetHTTPMethodURL is the url for the namespace get handler (with the GET method).
 	GetHTTPMethodURL = "/namespace"
 )
 
-// getHandler represents a handler for placement get endpoint.
+// getHandler represents a handler for namespace get endpoint.
 type getHandler Handler
 
 // NewGetHandler returns a new instance of handler.

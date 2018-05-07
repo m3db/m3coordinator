@@ -38,7 +38,7 @@ import (
 )
 
 const (
-	// DeleteURL is the url for the placement delete handler (with the POST method).
+	// DeleteURL is the url for the namespace delete handler (with the POST method).
 	DeleteURL = "/namespace/delete"
 )
 
@@ -46,7 +46,7 @@ var (
 	errNamespaceNotFound = errors.New("unable to find a namespace with specified name")
 )
 
-// deleteHandler represents a handler for placement delete endpoint.
+// deleteHandler represents a handler for namespace delete endpoint.
 type deleteHandler Handler
 
 // NewDeleteHandler returns a new instance of handler.
