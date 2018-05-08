@@ -104,6 +104,7 @@ func TestLocalWriteSuccess(t *testing.T) {
 	writeQuery := newWriteQuery()
 	err := store.Write(context.TODO(), writeQuery)
 	assert.NoError(t, err)
+	assert.NoError(t, store.Close())
 }
 
 func setupLocalRead(t *testing.T) storage.Storage {
