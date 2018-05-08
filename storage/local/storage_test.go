@@ -107,15 +107,10 @@ func TestLocalWriteSuccess(t *testing.T) {
 	assert.NoError(t, store.Close())
 }
 
-func setupLocalRead(t *testing.T) storage.Storage {
+func TestLocalRead(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	store, session := setup(ctrl)
 	session.EXPECT().FetchTagged(gomock.Any(), gomock.Any(), gomock.Any()).Return(test.NewMockSeriesIters(ctrl), true, nil)
-	return store
-}
-
-func TestLocalRead(t *testing.T) {
-	store := setupLocalRead(t)
 	searchReq := newFetchReq()
 	results, err := store.Fetch(context.TODO(), searchReq, &storage.FetchOptions{Limit: 100})
 	assert.NoError(t, err)

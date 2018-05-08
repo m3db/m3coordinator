@@ -52,7 +52,9 @@ func filterFunc(output bool) filter.Storage {
 func fakeIterator(t *testing.T) encoding.SeriesIterators {
 	id := ident.StringID("id")
 	namespace := ident.StringID("metrics")
-	return encoding.NewSeriesIterators([]encoding.SeriesIterator{encoding.NewSeriesIterator(id, namespace, test.GenerateTagIterator(gomock.NewController(t)), time.Now(), time.Now(), nil, nil)}, nil)
+	return encoding.NewSeriesIterators([]encoding.SeriesIterator{
+		encoding.NewSeriesIterator(id, namespace, test.GenerateSingleSampleTagIterator(gomock.NewController(t)),
+			time.Now(), time.Now(), nil, nil)}, nil)
 }
 
 type fetchResponse struct {

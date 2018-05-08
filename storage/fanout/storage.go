@@ -30,6 +30,7 @@ import (
 	"github.com/m3db/m3coordinator/ts"
 	"github.com/m3db/m3coordinator/util/execution"
 	"github.com/m3db/m3coordinator/util/logging"
+
 	"go.uber.org/zap"
 )
 
@@ -114,10 +115,10 @@ func (s *fanoutStorage) Type() storage.Type {
 
 func (s *fanoutStorage) Close() error {
 	var lastErr error
-	for _, store := range s.stores {
+	for idx, store := range s.stores {
 		// Keep going on error to close all storages
 		if err := store.Close(); err != nil {
-			logging.WithContext(nil).Error("unable to close storage", zap.Int("store", int(store.Type())))
+			logging.WithContext(nil).Error("unable to close storage", zap.Int("store", int(store.Type())), zap.Int("index", idx))
 			lastErr = err
 		}
 	}

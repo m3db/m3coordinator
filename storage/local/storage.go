@@ -40,14 +40,14 @@ const (
 )
 
 type localStorage struct {
-	session    client.Session
-	namespace  ident.ID
-	resolution time.Duration
+	session       client.Session
+	namespace     ident.ID
+	millisPerStep int64
 }
 
 // NewStorage creates a new local Storage instance.
 func NewStorage(session client.Session, namespace string, resolution time.Duration) storage.Storage {
-	return &localStorage{session: session, namespace: ident.StringID(namespace), resolution: resolution}
+	return &localStorage{session: session, namespace: ident.StringID(namespace), millisPerStep: stepFromResolution(resolution)}
 }
 
 func (s *localStorage) Fetch(ctx context.Context, query *storage.FetchQuery, options *storage.FetchOptions) (*storage.FetchResult, error) {
@@ -66,7 +66,7 @@ func (s *localStorage) Fetch(ctx context.Context, query *storage.FetchQuery, opt
 	}
 
 	opts := storage.FetchOptionsToM3Options(options, query)
-	// TODO: Handle second return param
+	// TODO (nikunj): Handle second return param
 	iters, _, err := s.session.FetchTagged(s.namespace, m3query, opts)
 	if err != nil {
 		return nil, err
@@ -87,10 +87,9 @@ func (s *localStorage) Fetch(ctx context.Context, query *storage.FetchQuery, opt
 			result = append(result, ts.Datapoint{Timestamp: dp.Timestamp, Value: dp.Value})
 		}
 
-		millisPerStep := s.resolution.Nanoseconds() / int64(time.Millisecond)
-		values := ts.NewValues(ctx, int(millisPerStep), len(result))
+		values := ts.NewValues(ctx, int(s.millisPerStep), len(result))
 
-		// TODO: Figure out consolidation here
+		// TODO (nikunj): Figure out consolidation here
 		for i, v := range result {
 			values.SetValueAt(i, v.Value)
 		}
@@ -205,4 +204,8 @@ func newWriteRequest(writeRequestCommon *writeRequestCommon, timestamp time.Time
 func (s *localStorage) Close() error {
 	s.namespace.Finalize()
 	return nil
+}
+
+func stepFromResolution(resolution time.Duration) int64 {
+	return resolution.Nanoseconds() / int64(time.Millisecond)
 }
