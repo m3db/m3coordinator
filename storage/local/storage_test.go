@@ -110,13 +110,13 @@ func TestLocalWriteSuccess(t *testing.T) {
 func TestLocalRead(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	store, session := setup(ctrl)
-	session.EXPECT().FetchTagged(gomock.Any(), gomock.Any(), gomock.Any()).Return(test.NewMockSeriesIters(ctrl), true, nil)
+	testTags := test.GenerateTag()
+	session.EXPECT().FetchTagged(gomock.Any(), gomock.Any(), gomock.Any()).Return(test.NewMockSeriesIters(ctrl, testTags), true, nil)
 	searchReq := newFetchReq()
 	results, err := store.Fetch(context.TODO(), searchReq, &storage.FetchOptions{Limit: 100})
 	assert.NoError(t, err)
 	tags := make(models.Tags, 1)
-	generatedTag := test.GenerateTag()
-	tags[generatedTag.Name.String()] = generatedTag.Value.String()
+	tags[testTags.Name.String()] = testTags.Value.String()
 	assert.Equal(t, tags, results.SeriesList[0].Tags)
 }
 

@@ -207,5 +207,5 @@ func (s *localStorage) Close() error {
 }
 
 func stepFromResolution(resolution time.Duration) int64 {
-	return resolution.Nanoseconds() / int64(time.Millisecond)
+	return xtime.ToNormalizedTime(resolution, time.Millisecond)
 }

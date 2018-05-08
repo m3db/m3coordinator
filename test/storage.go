@@ -49,11 +49,11 @@ func (s *slowStorage) Close() error {
 }
 
 // GenerateSingleSampleTagIterator generates a new tag iterator
-func GenerateSingleSampleTagIterator(ctrl *gomock.Controller) ident.TagIterator {
+func GenerateSingleSampleTagIterator(ctrl *gomock.Controller, tag ident.Tag) ident.TagIterator {
 	mockTagIterator := ident.NewMockTagIterator(ctrl)
 	mockTagIterator.EXPECT().Remaining().Return(1)
 	mockTagIterator.EXPECT().Next().Return(true).MaxTimes(1)
-	mockTagIterator.EXPECT().Current().Return(GenerateTag())
+	mockTagIterator.EXPECT().Current().Return(tag)
 	mockTagIterator.EXPECT().Next().Return(false)
 	mockTagIterator.EXPECT().Err().Return(nil)
 	mockTagIterator.EXPECT().Close()
@@ -70,14 +70,14 @@ func GenerateTag() ident.Tag {
 }
 
 // NewMockSeriesIters generates a new mock series iters
-func NewMockSeriesIters(ctrl *gomock.Controller) encoding.SeriesIterators {
+func NewMockSeriesIters(ctrl *gomock.Controller, tags ident.Tag) encoding.SeriesIterators {
 	mockIter := encoding.NewMockSeriesIterator(ctrl)
 	mockIter.EXPECT().Next().Return(true).MaxTimes(2)
 	mockIter.EXPECT().Next().Return(false)
 	mockIter.EXPECT().Current().Return(m3ts.Datapoint{Timestamp: time.Now(), Value: 10}, xtime.Millisecond, nil)
 	mockIter.EXPECT().Current().Return(m3ts.Datapoint{Timestamp: time.Now(), Value: 10}, xtime.Millisecond, nil)
 	mockIter.EXPECT().ID().Return(ident.StringID("foo"))
-	mockIter.EXPECT().Tags().Return(GenerateSingleSampleTagIterator(ctrl))
+	mockIter.EXPECT().Tags().Return(GenerateSingleSampleTagIterator(ctrl, tags))
 
 	mockIter.EXPECT().Close()
 
