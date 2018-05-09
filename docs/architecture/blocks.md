@@ -62,7 +62,7 @@ For example, let's say we have a query that returns two timeseries from two diff
 
 
 ## Interfaces
-
+```
 type Block interface {
   Bounds() Bounds
   Tags() Tags // Common tags across different series
@@ -96,3 +96,4 @@ type SeriesIter interface {
   Next() bool
   Current() Series
 }
+```
