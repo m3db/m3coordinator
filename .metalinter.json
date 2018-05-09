@@ -5,12 +5,23 @@
       "Pattern": "PATH:LINE:COL:MESSAGE"
     },
     "importorder": {
-      "Command": "importorder -patterns=\"STDLIB github.com/m3db/m3coordinator github.com/m3db EXTERNAL\" ./...",
+      "Command": "importorder -patterns=\"STDLIB github.com/m3db/m3coordinator github.com/m3db EXTERNAL\"",
       "Pattern": "PATH:LINE:MESSAGE"
     }
   },
   "Enable":
-    [ "importorder" ],
+    [ "deadcode"
+    , "varcheck"
+    , "structcheck"
+    , "goconst"
+    , "ineffassign"
+    , "unconvert"
+    , "misspell"
+    , "unparam"
+    , "megacheck"
+    , "badtime"
+    , "golint"
+    , "importorder" ],
   "Deadline": "3m",
   "EnableGC": true
 }
