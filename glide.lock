@@ -1,5 +1,5 @@
 hash: 2fa01ea433aaa8b515c0fb91a9456e36be15e14ff24e479af652b721b298d320
-updated: 2018-05-08T18:21:54.614750173-04:00
+updated: 2018-04-27T18:14:26.541156-04:00
 imports:
 - name: github.com/alecthomas/template
   version: a0175ee3bccc567396460bf5acd36800cb10c49c
@@ -35,18 +35,18 @@ imports:
 - name: github.com/facebookgo/clock
   version: 600d898af40aa09a7a93ecb9265d87b0504b6f03
 - name: github.com/glycerine/go-unsnap-stream
-  version: 9f0cb55181dd3a0a4c168d3dbc72d4aca4853126
+  version: 62a9a9eb44fd8932157b1a8ace2149eff5971af6
 - name: github.com/go-kit/kit
-  version: 828ac175f5d2a008e9eea3a36f474f19a774a3a3
+  version: 91c58cc7d6d770b0285fdd69949a23d817a57d13
   subpackages:
   - log
   - log/level
 - name: github.com/go-logfmt/logfmt
-  version: c2152ce9154221b192a66372715a5330c67dbce3
+  version: 390ab7935ee28ec6b286364bba9b4dd6410cb3d5
 - name: github.com/go-stack/stack
   version: 259ab82a6cad3992b4e21ff5cac294ccb06474bc
 - name: github.com/gogo/protobuf
-  version: 110e410bb885ee5b4c6d6f587a042f105823169f
+  version: 100ba4e885062801d56799d78530b73b178a78f3
   subpackages:
   - gogoproto
   - proto
@@ -197,7 +197,7 @@ imports:
   subpackages:
   - difflib
 - name: github.com/prometheus/client_golang
-  version: 82f5ff156b29e276022b1a958f7d385870fb9814
+  version: c5b7fccd204277076155f10851dad72b76a49317
   subpackages:
   - prometheus
 - name: github.com/prometheus/client_model
@@ -226,7 +226,7 @@ imports:
   - util/strutil
   - util/testutil
 - name: github.com/prometheus/tsdb
-  version: d298c5a939d4203df468642d3462adb360cc72fb
+  version: def6e5a57439cffe7b44a619c05bce4ac513a63e
   subpackages:
   - chunkenc
   - chunks
@@ -249,7 +249,7 @@ imports:
   subpackages:
   - msgp
 - name: github.com/uber-go/atomic
-  version: 1ea20fb1cbb1cc08cbd0d913a96dead89aa18289
+  version: 8474b86a5a6f79c443ce4b2992817ff32cf208b8
 - name: github.com/uber-go/tally
   version: 522328b48efad0c6034dba92bf39228694e9d31f
   subpackages:
@@ -271,7 +271,7 @@ imports:
 - name: github.com/willf/bitset
   version: 988f4f24992fc745de53c42df0da6581e42a6686
 - name: go.uber.org/atomic
-  version: 1ea20fb1cbb1cc08cbd0d913a96dead89aa18289
+  version: 8474b86a5a6f79c443ce4b2992817ff32cf208b8
 - name: go.uber.org/multierr
   version: 3c4937480c32f4c13a875a1829af76c98ca3d40a
 - name: go.uber.org/zap
@@ -298,7 +298,7 @@ imports:
   - lex/httplex
   - trace
 - name: golang.org/x/sync
-  version: 1d60e4601c6fd243af51cc01ddf169918a5407ca
+  version: fd80eb99c8f653c847d294a001bdf2a3a6f768f5
   subpackages:
   - errgroup
 - name: golang.org/x/sys
