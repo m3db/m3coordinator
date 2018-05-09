@@ -40,7 +40,7 @@ const (
 // getHandler represents a handler for placement get endpoint.
 type getHandler Handler
 
-// NewGetHandler returns a new instance of handler.
+// NewGetHandler returns a new instance of a placement get handler.
 func NewGetHandler(service placement.Service) http.Handler {
 	return &getHandler{service: service}
 }

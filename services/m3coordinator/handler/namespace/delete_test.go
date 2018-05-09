@@ -26,11 +26,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gorilla/mux"
 	"github.com/m3db/m3cluster/kv"
 	nsproto "github.com/m3db/m3db/generated/proto/namespace"
 
 	"github.com/golang/mock/gomock"
+	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -42,6 +42,7 @@ func TestNamespaceDeleteHandlerNotFound(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	req := httptest.NewRequest("DELETE", "/namespace/nope", nil)
+	req = mux.SetURLVars(req, map[string]string{"id": "nope"})
 	require.NotNil(t, req)
 
 	mockKV.EXPECT().Get(M3DBNodeNamespacesKey).Return(nil, kv.ErrNotFound)

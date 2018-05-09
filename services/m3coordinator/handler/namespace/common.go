@@ -46,6 +46,9 @@ type Handler struct {
 func Metadata(store kv.Store) ([]namespace.Metadata, int, error) {
 	value, err := store.Get(M3DBNodeNamespacesKey)
 	if err != nil {
+		// From the perspective of namespace handlers, having had no metadata
+		// set at all is semantically the same as having an empty slice of
+		// metadata and is not a real error state.
 		if err == kv.ErrNotFound {
 			return []namespace.Metadata{}, -1, nil
 		}

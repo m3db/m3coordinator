@@ -39,7 +39,7 @@ const (
 // deleteAllHandler represents a handler for the placement delete all endpoint.
 type deleteAllHandler Handler
 
-// NewDeleteAllHandler returns a new instance of handler.
+// NewDeleteAllHandler returns a new instance of a placement delete all handler.
 func NewDeleteAllHandler(service placement.Service) http.Handler {
 	return &deleteAllHandler{service: service}
 }

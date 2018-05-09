@@ -42,7 +42,7 @@ const (
 // addHandler represents a handler for placement add endpoint.
 type addHandler Handler
 
-// NewAddHandler returns a new instance of handler.
+// NewAddHandler returns a new instance of a placement add handler.
 func NewAddHandler(service placement.Service) http.Handler {
 	return &addHandler{service: service}
 }

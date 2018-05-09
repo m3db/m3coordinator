@@ -21,6 +21,7 @@
 package placement
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -41,12 +42,14 @@ const (
 var (
 	// DeleteURL is the url for the placement delete handler (with the DELETE method).
 	DeleteURL = fmt.Sprintf("/placement/{%s}", placementIDVar)
+
+	errEmptyID = errors.New("must specify placement ID to delete")
 )
 
 // deleteHandler represents a handler for placement delete endpoint.
 type deleteHandler Handler
 
-// NewDeleteHandler returns a new instance of handler.
+// NewDeleteHandler returns a new instance of a placement delete handler.
 func NewDeleteHandler(service placement.Service) http.Handler {
 	return &deleteHandler{service: service}
 }
@@ -54,8 +57,14 @@ func NewDeleteHandler(service placement.Service) http.Handler {
 func (h *deleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := logging.WithContext(ctx)
+	id := mux.Vars(r)[placementIDVar]
+	if id == "" {
+		logger.Error("no placement ID provided to delete", zap.Any("error", errEmptyID))
+		handler.Error(w, errEmptyID, http.StatusBadRequest)
+		return
+	}
 
-	placement, err := h.service.RemoveInstances([]string{mux.Vars(r)[placementIDVar]})
+	placement, err := h.service.RemoveInstances([]string{id})
 	if err != nil {
 		logger.Error("unable to delete placement", zap.Any("error", err))
 		handler.Error(w, err, http.StatusInternalServerError)

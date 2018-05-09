@@ -58,7 +58,8 @@ func TestNamespaceAddHandler(t *testing.T) {
 	addHandler.ServeHTTP(w, req)
 
 	resp := w.Result()
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
+	assert.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	assert.Equal(t, "all attributes must be set\n", string(body))
 

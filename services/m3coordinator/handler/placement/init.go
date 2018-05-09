@@ -42,7 +42,7 @@ const (
 // initHandler represents a handler for placement init endpoint.
 type initHandler Handler
 
-// NewInitHandler returns a new instance of handler.
+// NewInitHandler returns a new instance of a placement init handler.
 func NewInitHandler(service placement.Service) http.Handler {
 	return &initHandler{service: service}
 }

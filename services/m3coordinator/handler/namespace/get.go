@@ -41,7 +41,7 @@ const (
 // getHandler represents a handler for namespace get endpoint.
 type getHandler Handler
 
-// NewGetHandler returns a new instance of handler.
+// NewGetHandler returns a new instance of a namespace get handler.
 func NewGetHandler(store kv.Store) http.Handler {
 	return &getHandler{store: store}
 }

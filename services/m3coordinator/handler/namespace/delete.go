@@ -25,13 +25,13 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gorilla/mux"
 	"github.com/m3db/m3coordinator/services/m3coordinator/handler"
 	"github.com/m3db/m3coordinator/util/logging"
 
 	"github.com/m3db/m3cluster/kv"
 	"github.com/m3db/m3db/storage/namespace"
 
+	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
 
@@ -46,12 +46,14 @@ var (
 
 var (
 	errNamespaceNotFound = errors.New("unable to find a namespace with specified name")
+
+	errEmptyID = errors.New("must specify namespace ID to delete")
 )
 
 // deleteHandler represents a handler for namespace delete endpoint.
 type deleteHandler Handler
 
-// NewDeleteHandler returns a new instance of handler.
+// NewDeleteHandler returns a new instance of a namespace delete handler.
 func NewDeleteHandler(store kv.Store) http.Handler {
 	return &deleteHandler{store: store}
 }
@@ -59,7 +61,14 @@ func NewDeleteHandler(store kv.Store) http.Handler {
 func (h *deleteHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	logger := logging.WithContext(ctx)
-	err := h.delete(mux.Vars(r)[namespaceIDVar])
+	id := mux.Vars(r)[namespaceIDVar]
+	if id == "" {
+		logger.Error("no namespace ID to delete", zap.Any("error", errEmptyID))
+		handler.Error(w, errEmptyID, http.StatusBadRequest)
+		return
+	}
+
+	err := h.delete(id)
 	if err != nil {
 		logger.Error("unable to delete namespace", zap.Any("error", err))
 		if err == errNamespaceNotFound {

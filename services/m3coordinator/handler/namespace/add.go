@@ -53,10 +53,9 @@ var (
 	errMissingRequiredField = errors.New("all attributes must be set")
 )
 
-// addHandler represents a handler for namespace add endpoint.
 type addHandler Handler
 
-// NewAddHandler returns a new instance of handler.
+// NewAddHandler returns a new instance of a namespace add handler.
 func NewAddHandler(store kv.Store) http.Handler {
 	return &addHandler{store: store}
 }
@@ -126,7 +125,7 @@ func (h *addHandler) add(r *admin.NamespaceAddRequest) (nsproto.Registry, error)
 	}
 
 	protoRegistry := namespace.ToProto(nsMap)
-	_, err = h.store.CheckAndSet(M3DBNodeNamespacesKey, version, protoRegistry)
+	_, err = h.store.CheckAndSet(M3DBNodeNamespacesKey, version+1, protoRegistry)
 	if err != nil {
 		return emptyReg, fmt.Errorf("failed to add namespace: %v", err)
 	}
