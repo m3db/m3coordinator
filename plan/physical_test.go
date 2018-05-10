@@ -43,7 +43,7 @@ func TestResultNode(t *testing.T) {
 
 	lp, err := NewLogicalPlan(transforms, edges)
 	require.NoError(t, err)
-	p, err := NewPhysicalPlan(lp)
+	p, err := NewPhysicalPlan(lp, nil)
 	require.NoError(t, err)
 	node, err := p.leafNode()
 	require.NoError(t, err)

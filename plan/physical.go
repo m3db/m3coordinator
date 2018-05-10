@@ -24,6 +24,7 @@ import (
 	"fmt"
 
 	"github.com/m3db/m3coordinator/parser"
+	"github.com/m3db/m3coordinator/storage"
 )
 
 // PhysicalPlan represents the physical plan
@@ -40,7 +41,8 @@ type ResultOp struct {
 
 // NewPhysicalPlan is used to generate a physical plan. Its responsibilities include creating consolidation nodes, result nodes,
 // pushing down predicates, changing the ordering for nodes
-func NewPhysicalPlan(lp LogicalPlan) (PhysicalPlan, error) {
+// nolint: unparam
+func NewPhysicalPlan(lp LogicalPlan, storage storage.Storage) (PhysicalPlan, error) {
 	// generate a new physical plan after cloning the logical plan so that any changes here do not update the logical plan
 	cloned := lp.Clone()
 	p := PhysicalPlan{
