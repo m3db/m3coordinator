@@ -46,6 +46,8 @@ const (
 
 // Handler represents a generic handler for placement endpoints.
 type Handler struct {
+	// This is used by other namespace Handlers
+	// nolint: structcheck
 	service placement.Service
 }
 
