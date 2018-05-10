@@ -23,7 +23,6 @@ package transform
 import (
 	"fmt"
 
-	"github.com/m3db/m3coordinator/executor"
 	"github.com/m3db/m3coordinator/parser"
 	"github.com/m3db/m3coordinator/storage"
 )
@@ -31,11 +30,11 @@ import (
 // Controller controls the caching and forwarding the request to downstream.
 type Controller struct {
 	ID         parser.NodeID
-	transforms []executor.OpNode
+	transforms []OpNode
 }
 
 // AddTransform adds a dependent transformation to the controller
-func (t *Controller) AddTransform(node executor.OpNode) {
+func (t *Controller) AddTransform(node OpNode) {
 	t.transforms = append(t.transforms, node)
 }
 
@@ -52,6 +51,7 @@ func (t *Controller) Process(block storage.Block) error {
 }
 
 // BlockBuilder returns a BlockBuilder instance with associated metadata
+// nolint: unparam
 func (t *Controller) BlockBuilder(blockMeta storage.BlockMetadata) (BlockBuilder, error) {
 	return nil, fmt.Errorf("not implemented")
 }

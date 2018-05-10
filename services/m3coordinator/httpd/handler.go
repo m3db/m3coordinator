@@ -57,8 +57,6 @@ type Handler struct {
 
 // NewHandler returns a new instance of handler with routes.
 func NewHandler(storage storage.Storage, engine *executor.Engine, clusterClient m3clusterClient.Client, cfg config.Configuration) (*Handler, error) {
-	var rr *http.Request
-	rr.URL.Query().Get()
 	r := mux.NewRouter()
 	logger, err := zap.NewProduction()
 	if err != nil {

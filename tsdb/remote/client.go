@@ -22,6 +22,7 @@ package remote
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/m3db/m3coordinator/errors"
@@ -126,6 +127,11 @@ func (c *grpcClient) Write(ctx context.Context, query *storage.WriteQuery) error
 		return nil
 	}
 	return err
+}
+
+func (c *grpcClient) FetchBlocks(
+	ctx context.Context, query *storage.FetchQuery, options *storage.FetchOptions) (storage.BlockResult, error) {
+	return storage.BlockResult{}, fmt.Errorf("not implemented")
 }
 
 // Close closes the underlying connection

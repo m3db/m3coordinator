@@ -26,6 +26,7 @@ type StepMeta struct {
 }
 
 // Bounds are the time bounds
+// nolint: structcheck, megacheck
 type Bounds struct {
 	start    time.Time
 	end      time.Time
@@ -48,7 +49,6 @@ type StepIter interface {
 type Step interface {
 	Time() time.Time
 	Values() []float64
-	Free()
 }
 
 // BlockMetadata is metadata for a block

@@ -22,6 +22,7 @@ package remote
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/m3db/m3coordinator/errors"
 	"github.com/m3db/m3coordinator/storage"
@@ -56,4 +57,9 @@ func (s *remoteStorage) Type() storage.Type {
 
 func (s *remoteStorage) Close() error {
 	return nil
+}
+
+func (s *remoteStorage) FetchBlocks(
+	ctx context.Context, query *storage.FetchQuery, options *storage.FetchOptions) (storage.BlockResult, error) {
+	return storage.BlockResult{}, fmt.Errorf("not implemented")
 }

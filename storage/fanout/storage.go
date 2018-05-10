@@ -22,6 +22,7 @@ package fanout
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/m3db/m3coordinator/errors"
 	"github.com/m3db/m3coordinator/models"
@@ -112,6 +113,11 @@ func (s *fanoutStorage) Write(ctx context.Context, query *storage.WriteQuery) er
 
 func (s *fanoutStorage) Type() storage.Type {
 	return storage.TypeMultiDC
+}
+
+func (s *fanoutStorage) FetchBlocks(
+	ctx context.Context, query *storage.FetchQuery, options *storage.FetchOptions) (storage.BlockResult, error) {
+	return storage.BlockResult{}, fmt.Errorf("not implemented")
 }
 
 func (s *fanoutStorage) Close() error {

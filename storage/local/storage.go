@@ -22,6 +22,7 @@ package local
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/m3db/m3coordinator/errors"
@@ -169,6 +170,11 @@ func (s *localStorage) Write(ctx context.Context, query *storage.WriteQuery) err
 
 func (s *localStorage) Type() storage.Type {
 	return storage.TypeLocalDC
+}
+
+func (s *localStorage) FetchBlocks(
+	ctx context.Context, query *storage.FetchQuery, options *storage.FetchOptions) (storage.BlockResult, error) {
+	return storage.BlockResult{}, fmt.Errorf("not implemented")
 }
 
 func (w *writeRequest) Process(ctx context.Context) error {

@@ -22,6 +22,7 @@ package mock
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/m3db/m3coordinator/storage"
 )
@@ -58,4 +59,9 @@ func (s *mockStorage) Type() storage.Type {
 
 func (s *mockStorage) Close() error {
 	return nil
+}
+
+func (s *mockStorage) FetchBlocks(
+	ctx context.Context, query *storage.FetchQuery, options *storage.FetchOptions) (storage.BlockResult, error) {
+	return storage.BlockResult{}, fmt.Errorf("not implemented")
 }

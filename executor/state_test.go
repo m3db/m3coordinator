@@ -23,6 +23,7 @@ package executor
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/m3db/m3coordinator/functions"
 	"github.com/m3db/m3coordinator/parser"
@@ -45,7 +46,7 @@ func TestValidState(t *testing.T) {
 
 	lp, err := plan.NewLogicalPlan(transforms, edges)
 	require.NoError(t, err)
-	p, err := plan.NewPhysicalPlan(lp, nil)
+	p, err := plan.NewPhysicalPlan(lp, nil, time.Now())
 	require.NoError(t, err)
 	state, err := GenerateExecutionState(p, nil)
 	require.NoError(t, err)
@@ -60,7 +61,7 @@ func TestWithoutSources(t *testing.T) {
 	edges := parser.Edges{}
 	lp, err := plan.NewLogicalPlan(transforms, edges)
 	require.NoError(t, err)
-	p, err := plan.NewPhysicalPlan(lp, nil)
+	p, err := plan.NewPhysicalPlan(lp, nil, time.Now())
 	require.NoError(t, err)
 	_, err = GenerateExecutionState(p, nil)
 	assert.Error(t, err)
@@ -72,7 +73,7 @@ func TestOnlySources(t *testing.T) {
 	edges := parser.Edges{}
 	lp, err := plan.NewLogicalPlan(transforms, edges)
 	require.NoError(t, err)
-	p, err := plan.NewPhysicalPlan(lp, nil)
+	p, err := plan.NewPhysicalPlan(lp, nil, time.Now())
 	require.NoError(t, err)
 	state, err := GenerateExecutionState(p, nil)
 	assert.NoError(t, err)
@@ -97,7 +98,7 @@ func TestMultipleSources(t *testing.T) {
 
 	lp, err := plan.NewLogicalPlan(transforms, edges)
 	require.NoError(t, err)
-	p, err := plan.NewPhysicalPlan(lp, nil)
+	p, err := plan.NewPhysicalPlan(lp, nil, time.Now())
 	require.NoError(t, err)
 	state, err := GenerateExecutionState(p, nil)
 	assert.NoError(t, err)

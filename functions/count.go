@@ -23,7 +23,6 @@ package functions
 import (
 	"fmt"
 
-	"github.com/m3db/m3coordinator/executor"
 	"github.com/m3db/m3coordinator/executor/transform"
 	"github.com/m3db/m3coordinator/parser"
 	"github.com/m3db/m3coordinator/storage"
@@ -47,7 +46,7 @@ func (o CountOp) String() string {
 }
 
 // Node creates an execution node
-func (o CountOp) Node(controller *transform.Controller) executor.OpNode {
+func (o CountOp) Node(controller *transform.Controller) transform.OpNode {
 	return &CountNode{op: o, controller: controller}
 }
 
@@ -74,7 +73,6 @@ func (c *CountNode) Process(ID parser.NodeID, block storage.Block) error {
 			sum += value
 		}
 
-		step.Free()
 		builder.AppendValue(index, sum)
 		index++
 	}
