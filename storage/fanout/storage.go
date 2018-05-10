@@ -119,7 +119,7 @@ func (s *fanoutStorage) Close() error {
 	for idx, store := range s.stores {
 		// Keep going on error to close all storages
 		if err := store.Close(); err != nil {
-			logging.WithContext(context.TODO()).Error("unable to close storage", zap.Int("store", int(store.Type())), zap.Int("index", idx))
+			logging.WithContext(context.Background()).Error("unable to close storage", zap.Int("store", int(store.Type())), zap.Int("index", idx))
 			lastErr = err
 		}
 	}
