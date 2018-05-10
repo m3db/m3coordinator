@@ -28,6 +28,7 @@ import (
 	"github.com/m3db/m3coordinator/functions"
 	"github.com/m3db/m3coordinator/parser"
 	"github.com/m3db/m3coordinator/plan"
+	"github.com/m3db/m3coordinator/storage/mock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -46,13 +47,14 @@ func TestValidState(t *testing.T) {
 
 	lp, err := plan.NewLogicalPlan(transforms, edges)
 	require.NoError(t, err)
-	p, err := plan.NewPhysicalPlan(lp, nil, time.Now())
+	store := mock.NewMockStorage()
+	p, err := plan.NewPhysicalPlan(lp, store, time.Now())
 	require.NoError(t, err)
-	state, err := GenerateExecutionState(p, nil)
+	state, err := GenerateExecutionState(p, store)
 	require.NoError(t, err)
 	require.Len(t, state.sources, 1)
 	err = state.Execute(context.Background())
-	assert.Error(t, err, "not implemented")
+	assert.NoError(t, err)
 }
 
 func TestWithoutSources(t *testing.T) {

@@ -42,9 +42,9 @@ type ExecutionState struct {
 }
 
 // CreateSource creates a source node
-func CreateSource(ID parser.NodeID, params SourceParams, storage storage.Storage) (parser.Source, *transform.Controller) {
+func CreateSource(ID parser.NodeID, params SourceParams, storage storage.Storage, options transform.Options) (parser.Source, *transform.Controller) {
 	controller := &transform.Controller{ID: ID}
-	return params.Node(controller, storage), controller
+	return params.Node(controller, storage, options), controller
 }
 
 // CreateTransform creates a transform node which works on functions and contains state
@@ -62,7 +62,7 @@ type TransformParams interface {
 // SourceParams are defined by sources
 type SourceParams interface {
 	parser.Params
-	Node(controller *transform.Controller, storage storage.Storage) parser.Source
+	Node(controller *transform.Controller, storage storage.Storage, options transform.Options) parser.Source
 }
 
 // GenerateExecutionState creates an execution state from the physical plan
@@ -78,7 +78,10 @@ func GenerateExecutionState(pplan plan.PhysicalPlan, storage storage.Storage) (*
 		return nil, fmt.Errorf("incorrect parent reference in result node, parentId: %s", result.Parent)
 	}
 
-	controller, err := state.createNode(step)
+	options := transform.Options{
+		Now: pplan.Now,
+	}
+	controller, err := state.createNode(step, options)
 	if err != nil {
 		return nil, err
 	}
@@ -96,11 +99,11 @@ func GenerateExecutionState(pplan plan.PhysicalPlan, storage storage.Storage) (*
 
 // createNode helps to create an execution node recursively
 // TODO: consider modifying this function so that ExecutionState can have a non pointer receiver
-func (s *ExecutionState) createNode(step plan.LogicalStep) (*transform.Controller, error) {
+func (s *ExecutionState) createNode(step plan.LogicalStep, options transform.Options) (*transform.Controller, error) {
 	// TODO: consider using a registry instead of casting to an interface
 	sourceParams, ok := step.Transform.Op.(SourceParams)
 	if ok {
-		source, controller := CreateSource(step.ID(), sourceParams, s.storage)
+		source, controller := CreateSource(step.ID(), sourceParams, s.storage, options)
 		s.sources = append(s.sources, source)
 		return controller, nil
 	}
@@ -117,7 +120,7 @@ func (s *ExecutionState) createNode(step plan.LogicalStep) (*transform.Controlle
 			return nil, fmt.Errorf("incorrect parent reference, parentId: %s, node: %s", parentID, step.ID())
 		}
 
-		parentController, err := s.createNode(parentStep)
+		parentController, err := s.createNode(parentStep, options)
 		if err != nil {
 			return nil, err
 		}

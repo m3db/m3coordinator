@@ -61,7 +61,7 @@ func (o FetchOp) String() string {
 }
 
 // Node creates an execution node
-func (o FetchOp) Node(controller *transform.Controller, storage storage.Storage, options *transform.Options) parser.Source {
+func (o FetchOp) Node(controller *transform.Controller, storage storage.Storage, options transform.Options) parser.Source {
 	return &FetchNode{op: o, controller: controller, storage: storage, now: options.Now}
 }
 
