@@ -22,7 +22,6 @@ package remote
 
 import (
 	"context"
-	"fmt"
 	"io"
 
 	"github.com/m3db/m3coordinator/errors"

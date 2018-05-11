@@ -22,7 +22,6 @@ package fanout
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/m3db/m3coordinator/errors"
 	"github.com/m3db/m3coordinator/models"
