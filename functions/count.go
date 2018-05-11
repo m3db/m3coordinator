@@ -64,8 +64,7 @@ func (c *CountNode) Process(ID parser.NodeID, block storage.Block) error {
 	}
 
 	stepIter := block.StepIter()
-	index := 0
-	for stepIter.Next() {
+	for index := 0; stepIter.Next(); index++ {
 		step := stepIter.Current()
 		values := step.Values()
 		sum := 0.0
@@ -74,7 +73,6 @@ func (c *CountNode) Process(ID parser.NodeID, block storage.Block) error {
 		}
 
 		builder.AppendValue(index, sum)
-		index++
 	}
 
 	return c.controller.Process(builder.Build())
