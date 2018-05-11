@@ -131,7 +131,7 @@ func (c *grpcClient) Write(ctx context.Context, query *storage.WriteQuery) error
 
 func (c *grpcClient) FetchBlocks(
 	ctx context.Context, query *storage.FetchQuery, options *storage.FetchOptions) (storage.BlockResult, error) {
-	return storage.BlockResult{}, fmt.Errorf("not implemented")
+	return storage.BlockResult{}, errors.ErrNotImplemented
 }
 
 // Close closes the underlying connection

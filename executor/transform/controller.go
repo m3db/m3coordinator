@@ -21,8 +21,7 @@
 package transform
 
 import (
-	"fmt"
-
+	"github.com/m3db/m3coordinator/errors"
 	"github.com/m3db/m3coordinator/parser"
 	"github.com/m3db/m3coordinator/storage"
 )
@@ -53,7 +52,7 @@ func (t *Controller) Process(block storage.Block) error {
 // BlockBuilder returns a BlockBuilder instance with associated metadata
 // nolint: unparam
 func (t *Controller) BlockBuilder(blockMeta storage.BlockMetadata) (BlockBuilder, error) {
-	return nil, fmt.Errorf("not implemented")
+	return nil, errors.ErrNotImplemented
 }
 
 // BlockBuilder builds a new block

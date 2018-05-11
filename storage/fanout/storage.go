@@ -117,7 +117,7 @@ func (s *fanoutStorage) Type() storage.Type {
 
 func (s *fanoutStorage) FetchBlocks(
 	ctx context.Context, query *storage.FetchQuery, options *storage.FetchOptions) (storage.BlockResult, error) {
-	return storage.BlockResult{}, fmt.Errorf("not implemented")
+	return storage.BlockResult{}, errors.ErrNotImplemented
 }
 
 func (s *fanoutStorage) Close() error {
