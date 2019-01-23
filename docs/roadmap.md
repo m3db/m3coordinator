@@ -14,19 +14,19 @@
 * Support for multiple M3DB clusters
 
 
-## Optimizations for the M3Coordinator (Q2 2018)
+## Dashboards can directly interact with the M3Coordinator to get data from M3DB and optionally other stores (Q2 2018)
 
+* Write a PromQL parser.
+* Block based data model which reduces the memory footprint and also reduces the latency for queries.
+# Better cross DC support.
+# Port all Prometheus functions to the new data model
+* Provide advanced query tracking to figure out bottlenecks.
+
+## Optimizations for the M3Coordinator (Q3 2018)
+* Write the current M3QL interfaces to conform to the common DAG structure.
+* Suggest auto aggregation rules.
 * Support authentication and rate limiting
 * Cost accounting per query and memory management to prevent M3Coordinator from going OOM
 * Push computation to storage nodes whenever possible
 * Execution state manager to keep track of running queries
 * Port the distributed computation to the M3 query service
-
-## Dashboards can directly interact with the M3Coordinator to get data from M3DB (Q3-Q4 2018)
-
-* Write a PromQL parser.
-* Write the current M3QL interfaces to conform to the common DAG structure.
-* Suggest auto aggregation rules.
-* Provide advanced query tracking to figure out bottlenecks.
-
-

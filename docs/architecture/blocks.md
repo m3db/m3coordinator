@@ -59,3 +59,41 @@ At a high level, M3DB returns to M3Coordinator `SeriesBlocks` that contain a lis
 For example, let's say we have a query that returns two timeseries from two different namespaces- 1min and 10min. When we create the M3Coordinator `Block`, in order to accurately consolidate results from these two namespaces, we need to convert everything to have a 10min resolution. Otherwise it will not be possible to perform correctly apply functions.
 
 > Coming Soon: More documentation on how M3Coordinator applies consolidation.
+
+
+## Interfaces
+```
+type Block interface {
+  Bounds() Bounds
+  Tags() Tags // Common tags across different series
+  StepIter() StepIter
+  SeriesIter() SeriesIter
+  SeriesMeta() []SeriesMeta
+  StepMeta() []StepMeta
+}
+
+type SeriesMeta struct {
+  Tags     Tags
+}
+
+type StepMeta struct {
+}
+
+type Bounds struct {
+ start time.Time
+ end   time.Time
+ stepSize time.Duration
+}
+
+// StepIter iterates through data along the time axis
+type StepIter interface {
+  Next() bool
+  Current() Step
+}
+
+// SeriesIter iterates through a single series
+type SeriesIter interface {
+  Next() bool
+  Current() Series
+}
+```
